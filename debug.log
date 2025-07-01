@@ -1,0 +1,5 @@
+Checking eBay rate limits (sandbox: False)
+Rate limit check failed: 500 - {"errorMessage":[{"error":[{"errorId":["2000"],"domain":["CoreRuntime"],"severity":["Error"],"category":["Request"],"message":["Service operation getRateLimits is unknown"],"subdomain":["Inbound_Meta_Data"],"parameter":[{"@name":"Param1","__value__":"getRateLimits"}]}]}]}
+Checking eBay rate limits (sandbox: False)
+Rate limit check failed: 500 - {"errorMessage":[{"error":[{"errorId":["2000"],"domain":["CoreRuntime"],"severity":["Error"],"category":["Request"],"message":["Service operation getRateLimits is unknown"],"subdomain":["Inbound_Meta_Data"],"parameter":[{"@name":"Param1","__value__":"getRateLimits"}]}]}]}
+Could not check rate limits, proceeding with API call
