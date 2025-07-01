@@ -1,0 +1,63 @@
+# File: restyle_project/docker-compose.yml
+
+services:
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=restyle_db
+      - POSTGRES_USER=restyle_user
+      - POSTGRES_PASSWORD=restyle_password
+    healthcheck:
+      # This test command checks if the database is ready to accept connections
+      test: ["CMD-SHELL", "pg_isready -U restyle_user -d restyle_db"]
+      
+      # --- THE FIX IS HERE ---
+      interval: 10s       # Check every 10 seconds (was 5s)
+      timeout: 5s
+      retries: 5
+      start_period: 30s # Wait 30 seconds before the first check
+      # --- END OF FIX ---
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: >
+      sh -c "python manage.py migrate && 
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A backend.celery worker -l info
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
