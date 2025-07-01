@@ -1,0 +1,27 @@
+/* File: frontend/src/components/Modal.css */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  
+  /* --- KEY CHANGES ARE HERE --- */
+  align-items: flex-start; /* Align modal to the top */
+  overflow-y: auto;        /* Allow vertical scrolling if content is too tall */
+  padding: 50px 20px;      /* Add some padding for spacing from screen edges */
+  /* --- END OF KEY CHANGES --- */
+
+  z-index: 1000;
+}
+
+.modal-content {
+  /* This will be our form card, which already has styles */
+  /* We just need to make sure it doesn't close when clicked */
+  /* We add a margin-bottom to ensure space when scrolling to the end */
+  margin-bottom: 50px;
+}
