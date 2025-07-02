@@ -1,16 +1,42 @@
 /* File: frontend/src/index.css */
 
-/* Define our color palette and theme as CSS variables for easy management */
+/* Define our dark grey and purple theme color palette and theme as CSS variables for easy management */
 :root {
-  --primary-color: #4f46e5; /* A modern indigo */
-  --primary-hover: #4338ca;
-  --background-color: #f9fafb; /* A very light off-white/gray */
-  --surface-color: #ffffff;   /* For cards, navbars, etc. */
-  --text-primary: #111827;     /* For headings */
-  --text-secondary: #6b7280;   /* For paragraphs, labels */
-  --border-color: #e5e7eb;
+  /* Primary Colors - Purple Theme */
+  --primary-color: #8b5cf6; /* Vibrant purple */
+  --primary-hover: #7c3aed;
+  --primary-light: #a78bfa;
+  --primary-dark: #6d28d9;
+  
+  /* Dark Background Colors - Grey Theme */
+  --background-color: #1a1a1a; /* Very dark grey */
+  --surface-color: #2d2d2d;    /* Dark grey for cards, navbars */
+  --surface-hover: #404040;    /* Slightly lighter for hover states */
+  --surface-light: #525252;    /* For borders and dividers */
+  
+  /* Text Colors */
+  --text-primary: #f8fafc;     /* Almost white for headings */
+  --text-secondary: #cbd5e1;   /* Light grey for paragraphs, labels */
+  --text-muted: #94a3b8;       /* Muted text for less important info */
+  --text-inverse: #1a1a1a;     /* Dark text for light backgrounds */
+  
+  /* Border and Divider Colors */
+  --border-color: #404040;
+  --border-light: #525252;
+  
+  /* Status Colors */
   --success-color: #10b981;
+  --success-hover: #059669;
   --error-color: #ef4444;
+  --error-hover: #dc2626;
+  --warning-color: #f59e0b;
+  --info-color: #8b5cf6;
+  
+  /* Shadow Colors for Dark Theme */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
 }
 
 /* Apply a modern box-sizing model and set the base font for the whole app */
@@ -23,6 +49,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--background-color);
   color: var(--text-primary);
+  line-height: 1.6;
 }
 
 /* Basic styling for links to use our theme colors */
@@ -30,26 +57,105 @@ a {
   color: var(--primary-color);
   text-decoration: none;
   font-weight: 500;
+  transition: color 0.2s ease-in-out;
 }
 
 a:hover {
+  color: var(--primary-hover);
   text-decoration: underline;
 }
 
 /* Basic styling for buttons to use our theme colors */
 button {
   background-color: var(--primary-color);
-  color: white;
+  color: var(--text-primary);
   border: none;
   padding: 10px 15px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: 500;
-  font-family: 'Inter', sans-serif; /* Ensure buttons also use the font */
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
+  box-shadow: var(--shadow-sm);
 }
 
 button:hover {
   background-color: var(--primary-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Secondary button style */
+button.secondary {
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+button.secondary:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-light);
+}
+
+/* Success and error button styles */
+button.success {
+  background-color: var(--success-color);
+}
+
+button.success:hover {
+  background-color: var(--success-hover);
+}
+
+button.error {
+  background-color: var(--error-color);
+}
+
+button.error:hover {
+  background-color: var(--error-hover);
+}
+
+/* Input field styling for dark theme */
+input, textarea, select {
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease-in-out;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
 }

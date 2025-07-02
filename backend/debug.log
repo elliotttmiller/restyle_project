@@ -902,3 +902,174 @@ eBay Browse API Response Body: {"href":"https://api.ebay.com/buy/browse/v1/item_
 [REAL DATA] Parsed item: title=Patagonia Youth Synchilla Lightweight Snap-T Fleece Tan Pullover Boys L (12), url=https://www.ebay.com/itm/326659857457?_skw=Patagonia+Synchilla+Lightweight+Snap-T+Fleece+Pullover+L&hash=item4c0e71dc31:g:3OsAAOSw-RJnmWTf&amdata=enc%3AAQAKAAABEPeG5RIuIyokJHJy903%2F5UZGdyae4L2DHHIocheomnA1ImwEBjfSUWAfQqzGwLyYjb%2BzCrbnmc%2BwTn32aqfmiRbfjLJ1xZLMaO7YcNh%2FTDUjZYvKuJtz6GNm%2BP2fdBPP8lxhqfSVNojRR8%2FItiWObUsQkE%2BSYi5Os%2Bs--MuhMWsAdTWQoTylf6iI8LKTEcTTo3QKh%2FP2GBJ5Pm5bLoOa24EViFlRIhTGavoxnugX3fKRrd7WxgRDJmYuqgnEk%2Fw%2BWPY4IYhpQHRqGFFebpxDpy3mf2WN4RPDSdopsNK8BCqQLYe53HqzqU4u6vdU1YnBlcT9%2B4HYyXRmQwC6wCpzDVdOVSkkeALNpnIs9zFuf9KN, image_url=https://i.ebayimg.com/images/g/3OsAAOSw-RJnmWTf/s-l225.jpg, price=34.99
 [REAL DATA] Parsed item: title=Patagonia Lightweight Synchilla Snap-T Fleece Pullover - Women's Small - Vintage, url=https://www.ebay.com/itm/205526604974?_skw=Patagonia+Synchilla+Lightweight+Snap-T+Fleece+Pullover+L&hash=item2fda571cae:g:EiMAAOSwm7doPCRR&amdata=enc%3AAQAKAAABEPeG5RIuIyokJHJy903%2F5UZugctmDzbM5Rt9bNVhEe%2BtLk%2B8%2FE%2FpnHrctEJWNa3ZYMAM%2FJcVClblXndCEsh4rCwTGnNgExW2dLGsLHpGDHcpthw3WG6S0x8BhBfRQk6NblIhOEsAGNLuNBztEVot9vti11BeNht%2BEZULLLfFRsQv%2FGA%2FV%2FAzIl3DHTTKuEVkTQhDrxE1eaeOMUO0l5LcROgmamS9Y7A8fqiGJI2n1Atm5Wwn7hyXLTCibgG67aHEhxlNggo%2BEY5zXbPD0yeLZ4FPW5AV1XxFsxdV3BS7EqnhPhA%2Ba%2FfkqOIKsZWgmNX0M2PL8bAOPAcKHTGP2%2FmPKYvAkWhk86Rfh9zTbyFhiMLs, image_url=https://i.ebayimg.com/images/g/EiMAAOSwm7doPCRR/s-l225.jpg, price=135.00
 [RESTFUL] Found 10 comparable items for analysis 3
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+[DEBUG] Using OAuth token: v^1.1#i^1#... (length: 1908)
+Calling eBay Browse API (RESTful) for analysis 1
+eBay Browse API Response Status: 401
+eBay Browse API Response Body: {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+eBay Browse API error: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+[DEBUG] Using OAuth token: v^1.1#i^1#... (length: 1908)
+Calling eBay Browse API (RESTful) for analysis 1
+eBay Browse API Response Status: 401
+eBay Browse API Response Body: {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+eBay Browse API error: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+eBay listing creation disabled for item 2 to avoid rate limits
+Created mock eBay listing MOCK_2_1751420114 for item 2 (API disabled)
+Unauthorized: /api/core/items/
+Unauthorized: /api/core/items/
+Unauthorized: /api/token/
+Unauthorized: /api/core/items/1/
+Unauthorized: /api/core/items/1/
+Unauthorized: /api/core/items/1/listings/
+Unauthorized: /api/core/items/1/listings/
+Unauthorized: /api/core/items/
+Unauthorized: /api/core/items/
+Unauthorized: /api/core/items/
+Unauthorized: /api/core/items/
+Unauthorized: /api/core/items/
+Unauthorized: /api/core/items/
+Watching for file changes with StatReloader
+Not Found: /core/health/
+Watching for file changes with StatReloader
+Unauthorized: /api/core/items/
+Unauthorized: /api/core/items/
+Searching eBay for: patagonia fleece
+eBay API error: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+Unauthorized: /api/core/ebay-search/
+Unauthorized: /api/core/ebay-search/
+Unauthorized: /api/core/ebay-search/
+Unauthorized: /api/core/ebay-search/
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\backend\local_settings.py changed, reloading.
+/app/backend/local_settings.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Unauthorized: /api/core/ebay-search/
+Watching for file changes with StatReloader
+Searching eBay for: Nike Air Jordan
+eBay API authentication failed: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+/app/core/views.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+/app/core/views.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Unauthorized: /api/core/ebay-search/
+Searching eBay for: nike shoes
+eBay API error: 400 - {
+  "errors": [
+    {
+      "errorId": 1002,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Missing access token",
+      "longMessage": "Access token is missing in the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+/app/core/views.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\backend\local_settings.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\backend\local_settings.py changed, reloading.
+/app/backend/local_settings.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Not Found: /api/ebay-search/
+Unauthorized: /api/core/ebay-search/
+Unauthorized: /api/token/
