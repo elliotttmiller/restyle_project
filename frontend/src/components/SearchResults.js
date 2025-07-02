@@ -6,6 +6,29 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
   const [addingItems, setAddingItems] = useState(new Set());
   const [message, setMessage] = useState('');
 
+  const CONDITION_CHOICES = [
+    { value: 'NWT', label: 'New with tags' },
+    { value: 'NWOT', label: 'New without tags' },
+    { value: 'EUC', label: 'Excellent used condition' },
+    { value: 'GUC', label: 'Good used condition' },
+    { value: 'Fair', label: 'Fair condition' },
+  ];
+
+  const mapEbayConditionToBackend = (ebayCondition) => {
+    if (!ebayCondition) return 'GUC';
+    const cond = ebayCondition.toLowerCase();
+    if (cond.includes('new with tags')) return 'NWT';
+    if (cond.includes('new without tags')) return 'NWOT';
+    if (cond.includes('excellent')) return 'EUC';
+    if (cond.includes('good')) return 'GUC';
+    if (cond.includes('fair')) return 'Fair';
+    return 'GUC';
+  };
+
+  const generateSku = () => {
+    return 'SKU-' + Math.random().toString(16).slice(2, 10).toUpperCase();
+  };
+
   const handleAddToInventory = async (item) => {
     setAddingItems(prev => new Set(prev).add(item.itemId));
     onLoading && onLoading(true);
@@ -13,25 +36,20 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
     try {
       // Extract relevant data from eBay item
       const itemData = {
-        title: item.title,
-        brand: extractBrand(item.title),
+        title: item.title || 'Untitled',
+        brand: extractBrand(item.title) || 'Unknown',
+        category: item.categoryPath || 'Misc',
         size: extractSize(item.title) || 'Unknown',
         color: extractColor(item.title) || 'Unknown',
-        condition: item.condition?.[0]?.conditionDisplayName || 'Used',
-        ebay_item_id: item.itemId,
-        image_url: item.image?.imageUrl || '',
-        current_price: parseFloat(item.price?.value || '0'),
-        currency: item.price?.currency || 'USD'
+        condition: mapEbayConditionToBackend(item.condition?.[0]?.conditionDisplayName),
+        sku: generateSku(),
+        cost_of_goods: null,
       };
 
       const response = await api.post('/core/items/', itemData);
-      
       onAddToInventory && onAddToInventory(response.data);
       setMessage(`Successfully added "${itemData.title}" to your inventory!`);
-      
-      // Clear message after 3 seconds
       setTimeout(() => setMessage(''), 3000);
-      
     } catch (err) {
       console.error('Failed to add item to inventory:', err);
       setMessage(err.response?.data?.error || 'Failed to add item to inventory. Please try again.');
