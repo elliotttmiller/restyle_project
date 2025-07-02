@@ -44,6 +44,7 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
         condition: mapEbayConditionToBackend(item.condition?.[0]?.conditionDisplayName),
         sku: generateSku(),
         cost_of_goods: null,
+        ebay_category_id: item.categoryId || '',
       };
 
       const response = await api.post('/core/items/', itemData);
