@@ -19,86 +19,72 @@ class EbaySearchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
-        """Search eBay for items using the Browse API"""
-        query = request.query_params.get('q', '').strip()
-        
-        if not query:
-            return Response({'error': 'Search query is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
+        """Proxy eBay Browse API with all supported filters and headers"""
+        # Collect all supported query params
+        params = {}
+        for key in [
+            'q', 'category_ids', 'filter', 'limit', 'offset', 'sort', 'fieldgroups', 'aspect_filter', 'compatibility_filter'
+        ]:
+            value = request.query_params.get(key)
+            if value:
+                params[key] = value
+        # Set defaults
+        if 'limit' not in params:
+            params['limit'] = 20
+        if 'offset' not in params:
+            params['offset'] = 0
+
+        # Auth
+        auth_token = getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
+        if not auth_token:
+            logger.warning("No eBay OAuth token available for search")
+            return Response({'error': 'eBay API not configured'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        # Headers
+        headers = {
+            'Authorization': f'Bearer {auth_token}',
+            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Content-Language': 'en-US',
+        }
+        # Optionally support localization
+        if 'delivery_country' in request.query_params:
+            headers['X-EBAY-C-ENDUSERCTX'] = f"contextualLocation=country={request.query_params['delivery_country']}"
+
+        api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
+        logger.info(f"Proxying eBay search: {params}")
         try:
-            # Use OAuth token for Browse API (Browse API only supports OAuth)
-            auth_token = getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
-            if not auth_token:
-                logger.warning("No eBay OAuth token available for search")
-                return Response({'error': 'eBay API not configured'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-            
-            # Call eBay Browse API
-            api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
-            params = {
-                "q": query,
-                "limit": 20,  # Get more results for better selection
-                "filter": "conditions:{NEW|USED_EXCELLENT|USED_VERY_GOOD|USED_GOOD}"  # Filter by condition
-            }
-            
-            # Use OAuth token with Authorization header
-            headers = {
-                "Authorization": f"Bearer {auth_token}",
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-            
-            logger.info(f"Searching eBay for: {query}")
             response = requests.get(api_url, headers=headers, params=params, timeout=15)
-            
             if response.status_code == 200:
                 data = response.json()
                 items = data.get('itemSummaries', [])
-                
-                # Transform eBay data to match frontend expectations
-                transformed_items = []
+                # Return all relevant fields, including affiliate link if present
                 for item in items:
-                    transformed_item = {
-                        'itemId': item.get('itemId', ''),
-                        'title': item.get('title', ''),
-                        'price': {
-                            'value': item.get('price', {}).get('value', '0'),
-                            'currency': item.get('price', {}).get('currency', 'USD')
-                        },
-                        'condition': [{
-                            'conditionDisplayName': item.get('condition', 'Unknown')
-                        }],
-                        'image': {
-                            'imageUrl': item.get('image', {}).get('imageUrl', '')
-                        },
-                        'itemWebUrl': item.get('itemWebUrl', ''),
-                        'shippingCost': item.get('shippingOptions', [{}])[0].get('shippingCost', {})
-                    }
-                    transformed_items.append(transformed_item)
-                
-                logger.info(f"Found {len(transformed_items)} items for query: {query}")
-                return Response(transformed_items, status=status.HTTP_200_OK)
-                
+                    if 'itemAffiliateWebUrl' not in item and 'itemWebUrl' in item:
+                        item['itemAffiliateWebUrl'] = item['itemWebUrl']
+                return Response(items, status=status.HTTP_200_OK)
+            elif response.status_code == 429:
+                logger.warning(f"eBay API rate limit hit: {response.text}")
+                return Response({'error': 'eBay rate limit reached. Please try again later.'}, status=429)
             elif response.status_code == 401:
                 logger.error(f"eBay API authentication failed: {response.status_code} - {response.text}")
-                return Response({'error': 'eBay authentication failed. OAuth token may have expired. Please refresh the token.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-                
+                return Response({'error': 'eBay authentication failed. OAuth token may have expired. Please refresh the token.'}, status=503)
             elif response.status_code == 403:
                 logger.error(f"eBay API access denied: {response.status_code} - {response.text}")
-                return Response({'error': 'eBay access denied. Check API permissions.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-                
+                return Response({'error': 'eBay access denied. Check API permissions.'}, status=503)
             else:
                 logger.warning(f"eBay API error: {response.status_code} - {response.text}")
-                return Response({'error': 'Failed to search eBay'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-                
+                return Response({'error': 'Failed to search eBay'}, status=503)
         except requests.exceptions.Timeout:
             logger.error("eBay API timeout")
-            return Response({'error': 'eBay search timed out'}, status=status.HTTP_504_GATEWAY_TIMEOUT)
+            return Response({'error': 'eBay search timed out'}, status=504)
         except requests.exceptions.RequestException as e:
             logger.error(f"eBay API request error: {e}")
-            return Response({'error': 'Failed to connect to eBay'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({'error': 'Failed to connect to eBay'}, status=503)
         except Exception as e:
             logger.error(f"Unexpected error in eBay search: {e}")
-            return Response({'error': 'An unexpected error occurred'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': 'An unexpected error occurred'}, status=500)
 
 # --- Item Views ---
 class ItemListCreateView(generics.ListCreateAPIView):
@@ -108,6 +94,15 @@ class ItemListCreateView(generics.ListCreateAPIView):
         return Item.objects.filter(owner=self.request.user)
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            logger.error(f"Item creation failed: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class ItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ItemSerializer
