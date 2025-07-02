@@ -27,6 +27,7 @@ class Item(models.Model):
     is_sold = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    ebay_category_id = models.CharField(max_length=32, blank=True, null=True)
     
     class Meta:
         constraints = [

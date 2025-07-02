@@ -32,5 +32,6 @@ class ItemSerializer(serializers.ModelSerializer):
         fields = [ 'id', 'owner', 'owner_username', 'title', 'description', 'brand', 
                    'category', 'size', 'color', 'cost_of_goods', 'sku', 
                    'condition', 'is_sold', 'created_at', 'updated_at',
+                   'ebay_category_id',
                    'analysis', 'listings' ]
         read_only_fields = ['owner']

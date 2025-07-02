@@ -180,7 +180,8 @@ def aggregate_analysis_results(results, analysis_id):
 
 @shared_task(name="core.tasks.perform_market_analysis")
 def perform_market_analysis(analysis_id):
-    """Main task to perform market analysis using RESTful API"""
+    print(f"[DEBUG] perform_market_analysis called for analysis_id={analysis_id}")
+    logger.info(f"[DEBUG] perform_market_analysis called for analysis_id={analysis_id}")
     try:
         analysis = MarketAnalysis.objects.get(id=analysis_id)
         analysis.status = "IN_PROGRESS"
@@ -204,6 +205,7 @@ def call_ebay_browse_api_restful(analysis_id):
     """
     Call eBay RESTful Browse API to get items for market analysis.
     """
+    logger.info(f"[ANALYSIS] Starting eBay Browse API call for analysis {analysis_id}")
     try:
         analysis = MarketAnalysis.objects.get(id=analysis_id)
         item = analysis.item
@@ -213,11 +215,16 @@ def call_ebay_browse_api_restful(analysis_id):
             logger.warning(f"No OAuth2 token available for analysis {analysis_id}, returning no data")
             return {"status": "success", "analysis_id": analysis_id, "items_found": 0, "no_token": True}
         
-        api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
-        search_query = f"{item.brand} {item.title}"
+        # Use eBay category ID if available, otherwise fallback
+        category_id = item.ebay_category_id or '11450'
+        # Use only title if brand is 'Unknown' or empty
+        if not item.brand or item.brand.strip().lower() == 'unknown':
+            search_query = item.title
+        else:
+            search_query = f"{item.brand} {item.title}"
         params = {
             "q": search_query,
-            "category_ids": "11450",
+            "category_ids": category_id,
             "limit": 10
         }
         headers = {
@@ -225,10 +232,17 @@ def call_ebay_browse_api_restful(analysis_id):
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
+        api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
         logger.info(f"Calling eBay Browse API (RESTful) for analysis {analysis_id}")
-        response = requests.get(api_url, headers=headers, params=params, timeout=15)
-        logger.info(f"eBay Browse API Response Status: {response.status_code}")
-        logger.info(f"eBay Browse API Response Body: {response.text}")
+        logger.info(f"[ANALYSIS] eBay Browse API params: {params}")
+        logger.info(f"[ANALYSIS] eBay Browse API headers: {headers}")
+        try:
+            response = requests.get(api_url, headers=headers, params=params, timeout=15)
+            logger.info(f"[ANALYSIS] eBay Browse API Response Status: {response.status_code}")
+            logger.info(f"[ANALYSIS] eBay Browse API Response Body: {response.text}")
+        except Exception as e:
+            logger.error(f"[ANALYSIS] Exception during eBay API request: {e}")
+            raise
         if response.status_code == 200:
             data = response.json()
             items = data.get('itemSummaries', [])
@@ -253,13 +267,17 @@ def call_ebay_browse_api_restful(analysis_id):
                 except Exception as e:
                     logger.warning(f"Error processing eBay RESTful item: {e}")
                     continue
-            logger.info(f"[RESTFUL] Found {items_found} comparable items for analysis {analysis_id}")
+            logger.info(f"[ANALYSIS] [RESTFUL] Found {items_found} comparable items for analysis {analysis_id}")
+            logger.info(f"[ANALYSIS] Total ComparableSale objects for analysis {analysis_id}: {ComparableSale.objects.filter(analysis=analysis).count()}")
+            logger.info(f"[ANALYSIS] Finished eBay Browse API call for analysis {analysis_id}")
             return {"status": "success", "analysis_id": analysis_id, "items_found": items_found, "restful": True}
         else:
             logger.warning(f"eBay Browse API error: {response.status_code} - {response.text}")
-            # Do NOT use fallback/mock data. Just return no items.
+            logger.info(f"[ANALYSIS] No comparable items created due to API error for analysis {analysis_id}")
+            logger.info(f"[ANALYSIS] Finished eBay Browse API call for analysis {analysis_id}")
             return {"status": "success", "analysis_id": analysis_id, "items_found": 0, "api_error": True, "restful": True}
     except MarketAnalysis.DoesNotExist:
+        logger.error(f"[ANALYSIS] MarketAnalysis with id {analysis_id} does not exist.")
         return {"status": "error", "message": "Analysis not found"}
     except Exception as e:
         logger.error(f"Error in call_ebay_browse_api_restful: {e}")
@@ -370,3 +388,8 @@ def create_ebay_listing(listing_id):
     except Exception as e:
         logger.error(f"Error in create_ebay_listing: {e}")
         return {"status": "error", "message": str(e)}
+
+@shared_task
+def test_task():
+    print("Test task executed")
+    return "Test task executed"
