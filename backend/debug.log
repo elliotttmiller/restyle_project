@@ -1073,3 +1073,32 @@ Watching for file changes with StatReloader
 Not Found: /api/ebay-search/
 Unauthorized: /api/core/ebay-search/
 Unauthorized: /api/token/
+Unauthorized: /api/core/ebay-search/
+Watching for file changes with StatReloader
+Proxying eBay search: {'q': 'nike shoes', 'limit': 20, 'offset': 0}
+eBay API authentication failed: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+/app/backend/local_settings.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Proxying eBay search: {'q': 'Nike Air Jordan', 'limit': 20, 'offset': 0}
+Proxying eBay search: {'q': 'Patagonia', 'limit': 20, 'offset': 0}
+Bad Request: /api/core/items/
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Proxying eBay search: {'q': 'nike shoes', 'limit': 20, 'offset': 0}
+Item creation failed: {'category': [ErrorDetail(string='This field is required.', code='required')], 'sku': [ErrorDetail(string='This field is required.', code='required')], 'condition': [ErrorDetail(string='"Used" is not a valid choice.', code='invalid_choice')]}
+Bad Request: /api/core/items/
