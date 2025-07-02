@@ -4,6 +4,19 @@ import React, { useState } from 'react';
 import api from '../services/api';
 import './Form.css'; // We can reuse our existing form styles
 
+const CONDITION_CHOICES = [
+  { value: 'NWT', label: 'New with tags' },
+  { value: 'NWOT', label: 'New without tags' },
+  { value: 'EUC', label: 'Excellent used condition' },
+  { value: 'GUC', label: 'Good used condition' },
+  { value: 'Fair', label: 'Fair condition' },
+];
+
+const generateSku = () => {
+  // Simple random SKU generator (8 hex chars)
+  return 'SKU-' + Math.random().toString(16).slice(2, 10).toUpperCase();
+};
+
 const AddItemForm = ({ onAddItem, onCancel }) => {
   // We use an object to hold all form data
   const [formData, setFormData] = useState({
@@ -32,11 +45,17 @@ const AddItemForm = ({ onAddItem, onCancel }) => {
     setError('');
     setLoading(true);
 
-    // Prepare data for API, ensuring cost is a number
-    const dataToSubmit = {
+    // Ensure required fields are present and valid
+    let dataToSubmit = {
       ...formData,
-      cost_of_goods: formData.cost_of_goods || null
+      cost_of_goods: formData.cost_of_goods || null,
+      sku: formData.sku || generateSku(),
+      category: formData.category || 'Misc',
     };
+    // Validate condition value
+    if (!CONDITION_CHOICES.some(opt => opt.value === dataToSubmit.condition)) {
+      dataToSubmit.condition = 'GUC';
+    }
 
     try {
       const response = await api.post('/core/items/', dataToSubmit);
@@ -82,11 +101,9 @@ const AddItemForm = ({ onAddItem, onCancel }) => {
         <div className="form-group">
           <label htmlFor="condition">Condition</label>
           <select name="condition" value={formData.condition} onChange={handleChange} required disabled={loading}>
-            <option value="NWT">New with tags</option>
-            <option value="NWOT">New without tags</option>
-            <option value="EUC">Excellent used condition</option>
-            <option value="GUC">Good used condition</option>
-            <option value="Fair">Fair condition</option>
+            {CONDITION_CHOICES.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
         </div>
         

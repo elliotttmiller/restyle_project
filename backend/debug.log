@@ -1102,3 +1102,10 @@ Watching for file changes with StatReloader
 Proxying eBay search: {'q': 'nike shoes', 'limit': 20, 'offset': 0}
 Item creation failed: {'category': [ErrorDetail(string='This field is required.', code='required')], 'sku': [ErrorDetail(string='This field is required.', code='required')], 'condition': [ErrorDetail(string='"Used" is not a valid choice.', code='invalid_choice')]}
 Bad Request: /api/core/items/
+Watching for file changes with StatReloader
+Proxying eBay search: {'q': 'nike air jordan', 'limit': 20, 'offset': 0}
+Item creation failed: {'category': [ErrorDetail(string='This field is required.', code='required')], 'sku': [ErrorDetail(string='This field is required.', code='required')], 'condition': [ErrorDetail(string='"Used" is not a valid choice.', code='invalid_choice')]}
+Bad Request: /api/core/items/
+Proxying eBay search: {'q': 'jordan 4 black cat', 'limit': 20, 'offset': 0}
+Watching for file changes with StatReloader
+Proxying eBay search: {'q': 'jordan 4s black cat', 'limit': 20, 'offset': 0}
