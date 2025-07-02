@@ -7,7 +7,7 @@ import Modal from './Modal'; // Import the Modal
 import AddItemForm from './AddItemForm'; // Import the Form
 import './Card.css';
 
-const ItemList = () => {
+const ItemList = ({ refreshTrigger }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,6 +36,13 @@ const ItemList = () => {
   useEffect(() => {
     fetchItems(); // Initial fetch
   }, []);
+
+  // Refresh items when refreshTrigger changes (when items are added from search)
+  useEffect(() => {
+    if (refreshTrigger) {
+      fetchItems();
+    }
+  }, [refreshTrigger]);
 
   const handleAnalyze = (itemId) => {
     // ... (this function remains the same)
