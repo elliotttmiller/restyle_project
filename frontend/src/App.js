@@ -12,19 +12,25 @@ import Navbar from './components/Navbar';
 function App() {
   return (
     <Router>
-      <Navbar />
-      <main style={{ padding: '2rem' }}>
-        <Routes>
-          {/* Authentication Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          
-          {/* Core Application Routes */}
-          <Route path="/item/:itemId/analysis" element={<AnalysisPage />} />
-          <Route path="/item/:itemId" element={<ItemDetailPage />} /> {/* <-- New route is added */}
-          <Route path="/" element={<DashboardPage />} />
-        </Routes>
-      </main>
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: 'var(--background-color)',
+        color: 'var(--text-primary)'
+      }}>
+        <Navbar />
+        <main>
+          <Routes>
+            {/* Authentication Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            
+            {/* Core Application Routes */}
+            <Route path="/item/:itemId/analysis" element={<AnalysisPage />} />
+            <Route path="/item/:itemId" element={<ItemDetailPage />} /> {/* <-- New route is added */}
+            <Route path="/" element={<DashboardPage />} />
+          </Routes>
+        </main>
+      </div>
     </Router>
   );
 }

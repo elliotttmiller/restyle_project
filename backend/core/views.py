@@ -26,9 +26,9 @@ class EbaySearchView(APIView):
             return Response({'error': 'Search query is required'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # Get eBay OAuth token
-            oauth_token = getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
-            if not oauth_token:
+            # Use OAuth token for Browse API (Browse API only supports OAuth)
+            auth_token = getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
+            if not auth_token:
                 logger.warning("No eBay OAuth token available for search")
                 return Response({'error': 'eBay API not configured'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             
@@ -40,8 +40,9 @@ class EbaySearchView(APIView):
                 "filter": "conditions:{NEW|USED_EXCELLENT|USED_VERY_GOOD|USED_GOOD}"  # Filter by condition
             }
             
+            # Use OAuth token with Authorization header
             headers = {
-                "Authorization": f"Bearer {oauth_token}",
+                "Authorization": f"Bearer {auth_token}",
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             }
@@ -76,6 +77,14 @@ class EbaySearchView(APIView):
                 
                 logger.info(f"Found {len(transformed_items)} items for query: {query}")
                 return Response(transformed_items, status=status.HTTP_200_OK)
+                
+            elif response.status_code == 401:
+                logger.error(f"eBay API authentication failed: {response.status_code} - {response.text}")
+                return Response({'error': 'eBay authentication failed. OAuth token may have expired. Please refresh the token.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                
+            elif response.status_code == 403:
+                logger.error(f"eBay API access denied: {response.status_code} - {response.text}")
+                return Response({'error': 'eBay access denied. Check API permissions.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
                 
             else:
                 logger.warning(f"eBay API error: {response.status_code} - {response.text}")
