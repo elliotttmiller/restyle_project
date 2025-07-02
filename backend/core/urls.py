@@ -9,12 +9,16 @@ from .views import (
     ListingDetailView,
     TriggerAnalysisView,
     AnalysisStatusView,
+    EbaySearchView,
     health_check
 )
 
 urlpatterns = [
     # Health check endpoint
     path('health/', health_check, name='health-check'),
+    
+    # eBay Search endpoint
+    path('ebay-search/', EbaySearchView.as_view(), name='ebay-search'),
     
     # Item URLs
     path('items/', ItemListCreateView.as_view(), name='item-list-create'),
