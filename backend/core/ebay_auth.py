@@ -1,0 +1,213 @@
+"""
+eBay Authentication Service
+Handles OAuth token management, refresh, and automatic renewal
+"""
+
+import requests
+import json
+import logging
+import time
+from datetime import datetime, timedelta
+from django.conf import settings
+from django.core.cache import cache
+from django.db import models
+from typing import Optional, Dict, Any
+
+logger = logging.getLogger(__name__)
+
+class EbayTokenManager:
+    """Manages eBay OAuth tokens with automatic refresh capabilities"""
+    
+    # Cache keys
+    TOKEN_CACHE_KEY = "ebay_oauth_token"
+    TOKEN_EXPIRY_CACHE_KEY = "ebay_token_expiry"
+    REFRESH_LOCK_KEY = "ebay_token_refresh_lock"
+    
+    # Token expiry buffer (refresh 1 hour before expiry)
+    EXPIRY_BUFFER = timedelta(hours=1)
+    
+    def __init__(self):
+        self.app_id = getattr(settings, 'EBAY_PRODUCTION_APP_ID', None)
+        self.cert_id = getattr(settings, 'EBAY_PRODUCTION_CERT_ID', None)
+        self.client_secret = getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
+        self.refresh_token = getattr(settings, 'EBAY_PRODUCTION_REFRESH_TOKEN', None)
+        
+    def get_valid_token(self) -> Optional[str]:
+        """
+        Get a valid OAuth token, refreshing if necessary
+        Returns None if no valid token can be obtained
+        """
+        try:
+            # Check if we have a cached token
+            cached_token = cache.get(self.TOKEN_CACHE_KEY)
+            token_expiry = cache.get(self.TOKEN_EXPIRY_CACHE_KEY)
+            
+            if cached_token and token_expiry:
+                # Check if token is still valid (with buffer)
+                if datetime.now() < token_expiry - self.EXPIRY_BUFFER:
+                    logger.debug("Using cached eBay OAuth token")
+                    return cached_token
+                else:
+                    logger.info("eBay OAuth token expired or expiring soon, refreshing...")
+            
+            # Try to refresh the token
+            return self._refresh_token()
+            
+        except Exception as e:
+            logger.error(f"Error getting valid eBay token: {e}")
+            return self._get_fallback_token()
+    
+    def _refresh_token(self) -> Optional[str]:
+        """
+        Refresh the OAuth token using the refresh token
+        Returns the new access token or None if failed
+        """
+        # Prevent multiple simultaneous refresh attempts
+        if cache.get(self.REFRESH_LOCK_KEY):
+            logger.warning("Token refresh already in progress, waiting...")
+            time.sleep(2)
+            return cache.get(self.TOKEN_CACHE_KEY)
+        
+        try:
+            # Set refresh lock
+            cache.set(self.REFRESH_LOCK_KEY, True, timeout=30)
+            
+            if not all([self.app_id, self.cert_id, self.client_secret, self.refresh_token]):
+                logger.warning("Missing eBay credentials for token refresh")
+                return self._get_fallback_token()
+            
+            # eBay OAuth token refresh endpoint
+            refresh_url = "https://api.ebay.com/identity/v1/oauth2/token"
+            
+            # Prepare the request
+            headers = {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': f'Basic {self._get_basic_auth()}'
+            }
+            
+            data = {
+                'grant_type': 'refresh_token',
+                'refresh_token': self.refresh_token,
+                'scope': 'https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account https://api.ebay.com/oauth/api_scope/sell.fulfillment'
+            }
+            
+            logger.info("Refreshing eBay OAuth token...")
+            response = requests.post(refresh_url, headers=headers, data=data, timeout=30)
+            
+            if response.status_code == 200:
+                token_data = response.json()
+                access_token = token_data.get('access_token')
+                expires_in = token_data.get('expires_in', 7200)  # Default 2 hours
+                new_refresh_token = token_data.get('refresh_token')
+                
+                if access_token:
+                    # Calculate expiry time
+                    expiry_time = datetime.now() + timedelta(seconds=expires_in)
+                    
+                    # Cache the new token
+                    cache.set(self.TOKEN_CACHE_KEY, access_token, timeout=expires_in)
+                    cache.set(self.TOKEN_EXPIRY_CACHE_KEY, expiry_time, timeout=expires_in)
+                    
+                    # Update refresh token if provided
+                    if new_refresh_token:
+                        self._update_refresh_token(new_refresh_token)
+                    
+                    logger.info(f"Successfully refreshed eBay OAuth token, expires at {expiry_time}")
+                    return access_token
+                else:
+                    logger.error("No access token in refresh response")
+                    return self._get_fallback_token()
+            else:
+                logger.error(f"Failed to refresh eBay token: {response.status_code} - {response.text}")
+                return self._get_fallback_token()
+                
+        except Exception as e:
+            logger.error(f"Exception during token refresh: {e}")
+            return self._get_fallback_token()
+        finally:
+            # Release refresh lock
+            cache.delete(self.REFRESH_LOCK_KEY)
+    
+    def _get_fallback_token(self) -> Optional[str]:
+        """
+        Get fallback token from settings (manual token)
+        This is used when automatic refresh fails
+        """
+        fallback_token = getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
+        if fallback_token:
+            logger.warning("Using fallback eBay OAuth token from settings")
+            return fallback_token
+        else:
+            logger.error("No fallback eBay OAuth token available")
+            return None
+    
+    def _get_basic_auth(self) -> str:
+        """Generate Basic Auth header for eBay API"""
+        import base64
+        credentials = f"{self.app_id}:{self.cert_id}"
+        return base64.b64encode(credentials.encode()).decode()
+    
+    def _update_refresh_token(self, new_refresh_token: str):
+        """
+        Update the refresh token in settings/local storage
+        Note: In production, you'd want to store this securely
+        """
+        try:
+            # For now, we'll log it - in production you'd update a secure storage
+            logger.info("New refresh token received - update your settings if needed")
+            # TODO: Implement secure refresh token storage
+        except Exception as e:
+            logger.error(f"Failed to update refresh token: {e}")
+    
+    def validate_token(self, token: str) -> bool:
+        """
+        Validate if a token is still valid by making a test API call
+        """
+        try:
+            test_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
+            headers = {
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json',
+                'X-EBAY-C-MARKETPLACE-ID': 'EBAY-US'
+            }
+            params = {'q': 'test', 'limit': 1}
+            
+            response = requests.get(test_url, headers=headers, params=params, timeout=10)
+            return response.status_code == 200
+            
+        except Exception as e:
+            logger.error(f"Error validating token: {e}")
+            return False
+    
+    def force_refresh(self) -> Optional[str]:
+        """
+        Force a token refresh regardless of expiry
+        Useful for manual token updates
+        """
+        logger.info("Forcing eBay OAuth token refresh...")
+        cache.delete(self.TOKEN_CACHE_KEY)
+        cache.delete(self.TOKEN_EXPIRY_CACHE_KEY)
+        return self._refresh_token()
+
+# Global token manager instance
+token_manager = EbayTokenManager()
+
+def get_ebay_oauth_token() -> Optional[str]:
+    """
+    Get a valid eBay OAuth token with automatic refresh
+    This is the main function to use throughout the application
+    """
+    return token_manager.get_valid_token()
+
+def refresh_ebay_token() -> Optional[str]:
+    """
+    Manually refresh the eBay OAuth token
+    Useful for admin operations or when tokens are known to be expired
+    """
+    return token_manager.force_refresh()
+
+def validate_ebay_token(token: str) -> bool:
+    """
+    Validate if an eBay OAuth token is still valid
+    """
+    return token_manager.validate_token(token) 
