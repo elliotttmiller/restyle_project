@@ -10,12 +10,21 @@ from .views import (
     TriggerAnalysisView,
     AnalysisStatusView,
     EbaySearchView,
-    health_check
+    health_check,
+    EbayTokenHealthView,
+    EbayTokenActionView,
+    SetEbayRefreshTokenView,
+    EbayOAuthCallbackView,
+    EbayOAuthDeclinedView
 )
 
 urlpatterns = [
     # Health check endpoint
     path('health/', health_check, name='health-check'),
+    
+    # eBay Token Monitoring
+    path('ebay-token/health/', EbayTokenHealthView.as_view(), name='ebay_token_health'),
+    path('ebay-token/action/', EbayTokenActionView.as_view(), name='ebay_token_action'),
     
     # eBay Search endpoint
     path('ebay-search/', EbaySearchView.as_view(), name='ebay-search'),
@@ -31,4 +40,10 @@ urlpatterns = [
     # Listing URLs
     path('items/<int:item_pk>/listings/', ListingListCreateView.as_view(), name='listing-list-create'),
     path('listings/<int:pk>/', ListingDetailView.as_view(), name='listing-detail'),
+
+    path('admin/set-ebay-refresh-token/', SetEbayRefreshTokenView.as_view(), name='set-ebay-refresh-token'),
+
+    path('ebay-oauth-callback/', EbayOAuthCallbackView.as_view(), name='ebay-oauth-callback'),
+
+    path('ebay-oauth-declined/', EbayOAuthDeclinedView.as_view(), name='ebay-oauth-declined'),
 ]

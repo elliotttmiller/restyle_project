@@ -18,7 +18,13 @@ import django
 django.setup()
 
 from django.conf import settings
-from core.ebay_auth import token_manager, get_ebay_oauth_token, validate_ebay_token
+try:
+    from core.ebay_auth import token_manager, get_ebay_oauth_token, validate_ebay_token
+except ImportError as e:
+    print(f"❌ ImportError: {e}")
+    token_manager = None
+    get_ebay_oauth_token = None
+    validate_ebay_token = None
 
 def test_token_manager():
     """Test the token manager functionality"""

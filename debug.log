@@ -9,3 +9,38 @@ Missing eBay credentials for token refresh
 Using fallback eBay OAuth token from settings
 Missing eBay credentials for token refresh
 Using fallback eBay OAuth token from settings
+Loaded eBay refresh token from file.
+Missing eBay credentials for token refresh
+Using fallback eBay OAuth token from settings
+Loaded eBay refresh token from file.
+Refreshing eBay OAuth token...
+Failed to refresh eBay token: 400 - {"error":"invalid_grant","error_description":"the provided authorization refresh token is invalid or was issued to another client"}
+Using fallback eBay OAuth token from settings
+Loaded eBay refresh token from file.
+New refresh token saved to file and updated in memory.
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\backend\settings.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+Loaded eBay refresh token from file.
+Refreshing eBay OAuth token...
+Successfully refreshed eBay OAuth token, expires at 2025-07-03 05:06:01.079409
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+C:\Users\Elliott\restyle_project\backend\core\views.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader

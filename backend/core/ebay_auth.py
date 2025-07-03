@@ -12,6 +12,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import models
 from typing import Optional, Dict, Any
+import os
+from django.core.mail import mail_admins
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +28,30 @@ class EbayTokenManager:
     # Token expiry buffer (refresh 1 hour before expiry)
     EXPIRY_BUFFER = timedelta(hours=1)
     
+    REFRESH_TOKEN_FILE = os.path.join(os.path.dirname(__file__), '..', 'ebay_refresh_token.txt')
+    
     def __init__(self):
         self.app_id = getattr(settings, 'EBAY_PRODUCTION_APP_ID', None)
         self.cert_id = getattr(settings, 'EBAY_PRODUCTION_CERT_ID', None)
         self.client_secret = getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
-        self.refresh_token = getattr(settings, 'EBAY_PRODUCTION_REFRESH_TOKEN', None)
+        self.refresh_token = self._load_refresh_token()
         
+    def _load_refresh_token(self):
+        """Load refresh token from file if it exists, else from settings."""
+        try:
+            token_file = os.path.abspath(self.REFRESH_TOKEN_FILE)
+            if os.path.exists(token_file):
+                with open(token_file, 'r') as f:
+                    token = f.read().strip()
+                    if token:
+                        logger.info("Loaded eBay refresh token from file.")
+                        return token
+            logger.info("Loading eBay refresh token from settings.")
+            return getattr(settings, 'EBAY_PRODUCTION_REFRESH_TOKEN', None)
+        except Exception as e:
+            logger.error(f"Failed to load refresh token: {e}")
+            return getattr(settings, 'EBAY_PRODUCTION_REFRESH_TOKEN', None)
+    
     def get_valid_token(self) -> Optional[str]:
         """
         Get a valid OAuth token, refreshing if necessary
@@ -119,6 +139,12 @@ class EbayTokenManager:
                     return self._get_fallback_token()
             else:
                 logger.error(f"Failed to refresh eBay token: {response.status_code} - {response.text}")
+                # Alert admins if refresh token is invalid or expired
+                if response.status_code == 400 and 'invalid_grant' in response.text:
+                    mail_admins(
+                        subject="eBay OAuth Re-Authorization Required",
+                        message="The eBay refresh token is invalid, expired, or revoked. Manual re-authorization is required. Please visit the eBay developer site, complete the OAuth flow, and update the refresh token in the system."
+                    )
                 return self._get_fallback_token()
                 
         except Exception as e:
@@ -149,13 +175,14 @@ class EbayTokenManager:
     
     def _update_refresh_token(self, new_refresh_token: str):
         """
-        Update the refresh token in settings/local storage
-        Note: In production, you'd want to store this securely
+        Update the refresh token in persistent storage (file)
         """
         try:
-            # For now, we'll log it - in production you'd update a secure storage
-            logger.info("New refresh token received - update your settings if needed")
-            # TODO: Implement secure refresh token storage
+            token_file = os.path.abspath(self.REFRESH_TOKEN_FILE)
+            with open(token_file, 'w') as f:
+                f.write(new_refresh_token)
+            self.refresh_token = new_refresh_token
+            logger.info("New refresh token saved to file and updated in memory.")
         except Exception as e:
             logger.error(f"Failed to update refresh token: {e}")
     

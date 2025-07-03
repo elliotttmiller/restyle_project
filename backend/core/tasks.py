@@ -15,6 +15,9 @@ from datetime import datetime, timedelta
 import time
 import os
 import numpy as np
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.contrib.auth import get_user_model
 
 logger = logging.getLogger(__name__)
 
@@ -398,3 +401,275 @@ def create_ebay_listing(listing_id):
 def test_task():
     print("Test task executed")
     return "Test task executed"
+
+@shared_task(bind=True, max_retries=3)
+def refresh_ebay_token_task(self):
+    """
+    Celery task to refresh eBay OAuth token
+    This can be scheduled to run periodically
+    """
+    try:
+        from .ebay_auth import token_manager
+        logger.info("🔄 Starting scheduled eBay token refresh...")
+        
+        token = token_manager.get_valid_token()
+        if token:
+            logger.info("✅ eBay token refresh completed successfully")
+            
+            # Store success metrics
+            cache.set('ebay_token_last_refresh', datetime.now(), timeout=86400)
+            cache.set('ebay_token_refresh_success_count', 
+                     cache.get('ebay_token_refresh_success_count', 0) + 1, 
+                     timeout=86400)
+            
+            return {"status": "success", "token_length": len(token)}
+        else:
+            logger.error("❌ eBay token refresh failed")
+            
+            # Store failure metrics
+            cache.set('ebay_token_last_failure', datetime.now(), timeout=86400)
+            cache.set('ebay_token_refresh_failure_count', 
+                     cache.get('ebay_token_refresh_failure_count', 0) + 1, 
+                     timeout=86400)
+            
+            # Retry with exponential backoff
+            raise self.retry(countdown=60 * (2 ** self.request.retries), max_retries=3)
+            
+    except Exception as e:
+        logger.error(f"❌ Error in eBay token refresh task: {e}")
+        
+        # Store error metrics
+        cache.set('ebay_token_last_error', str(e), timeout=86400)
+        
+        # Retry with exponential backoff
+        raise self.retry(countdown=60 * (2 ** self.request.retries), max_retries=3)
+
+@shared_task(bind=True, max_retries=2)
+def validate_ebay_token_task(self):
+    """
+    Celery task to validate current eBay OAuth token
+    This can be used to monitor token health
+    """
+    try:
+        from .ebay_auth import token_manager, validate_ebay_token
+        
+        token = token_manager.get_valid_token()
+        if not token:
+            logger.warning("⚠️ No eBay token available for validation")
+            cache.set('ebay_token_validation_status', 'no_token', timeout=3600)
+            return {"status": "warning", "message": "No token available"}
+        
+        is_valid = validate_ebay_token(token)
+        if is_valid:
+            logger.info("✅ eBay token validation passed")
+            cache.set('ebay_token_validation_status', 'valid', timeout=3600)
+            cache.set('ebay_token_last_validation', datetime.now(), timeout=86400)
+            return {"status": "success", "valid": True}
+        else:
+            logger.warning("⚠️ eBay token validation failed")
+            cache.set('ebay_token_validation_status', 'invalid', timeout=3600)
+            
+            # Trigger alert for invalid token
+            alert_token_health.delay("invalid_token", "eBay token validation failed")
+            
+            return {"status": "warning", "valid": False, "message": "Token may be expired"}
+            
+    except Exception as e:
+        logger.error(f"❌ Error in eBay token validation task: {e}")
+        cache.set('ebay_token_validation_status', 'error', timeout=3600)
+        
+        # Retry with exponential backoff
+        raise self.retry(countdown=30 * (2 ** self.request.retries), max_retries=2)
+
+@shared_task
+def monitor_ebay_token_health_task():
+    """
+    Comprehensive monitoring task for eBay token health
+    Runs daily to provide health overview
+    """
+    try:
+        from .ebay_auth import token_manager, validate_ebay_token
+        
+        logger.info("🏥 Starting eBay token health monitoring...")
+        
+        # Collect metrics
+        metrics = {
+            'timestamp': datetime.now().isoformat(),
+            'token_available': False,
+            'token_valid': False,
+            'last_refresh': None,
+            'last_validation': None,
+            'refresh_success_count': 0,
+            'refresh_failure_count': 0,
+            'validation_status': 'unknown'
+        }
+        
+        # Check token availability
+        token = token_manager.get_valid_token()
+        if token:
+            metrics['token_available'] = True
+            metrics['token_valid'] = validate_ebay_token(token)
+        
+        # Get cached metrics
+        metrics['last_refresh'] = cache.get('ebay_token_last_refresh')
+        metrics['last_validation'] = cache.get('ebay_token_last_validation')
+        metrics['refresh_success_count'] = cache.get('ebay_token_refresh_success_count', 0)
+        metrics['refresh_failure_count'] = cache.get('ebay_token_refresh_failure_count', 0)
+        metrics['validation_status'] = cache.get('ebay_token_validation_status', 'unknown')
+        
+        # Store comprehensive metrics
+        cache.set('ebay_token_health_metrics', metrics, timeout=86400)
+        
+        # Check for health issues
+        health_issues = []
+        
+        if not metrics['token_available']:
+            health_issues.append("No token available")
+        
+        if not metrics['token_valid']:
+            health_issues.append("Token is invalid")
+        
+        if metrics['refresh_failure_count'] > 3:
+            health_issues.append(f"Multiple refresh failures: {metrics['refresh_failure_count']}")
+        
+        if metrics['last_refresh']:
+            time_since_refresh = datetime.now() - metrics['last_refresh']
+            if time_since_refresh > timedelta(hours=24):
+                health_issues.append(f"Token not refreshed in {time_since_refresh.days} days")
+        
+        # Send alerts if issues found
+        if health_issues:
+            alert_token_health.delay("health_issues", f"eBay token health issues: {', '.join(health_issues)}")
+            logger.warning(f"⚠️ eBay token health issues detected: {health_issues}")
+        else:
+            logger.info("✅ eBay token health monitoring completed - all systems healthy")
+        
+        return {
+            "status": "success",
+            "metrics": metrics,
+            "health_issues": health_issues
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error in eBay token health monitoring: {e}")
+        alert_token_health.delay("monitoring_error", f"eBay token monitoring error: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@shared_task
+def alert_token_health(alert_type: str, message: str):
+    """
+    Send alerts for token health issues
+    """
+    try:
+        logger.warning(f"🚨 eBay Token Alert [{alert_type}]: {message}")
+        
+        # Store alert in cache for dashboard
+        alerts = cache.get('ebay_token_alerts', [])
+        alert = {
+            'timestamp': datetime.now().isoformat(),
+            'type': alert_type,
+            'message': message
+        }
+        alerts.append(alert)
+        
+        # Keep only last 10 alerts
+        if len(alerts) > 10:
+            alerts = alerts[-10:]
+        
+        cache.set('ebay_token_alerts', alerts, timeout=86400)
+        
+        # Send email alert if configured
+        if hasattr(settings, 'EBAY_ALERT_EMAIL') and settings.EBAY_ALERT_EMAIL:
+            try:
+                send_mail(
+                    subject=f'eBay Token Alert: {alert_type}',
+                    message=f"""
+eBay Token Health Alert
+
+Type: {alert_type}
+Message: {message}
+Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+Please check the eBay token configuration and refresh if necessary.
+                    """,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[settings.EBAY_ALERT_EMAIL],
+                    fail_silently=True
+                )
+                logger.info(f"📧 Email alert sent for {alert_type}")
+            except Exception as e:
+                logger.error(f"Failed to send email alert: {e}")
+        
+        return {"status": "success", "alert_sent": True}
+        
+    except Exception as e:
+        logger.error(f"❌ Error sending token alert: {e}")
+        return {"status": "error", "message": str(e)}
+
+@shared_task
+def cleanup_token_logs_task():
+    """
+    Clean up old token logs and metrics
+    Runs weekly to prevent cache bloat
+    """
+    try:
+        logger.info("🧹 Starting eBay token logs cleanup...")
+        
+        # Clean up old metrics (keep last 7 days)
+        old_metrics = cache.get('ebay_token_health_metrics')
+        if old_metrics:
+            # Keep only recent metrics
+            pass  # Cache will auto-expire
+        
+        # Clean up old alerts (keep last 10)
+        alerts = cache.get('ebay_token_alerts', [])
+        if len(alerts) > 10:
+            alerts = alerts[-10:]
+            cache.set('ebay_token_alerts', alerts, timeout=86400)
+        
+        # Reset counters monthly
+        current_date = datetime.now()
+        if current_date.day == 1:  # First day of month
+            cache.delete('ebay_token_refresh_success_count')
+            cache.delete('ebay_token_refresh_failure_count')
+            logger.info("📊 Reset monthly token refresh counters")
+        
+        logger.info("✅ eBay token logs cleanup completed")
+        return {"status": "success", "cleanup_completed": True}
+        
+    except Exception as e:
+        logger.error(f"❌ Error in token logs cleanup: {e}")
+        return {"status": "error", "message": str(e)}
+
+@shared_task
+def emergency_token_refresh_task():
+    """
+    Emergency token refresh task
+    Can be triggered manually when immediate refresh is needed
+    """
+    try:
+        from .ebay_auth import token_manager
+        
+        logger.warning("🚨 Emergency eBay token refresh triggered")
+        
+        # Force refresh
+        token = token_manager.force_refresh()
+        if token:
+            logger.info("✅ Emergency token refresh successful")
+            
+            # Send success alert
+            alert_token_health.delay("emergency_refresh_success", "Emergency token refresh completed successfully")
+            
+            return {"status": "success", "emergency_refresh": True}
+        else:
+            logger.error("❌ Emergency token refresh failed")
+            
+            # Send failure alert
+            alert_token_health.delay("emergency_refresh_failed", "Emergency token refresh failed")
+            
+            return {"status": "error", "emergency_refresh": False}
+            
+    except Exception as e:
+        logger.error(f"❌ Error in emergency token refresh: {e}")
+        alert_token_health.delay("emergency_refresh_error", f"Emergency refresh error: {str(e)}")
+        return {"status": "error", "message": str(e)}
