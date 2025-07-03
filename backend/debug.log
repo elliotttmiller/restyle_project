@@ -2066,3 +2066,237 @@ eBay Browse API error: 401 - {
 [ANALYSIS] Finished eBay Browse API call for analysis 4
 [ANALYSIS] IQR filtering: 0 outliers removed, 0 comps used.
 /app/backend/celery.py changed, reloading.
+Watching for file changes with StatReloader
+/app/core/tasks.py changed, reloading.
+Watching for file changes with StatReloader
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+/app/backend/local_settings.py changed, reloading.
+Watching for file changes with StatReloader
+/app/backend/local_settings.py changed, reloading.
+Watching for file changes with StatReloader
+/app/backend/local_settings.py changed, reloading.
+Watching for file changes with StatReloader
+Visit me at http://0.0.0.0:5555
+Broker: redis://redis:6379/0
+Registered tasks: 
+['celery.accumulate',
+ 'celery.backend_cleanup',
+ 'celery.chain',
+ 'celery.chord',
+ 'celery.chord_unlock',
+ 'celery.chunks',
+ 'celery.group',
+ 'celery.map',
+ 'celery.starmap',
+ 'core.tasks.aggregate_analysis_results',
+ 'core.tasks.alert_token_health',
+ 'core.tasks.cleanup_token_logs_task',
+ 'core.tasks.create_ebay_listing',
+ 'core.tasks.emergency_token_refresh_task',
+ 'core.tasks.monitor_ebay_token_health_task',
+ 'core.tasks.perform_market_analysis',
+ 'core.tasks.refresh_ebay_token_task',
+ 'core.tasks.test_task',
+ 'core.tasks.validate_ebay_token_task']
+Connected to redis://redis:6379/0
+Inspect method active_queues failed
+Inspect method revoked failed
+Inspect method stats failed
+Inspect method scheduled failed
+Inspect method active failed
+Inspect method registered failed
+Inspect method reserved failed
+Inspect method conf failed
+Watching for file changes with StatReloader
+Bad Request: /api/token/
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+Substantial drift from celery@c3ce31f215ba may mean clocks are out of sync.  Current drift is 18 seconds.  [orig: 2025-07-03 05:53:58.140960 recv: 2025-07-03 05:53:40.732093]
+Missing eBay credentials for token refresh
+Using fallback eBay OAuth token from settings
+Proxying eBay search: {'q': 'jordan 4s cement', 'limit': 20, 'offset': 0}
+eBay API authentication failed: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+Missing eBay credentials for token refresh
+Using fallback eBay OAuth token from settings
+Proxying eBay search: {'q': 'jordan 4s cement', 'limit': 20, 'offset': 0}
+eBay API authentication failed: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+Missing eBay credentials for token refresh
+Using fallback eBay OAuth token from settings
+Proxying eBay search: {'q': 'jordan 4s black cats', 'limit': 20, 'offset': 0}
+eBay API authentication failed: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+🔄 Starting scheduled eBay token refresh...
+✅ eBay token refresh completed successfully
+⚠️ eBay token validation failed
+Unauthorized: /api/core/ebay-search/
+Unauthorized: /api/core/ebay-search/
+Visit me at http://0.0.0.0:5555
+Broker: redis://redis:6379/0
+Registered tasks: 
+['celery.accumulate',
+ 'celery.backend_cleanup',
+ 'celery.chain',
+ 'celery.chord',
+ 'celery.chord_unlock',
+ 'celery.chunks',
+ 'celery.group',
+ 'celery.map',
+ 'celery.starmap',
+ 'core.tasks.aggregate_analysis_results',
+ 'core.tasks.alert_token_health',
+ 'core.tasks.cleanup_token_logs_task',
+ 'core.tasks.create_ebay_listing',
+ 'core.tasks.emergency_token_refresh_task',
+ 'core.tasks.monitor_ebay_token_health_task',
+ 'core.tasks.perform_market_analysis',
+ 'core.tasks.refresh_ebay_token_task',
+ 'core.tasks.test_task',
+ 'core.tasks.validate_ebay_token_task']
+Connected to redis://redis:6379/0
+Inspect method active failed
+Inspect method conf failed
+Inspect method registered failed
+Inspect method active_queues failed
+Inspect method reserved failed
+Inspect method stats failed
+Inspect method revoked failed
+Inspect method scheduled failed
+⚠️ eBay token validation failed
+Watching for file changes with StatReloader
+Unauthorized: /api/core/items/
+Unauthorized: /api/core/items/
+Missing eBay credentials for token refresh
+Using fallback eBay OAuth token from settings
+Proxying eBay search: {'q': 'nike shoes', 'limit': 20, 'offset': 0}
+eBay API authentication failed: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+/app/core/ebay_auth.py changed, reloading.
+Watching for file changes with StatReloader
+/app/backend/local_settings.py changed, reloading.
+Watching for file changes with StatReloader
+/app/backend/local_settings.py changed, reloading.
+Watching for file changes with StatReloader
+🔄 Starting scheduled eBay token refresh...
+✅ eBay token refresh completed successfully
+⚠️ eBay token validation failed
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /favicon.ico
+Not Found: /api/admin/set-ebay-refresh-token/
+Unauthorized: /api/core/admin/set-ebay-refresh-token/
+Unauthorized: /api/core/admin/set-ebay-refresh-token/
+Unauthorized: /api/core/admin/set-ebay-refresh-token/
+Unauthorized: /api/core/admin/set-ebay-refresh-token/
+/app/backend/settings.py changed, reloading.
+Watching for file changes with StatReloader
+Method Not Allowed: /api/core/admin/set-ebay-refresh-token/
+Loaded eBay refresh token from file.
+New refresh token saved to file and updated in memory.
+/app/core/ebay_auth.py changed, reloading.
+Watching for file changes with StatReloader
+Loaded eBay refresh token from file.
+Refreshing eBay OAuth token...
+Failed to refresh eBay token: 400 - {"error":"invalid_grant","error_description":"the provided authorization refresh token is invalid or was issued to another client"}
+Using fallback eBay OAuth token from settings
+Proxying eBay search: {'q': 'nike shoes', 'limit': 20, 'offset': 0}
+eBay API authentication failed: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+⚠️ eBay token validation failed
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /
+🔄 Starting scheduled eBay token refresh...
+✅ eBay token refresh completed successfully
+⚠️ eBay token validation failed
+Internal Server Error: /api/core/ebay-oauth-callback/
+Not Found: /favicon.ico
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+eBay OAuth token exchange request: url=https://api.ebay.com/identity/v1/oauth2/token, headers={'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Basic RWxsaW90dE0tUmVzdHlsZS1QUkQtZjllN2RmNzYyLTJlNTRjMDRiOlBSRC04ZTg5NGQ4YjY3MzktOGNhZS00ZmI2LWIxMDMtNTJjYQ=='}, data={'grant_type': 'authorization_code', 'code': 'v^1.1#i^1#f^0#p^3#I^3#r^1#t^Ul41XzY6M0JBOTM1RTBBRUY5OTE5RkQxNEJGOUI0NERENjFDNEJfMV8xI0VeMjYw', 'redirect_uri': 'https://f8e6-2601-444-882-b090-394b-9d47-4958-eca9.ngrok-free.app/api/core/ebay-oauth-callback/'}
+Loaded eBay refresh token from file.
+New refresh token saved to file and updated in memory.
+Refreshing eBay OAuth token...
+Successfully refreshed eBay OAuth token, expires at 2025-07-03 10:04:58.282413
+Proxying eBay search: {'q': 'nike shoes', 'limit': 20, 'offset': 0}
+eBay API authentication failed: 401 - {
+  "errors": [
+    {
+      "errorId": 1001,
+      "domain": "OAuth",
+      "category": "REQUEST",
+      "message": "Invalid access token",
+      "longMessage": "Invalid access token. Check the value of the Authorization HTTP request header."
+    }
+  ]
+}
+Service Unavailable: /api/core/ebay-search/
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+/app/core/views.py changed, reloading.
+Watching for file changes with StatReloader
+eBay OAuth token exchange request: url=https://api.ebay.com/identity/v1/oauth2/token, headers={'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Basic RWxsaW90dE0tUmVzdHlsZS1QUkQtZjllN2RmNzYyLTJlNTRjMDRiOlBSRC04ZTg5NGQ4YjY3MzktOGNhZS00ZmI2LWIxMDMtNTJjYQ=='}, data={'grant_type': 'authorization_code', 'code': 'v^1.1#i^1#r^1#I^3#f^0#p^3#t^Ul41Xzk6NjJGQjAwQjQ5NTJEMzQwMEIxMjVDOUU2QzE1MjVCN0RfMV8xI0VeMjYw', 'redirect_uri': 'https://f8e6-2601-444-882-b090-394b-9d47-4958-eca9.ngrok-free.app/api/core/ebay-oauth-callback/'}
+Loaded eBay refresh token from file.
+New refresh token saved to file and updated in memory.
+Refreshing eBay OAuth token...
+Successfully refreshed eBay OAuth token, expires at 2025-07-03 10:17:19.339873
+Using eBay access token for API call: v^1.1#...GgAA
+Proxying eBay search: {'q': 'nike shoes', 'limit': 20, 'offset': 0}
