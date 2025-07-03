@@ -7,12 +7,159 @@ from .serializers import ItemSerializer, ListingSerializer, MarketAnalysisSerial
 from .models import Item, Listing, MarketAnalysis # We need MarketAnalysis for the view
 from .tasks import create_ebay_listing, perform_market_analysis # Import the analysis task
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 import requests
 from django.conf import settings
 import logging
+from django.core.cache import cache
+from datetime import datetime, timedelta
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 logger = logging.getLogger(__name__)
+
+# --- eBay Token Monitoring Views ---
+class EbayTokenHealthView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        """Get eBay token health status and metrics"""
+        try:
+            from .ebay_auth import token_manager, validate_ebay_token
+            
+            # Get current token status
+            token = token_manager.get_valid_token()
+            token_available = bool(token)
+            token_valid = validate_ebay_token(token) if token else False
+            
+            # Get cached metrics
+            health_metrics = cache.get('ebay_token_health_metrics', {})
+            alerts = cache.get('ebay_token_alerts', [])
+            validation_status = cache.get('ebay_token_validation_status', 'unknown')
+            
+            # Calculate uptime
+            last_refresh = cache.get('ebay_token_last_refresh')
+            last_validation = cache.get('ebay_token_last_validation')
+            
+            uptime_info = {
+                'last_refresh': last_refresh.isoformat() if last_refresh else None,
+                'last_validation': last_validation.isoformat() if last_validation else None,
+                'time_since_refresh': None,
+                'time_since_validation': None
+            }
+            
+            if last_refresh:
+                uptime_info['time_since_refresh'] = (datetime.now() - last_refresh).total_seconds()
+            
+            if last_validation:
+                uptime_info['time_since_validation'] = (datetime.now() - last_validation).total_seconds()
+            
+            # Compile health data
+            health_data = {
+                'status': 'healthy' if token_available and token_valid else 'unhealthy',
+                'token_available': token_available,
+                'token_valid': token_valid,
+                'validation_status': validation_status,
+                'uptime': uptime_info,
+                'metrics': health_metrics,
+                'recent_alerts': alerts[-5:] if alerts else [],  # Last 5 alerts
+                'refresh_stats': {
+                    'success_count': cache.get('ebay_token_refresh_success_count', 0),
+                    'failure_count': cache.get('ebay_token_refresh_failure_count', 0),
+                },
+                'last_updated': datetime.now().isoformat()
+            }
+            
+            return Response(health_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error getting eBay token health: {e}")
+            return Response(
+                {'error': 'Failed to get token health status'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class EbayTokenActionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        """Perform actions on eBay tokens"""
+        action = request.data.get('action')
+        
+        if action == 'refresh':
+            return self._refresh_token(request)
+        elif action == 'validate':
+            return self._validate_token(request)
+        elif action == 'emergency_refresh':
+            return self._emergency_refresh(request)
+        else:
+            return Response(
+                {'error': 'Invalid action. Use: refresh, validate, or emergency_refresh'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def _refresh_token(self, request):
+        """Manually trigger token refresh"""
+        try:
+            from .tasks import refresh_ebay_token_task
+            
+            # Trigger refresh task
+            task = refresh_ebay_token_task.delay()
+            
+            return Response({
+                'message': 'Token refresh initiated',
+                'task_id': task.id,
+                'status': 'queued'
+            }, status=status.HTTP_202_ACCEPTED)
+            
+        except Exception as e:
+            logger.error(f"Error triggering token refresh: {e}")
+            return Response(
+                {'error': 'Failed to trigger token refresh'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _validate_token(self, request):
+        """Manually validate token"""
+        try:
+            from .tasks import validate_ebay_token_task
+            
+            # Trigger validation task
+            task = validate_ebay_token_task.delay()
+            
+            return Response({
+                'message': 'Token validation initiated',
+                'task_id': task.id,
+                'status': 'queued'
+            }, status=status.HTTP_202_ACCEPTED)
+            
+        except Exception as e:
+            logger.error(f"Error triggering token validation: {e}")
+            return Response(
+                {'error': 'Failed to trigger token validation'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _emergency_refresh(self, request):
+        """Emergency token refresh"""
+        try:
+            from .tasks import emergency_token_refresh_task
+            
+            # Trigger emergency refresh task
+            task = emergency_token_refresh_task.delay()
+            
+            return Response({
+                'message': 'Emergency token refresh initiated',
+                'task_id': task.id,
+                'status': 'queued'
+            }, status=status.HTTP_202_ACCEPTED)
+            
+        except Exception as e:
+            logger.error(f"Error triggering emergency refresh: {e}")
+            return Response(
+                {'error': 'Failed to trigger emergency refresh'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 # --- eBay Search Views ---
 class EbaySearchView(APIView):
@@ -40,11 +187,15 @@ class EbaySearchView(APIView):
             auth_token = get_ebay_oauth_token()
         except Exception as e:
             logger.error(f"Error getting eBay token: {e}")
-            auth_token = getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
+            auth_token = None
         
-        if not auth_token:
-            logger.warning("No eBay OAuth token available for search")
-            return Response({'error': 'eBay API not configured'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        # Always log the access token being used (mask for security)
+        if auth_token:
+            masked_token = auth_token[:6] + '...' + auth_token[-4:]
+            logger.error(f"Using eBay access token for API call: {masked_token}")
+        else:
+            logger.warning("No valid eBay OAuth token available for search (no fallback).")
+            return Response({'error': 'No valid eBay OAuth token available. Please re-authorize the app.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         # Headers
         headers = {
@@ -190,3 +341,74 @@ class ListingDetailView(generics.RetrieveUpdateDestroyAPIView):
 def health_check(request):
     """Simple health check endpoint for startup scripts"""
     return Response({"status": "healthy", "message": "Backend is running"})
+
+class SetEbayRefreshTokenView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        new_token = request.data.get('refresh_token')
+        if not new_token:
+            return Response({'error': 'Missing refresh_token in request body.'}, status=400)
+        try:
+            from .ebay_auth import token_manager
+            token_manager._update_refresh_token(new_token)
+            return Response({'message': 'Refresh token updated successfully!'}, status=200)
+        except Exception as e:
+            return Response({'error': f'Failed to update refresh token: {e}'}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EbayOAuthCallbackView(APIView):
+    permission_classes = []  # Public endpoint for OAuth redirect
+
+    def get(self, request):
+        code = request.query_params.get('code')
+        if not code:
+            return Response({'error': 'Missing code parameter from eBay.'}, status=400)
+        try:
+            # Exchange code for tokens
+            from django.conf import settings
+            import requests
+            import base64
+            import logging
+
+            client_id = getattr(settings, 'EBAY_PRODUCTION_APP_ID', None)
+            client_secret = getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
+            # Hardcoded redirect_uri to match eBay app settings
+            redirect_uri = "https://f8e6-2601-444-882-b090-394b-9d47-4958-eca9.ngrok-free.app/api/core/ebay-oauth-callback/"
+            if not all([client_id, client_secret]):
+                return Response({'error': 'Missing eBay client credentials.'}, status=500)
+
+            token_url = 'https://api.ebay.com/identity/v1/oauth2/token'
+            basic_auth = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+            headers = {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': f'Basic {basic_auth}',
+            }
+            data = {
+                'grant_type': 'authorization_code',
+                'code': code,
+                'redirect_uri': redirect_uri,
+            }
+            # Log the outgoing request for debugging
+            logging.error(f"eBay OAuth token exchange request: url={token_url}, headers={headers}, data={data}")
+            resp = requests.post(token_url, headers=headers, data=data, timeout=30)
+            if resp.status_code == 200:
+                token_data = resp.json()
+                refresh_token = token_data.get('refresh_token')
+                if refresh_token:
+                    from .ebay_auth import token_manager
+                    token_manager._update_refresh_token(refresh_token)
+                    return Response({'message': 'eBay refresh token updated successfully! You may close this window.'}, status=200)
+                else:
+                    return Response({'error': 'No refresh token in response.'}, status=500)
+            else:
+                logging.error(f"eBay OAuth token exchange response: status={resp.status_code}, body={resp.text}")
+                return Response({'error': f'Failed to exchange code: {resp.status_code} {resp.text}'}, status=500)
+        except Exception as e:
+            return Response({'error': f'Exception during token exchange: {e}'}, status=500)
+
+class EbayOAuthDeclinedView(APIView):
+    permission_classes = []  # Public endpoint
+
+    def get(self, request):
+        return Response({'message': 'eBay authorization was declined. If this was a mistake, please try again.'}, status=200)
