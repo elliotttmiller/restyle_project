@@ -187,6 +187,7 @@ def aggregate_analysis_results(results, analysis_id):
 
 @shared_task(name="core.tasks.perform_market_analysis")
 def perform_market_analysis(analysis_id):
+    logger.error(f"[PERFORM_MARKET_ANALYSIS] Called for analysis_id={analysis_id}")
     print(f"[DEBUG] perform_market_analysis called for analysis_id={analysis_id}")
     logger.info(f"[DEBUG] perform_market_analysis called for analysis_id={analysis_id}")
     try:
@@ -209,6 +210,7 @@ def perform_market_analysis(analysis_id):
         return {"status": "error", "message": str(e)}
 
 def call_ebay_browse_api_restful(analysis_id):
+    logger.error(f"[CALL_EBAY_BROWSE_API_RESTFUL] Called for analysis_id={analysis_id}")
     """
     Call eBay RESTful Browse API to get items for market analysis.
     """
@@ -216,7 +218,13 @@ def call_ebay_browse_api_restful(analysis_id):
     try:
         analysis = MarketAnalysis.objects.get(id=analysis_id)
         item = analysis.item
-        oauth_token = getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
+        # Use the same token logic as the manual search endpoint
+        try:
+            from .ebay_auth import get_ebay_oauth_token
+            oauth_token = get_ebay_oauth_token()
+        except Exception as e:
+            logger.error(f"Error getting eBay token: {e}")
+            oauth_token = None
         logger.info(f"[DEBUG] Using OAuth token: {str(oauth_token)[:10]}... (length: {len(str(oauth_token)) if oauth_token else 0})")
         if not oauth_token:
             logger.warning(f"No OAuth2 token available for analysis {analysis_id}, returning no data")
