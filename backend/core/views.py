@@ -421,5 +421,84 @@ class EbayOAuthDeclinedView(APIView):
     def get(self, request):
         return Response({'message': 'eBay authorization was declined. If this was a mistake, please try again.'}, status=200)
 
+class PriceAnalysisView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # Accepts: title, brand, category, size, color, condition, etc.
+        data = request.data
+        title = data.get('title')
+        brand = data.get('brand')
+        category = data.get('category')
+        size = data.get('size')
+        color = data.get('color')
+        condition = data.get('condition')
+        # Compose a query string for eBay search
+        query = f"{brand or ''} {title or ''} {size or ''} {color or ''} {condition or ''}".strip()
+        params = {
+            'q': query,
+            'limit': 10,
+        }
+        try:
+            from .ebay_auth import get_ebay_oauth_token
+            auth_token = get_ebay_oauth_token()
+        except Exception as e:
+            logger.error(f"Error getting eBay token: {e}")
+            auth_token = None
+        if not auth_token:
+            return Response({'error': 'No valid eBay OAuth token available. Please re-authorize the app.'}, status=503)
+        headers = {
+            'Authorization': f'Bearer {auth_token}',
+            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Content-Language': 'en-US',
+        }
+        api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
+        try:
+            response = requests.get(api_url, headers=headers, params=params, timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get('itemSummaries', [])
+                comps = []
+                prices = []
+                for idx, item in enumerate(items):
+                    price = item.get('price', {}).get('value')
+                    if price:
+                        prices.append(float(price))
+                    comps.append({
+                        'id': idx + 1,
+                        'title': item.get('title', ''),
+                        'sold_price': float(price) if price else 0.0,
+                        'platform': 'eBay',
+                        'image_url': item.get('image', {}).get('imageUrl', ''),
+                        'source_url': item.get('itemWebUrl', ''),
+                    })
+                if prices:
+                    price_range_low = min(prices)
+                    price_range_high = max(prices)
+                    suggested_price = sum(prices) / len(prices)
+                else:
+                    price_range_low = price_range_high = suggested_price = 0.0
+                analysis = {
+                    'price_range_low': price_range_low,
+                    'price_range_high': price_range_high,
+                    'suggested_price': suggested_price,
+                    'status': 'COMPLETE',
+                    'comps': comps,
+                }
+                return Response(analysis, status=200)
+            elif response.status_code == 429:
+                return Response({'error': 'eBay rate limit reached. Please try again later.'}, status=429)
+            elif response.status_code == 401:
+                return Response({'error': 'eBay authentication failed. OAuth token may have expired. Please refresh the token.'}, status=503)
+            else:
+                return Response({'error': 'Failed to search eBay for comps.'}, status=503)
+        except requests.exceptions.Timeout:
+            return Response({'error': 'eBay search timed out'}, status=504)
+        except Exception as e:
+            logger.error(f"Error in PriceAnalysisView: {e}")
+            return Response({'error': 'An unexpected error occurred'}, status=500)
+
 ItemDoesNotExist = Item.DoesNotExist
 MarketAnalysisDoesNotExist = MarketAnalysis.DoesNotExist
