@@ -34,8 +34,14 @@ class EbaySearchView(APIView):
         if 'offset' not in params:
             params['offset'] = 0
 
-        # Auth
-        auth_token = getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
+        # Auth - Use token manager with automatic refresh
+        try:
+            from .ebay_auth import get_ebay_oauth_token
+            auth_token = get_ebay_oauth_token()
+        except Exception as e:
+            logger.error(f"Error getting eBay token: {e}")
+            auth_token = getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
+        
         if not auth_token:
             logger.warning("No eBay OAuth token available for search")
             return Response({'error': 'eBay API not configured'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)

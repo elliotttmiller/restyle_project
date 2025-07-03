@@ -14,18 +14,19 @@ import logging
 from datetime import datetime, timedelta
 import time
 import os
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 def get_ebay_oauth_token():
-    """Get eBay OAuth token for API access"""
+    """Get eBay OAuth token for API access with automatic refresh"""
     try:
-        # For now, we'll use the user token from settings
-        # In production, you'd implement OAuth flow
-        return getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
+        from .ebay_auth import get_ebay_oauth_token as get_token
+        return get_token()
     except Exception as e:
         logger.error(f"Error getting eBay OAuth token: {e}")
-        return None
+        # Fallback to settings token
+        return getattr(settings, 'EBAY_PRODUCTION_USER_TOKEN', None)
 
 def check_ebay_rate_limits():
     """
@@ -132,33 +133,37 @@ def aggregate_analysis_results(results, analysis_id):
     try:
         analysis = MarketAnalysis.objects.get(id=analysis_id)
         comps = ComparableSale.objects.filter(analysis=analysis)
-        
-        # Check if we were rate limited
         rate_limited = any(result.get('rate_limited', False) for result in results)
-        
-        if comps.exists():
-            # Calculate price statistics
-            prices = [comp.sold_price for comp in comps]
-            avg_price = sum(prices) / len(prices)
-            min_price = min(prices)
-            max_price = max(prices)
-            
-            # Set analysis results
-            analysis.suggested_price = Decimal(str(round(avg_price, 2)))
-            analysis.price_range_low = Decimal(str(round(min_price, 2)))
-            analysis.price_range_high = Decimal(str(round(max_price, 2)))
-            
-            # Calculate confidence score based on number of comps
-            if len(comps) >= 10:
-                analysis.confidence_score = "HIGH"
-            elif len(comps) >= 5:
-                analysis.confidence_score = "MEDIUM"
-            else:
-                analysis.confidence_score = "LOW"
+        prices = [float(comp.sold_price) for comp in comps]
+        outliers_removed = 0
+        filtered_prices = prices
+        if len(prices) >= 3:
+            q1 = np.percentile(prices, 25)
+            q3 = np.percentile(prices, 75)
+            iqr = q3 - q1
+            lower_bound = q1 - 1.5 * iqr
+            upper_bound = q3 + 1.5 * iqr
+            filtered_prices = [p for p in prices if lower_bound <= p <= upper_bound]
+            outliers_removed = len(prices) - len(filtered_prices)
+        if filtered_prices:
+            median_price = float(np.median(filtered_prices))
+            min_price = min(filtered_prices)
+            max_price = max(filtered_prices)
         else:
-            # If no comparable sales found, set default values
+            median_price = min_price = max_price = 0
+        analysis.suggested_price = Decimal(str(round(median_price, 2)))
+        analysis.price_range_low = Decimal(str(round(min_price, 2)))
+        analysis.price_range_high = Decimal(str(round(max_price, 2)))
+        # Confidence score based on number of comps after filtering
+        if len(filtered_prices) >= 10:
+            analysis.confidence_score = "HIGH"
+        elif len(filtered_prices) >= 5:
+            analysis.confidence_score = "MEDIUM"
+        elif len(filtered_prices) > 0:
+            analysis.confidence_score = "LOW"
+        else:
             if rate_limited:
-                analysis.suggested_price = Decimal('75.00')  # Higher default for rate limited
+                analysis.suggested_price = Decimal('75.00')
                 analysis.price_range_low = Decimal('60.00')
                 analysis.price_range_high = Decimal('90.00')
                 analysis.confidence_score = "LOW (Rate Limited)"
@@ -167,11 +172,10 @@ def aggregate_analysis_results(results, analysis_id):
                 analysis.price_range_low = Decimal('40.00')
                 analysis.price_range_high = Decimal('60.00')
                 analysis.confidence_score = "LOW"
-        
         analysis.status = "COMPLETED"
         analysis.save()
-        
-        return {"status": "success", "analysis_id": analysis_id, "rate_limited": rate_limited}
+        logger.info(f"[ANALYSIS] IQR filtering: {outliers_removed} outliers removed, {len(filtered_prices)} comps used.")
+        return {"status": "success", "analysis_id": analysis_id, "rate_limited": rate_limited, "outliers_removed": outliers_removed}
     except MarketAnalysis.DoesNotExist:
         return {"status": "error", "message": "Analysis not found"}
     except Exception as e:
@@ -236,6 +240,7 @@ def call_ebay_browse_api_restful(analysis_id):
         logger.info(f"Calling eBay Browse API (RESTful) for analysis {analysis_id}")
         logger.info(f"[ANALYSIS] eBay Browse API params: {params}")
         logger.info(f"[ANALYSIS] eBay Browse API headers: {headers}")
+        
         try:
             response = requests.get(api_url, headers=headers, params=params, timeout=15)
             logger.info(f"[ANALYSIS] eBay Browse API Response Status: {response.status_code}")
