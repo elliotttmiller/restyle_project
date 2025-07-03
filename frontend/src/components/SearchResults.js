@@ -213,14 +213,14 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
                   {addingItems.has(item.itemId) ? 'Adding...' : 'Add to Inventory'}
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <a 
-                    href={item.itemWebUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="view-on-ebay-btn"
-                  >
-                    View on eBay
-                  </a>
+                <a 
+                  href={item.itemWebUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="view-on-ebay-btn"
+                >
+                  View on eBay
+                </a>
                   <button
                     className="price-analysis-btn add-to-inventory-btn"
                     onClick={() => handlePriceAnalysis(item)}
@@ -251,7 +251,7 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
                 <div className="stat-value-small">
                   {analysisData ? `$${analysisData.price_range_low.toFixed(2)} - $${analysisData.price_range_high.toFixed(2)}` : 'N/A'}
                 </div>
-              </div>
+                  </div>
               <div className="stat" style={{ flex: 1, textAlign: 'center' }}>
                 <div className="stat-label">Suggested Price</div>
                 <div className="stat-value">
@@ -274,10 +274,10 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
               {analysisError && <p style={{ color: 'red' }}>{analysisError}</p>}
               {analysisData && analysisData.comps.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {analysisData.comps.map(comp => (
+                    {analysisData.comps.map(comp => (
                     <div key={comp.id} className="comp-card" style={{ display: 'flex', flexDirection: 'row', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.05)', padding: '1rem', minHeight: 180 }}>
                       {/* Image */}
-                      {comp.image_url ? (
+                        {comp.image_url ? (
                         <img src={comp.image_url} alt={comp.title} style={{ width: 140, height: 140, objectFit: 'cover', borderRadius: 8, marginRight: 24 }} />
                       ) : (
                         <div style={{ width: 140, height: 140, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', borderRadius: 8, marginRight: 24 }}>No Image</div>
@@ -295,13 +295,13 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
                           <a href={comp.source_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-color)', textDecoration: 'underline', fontWeight: 600 }}>View Listing</a>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
+                      </div>
+                    ))}
+                  </div>
+                ) : (
                 <p>No comparable listings found or analysis has not completed.</p>
-              )}
-            </div>
+                )}
+              </div>
           </div>
         </Modal>
       )}

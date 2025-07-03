@@ -486,8 +486,8 @@ class PriceAnalysisView(APIView):
                     'suggested_price': suggested_price,
                     'status': 'COMPLETE',
                     'comps': comps,
-                }
-                return Response(analysis, status=200)
+        }
+        return Response(analysis, status=200)
             elif response.status_code == 429:
                 return Response({'error': 'eBay rate limit reached. Please try again later.'}, status=429)
             elif response.status_code == 401:
