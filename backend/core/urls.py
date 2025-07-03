@@ -15,7 +15,8 @@ from .views import (
     EbayTokenActionView,
     SetEbayRefreshTokenView,
     EbayOAuthCallbackView,
-    EbayOAuthDeclinedView
+    EbayOAuthDeclinedView,
+    PriceAnalysisView,
 )
 
 urlpatterns = [
@@ -46,4 +47,6 @@ urlpatterns = [
     path('ebay-oauth-callback/', EbayOAuthCallbackView.as_view(), name='ebay-oauth-callback'),
 
     path('ebay-oauth-declined/', EbayOAuthDeclinedView.as_view(), name='ebay-oauth-declined'),
+
+    path('price-analysis/', PriceAnalysisView.as_view(), name='price-analysis'),
 ]
