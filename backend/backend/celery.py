@@ -47,6 +47,8 @@ app.conf.task_routes = {
     'core.tasks.validate_ebay_token_task': {'queue': 'ebay_tokens'},
     'core.tasks.monitor_ebay_token_health_task': {'queue': 'ebay_tokens'},
     'core.tasks.cleanup_token_logs_task': {'queue': 'ebay_tokens'},
+    'core.tasks.perform_market_analysis': {'queue': 'default'},
+    'core.tasks.aggregate_analysis_results': {'queue': 'default'},
 }
 
 # Task settings for eBay token management

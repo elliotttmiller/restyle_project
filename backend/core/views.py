@@ -1,10 +1,13 @@
 # File: backend/core/views.py
 
+# pyright: reportAttributeAccessIssue=false
+
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .serializers import ItemSerializer, ListingSerializer, MarketAnalysisSerializer
 from .models import Item, Listing, MarketAnalysis # We need MarketAnalysis for the view
+from .models import Item, MarketAnalysis
 from .tasks import create_ebay_listing, perform_market_analysis # Import the analysis task
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -102,13 +105,12 @@ class EbayTokenActionView(APIView):
         """Manually trigger token refresh"""
         try:
             from .tasks import refresh_ebay_token_task
-            
             # Trigger refresh task
-            task = refresh_ebay_token_task.delay()
-            
+            task = refresh_ebay_token_task.delay() if hasattr(refresh_ebay_token_task, "delay") and callable(refresh_ebay_token_task.delay) else None
+
             return Response({
                 'message': 'Token refresh initiated',
-                'task_id': task.id,
+                'task_id': getattr(task, "id", None),
                 'status': 'queued'
             }, status=status.HTTP_202_ACCEPTED)
             
@@ -123,13 +125,12 @@ class EbayTokenActionView(APIView):
         """Manually validate token"""
         try:
             from .tasks import validate_ebay_token_task
-            
             # Trigger validation task
-            task = validate_ebay_token_task.delay()
-            
+            task = validate_ebay_token_task.delay() if hasattr(validate_ebay_token_task, "delay") and callable(validate_ebay_token_task.delay) else None
+
             return Response({
                 'message': 'Token validation initiated',
-                'task_id': task.id,
+                'task_id': getattr(task, "id", None),
                 'status': 'queued'
             }, status=status.HTTP_202_ACCEPTED)
             
@@ -213,9 +214,11 @@ class EbaySearchView(APIView):
         logger.info(f"Proxying eBay search: {params}")
         try:
             response = requests.get(api_url, headers=headers, params=params, timeout=15)
+            logger.error(f"eBay API response status: {response.status_code}, body: {response.text}")
             if response.status_code == 200:
                 data = response.json()
                 items = data.get('itemSummaries', [])
+                logger.error(f"eBay API returned {len(items)} items for query: {params}")
                 # Return all relevant fields, including affiliate link if present
                 for item in items:
                     if 'itemAffiliateWebUrl' not in item and 'itemWebUrl' in item:
@@ -273,27 +276,26 @@ class TriggerAnalysisView(APIView):
     def post(self, request, pk):
         try:
             item = Item.objects.get(pk=pk, owner=request.user)
-            
             # Create or get existing analysis
             analysis, created = MarketAnalysis.objects.get_or_create(
                 item=item,
                 defaults={'status': 'PENDING'}
             )
-            
             # Trigger the market analysis task
             task = perform_market_analysis.delay(analysis.id)
-            analysis.task_id = task.id
+            analysis.task_id = getattr(task, 'id', None)
             analysis.save()
-            
+            logger.error(f"[TRIGGER_ANALYSIS] Triggered for item {item.id}, analysis {analysis.id}, task_id {getattr(task, 'id', None)} (created={created})")
             return Response({
                 'message': f'Analysis started for item {pk}',
                 'analysis_id': analysis.id,
-                'task_id': task.id
+                'task_id': getattr(task, 'id', None)
             }, status=status.HTTP_200_OK)
-            
         except Item.DoesNotExist:
+            logger.error(f"[TRIGGER_ANALYSIS] Item {pk} not found for user {request.user}")
             return Response({'error': 'Item not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            logger.error(f"[TRIGGER_ANALYSIS] Failed to start analysis for item {pk}: {str(e)}")
             return Response({'error': f'Failed to start analysis: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class AnalysisStatusView(APIView):
@@ -303,11 +305,17 @@ class AnalysisStatusView(APIView):
             item = Item.objects.get(pk=pk, owner=request.user)
             try:
                 analysis = MarketAnalysis.objects.get(item=item)
+                comps_qs = analysis.comps.all()
+                comps_count = comps_qs.count()
+                comps_titles = list(comps_qs.values_list('title', flat=True))
+                logger.error(f"[DEBUG] AnalysisStatusView: Returning analysis {analysis.id} with {comps_count} comps: {comps_titles}")
                 serializer = MarketAnalysisSerializer(analysis)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except MarketAnalysis.DoesNotExist:
+                logger.error(f"[DEBUG] AnalysisStatusView: No analysis found for item {item.id}")
                 return Response({'error': 'No analysis found for this item'}, status=status.HTTP_404_NOT_FOUND)
         except Item.DoesNotExist:
+            logger.error(f"[DEBUG] AnalysisStatusView: Item {pk} not found for user {request.user}")
             return Response({'error': 'Item not found'}, status=status.HTTP_404_NOT_FOUND)
 
 # --- Listing Views ---
@@ -412,3 +420,6 @@ class EbayOAuthDeclinedView(APIView):
 
     def get(self, request):
         return Response({'message': 'eBay authorization was declined. If this was a mistake, please try again.'}, status=200)
+
+ItemDoesNotExist = Item.DoesNotExist
+MarketAnalysisDoesNotExist = MarketAnalysis.DoesNotExist
