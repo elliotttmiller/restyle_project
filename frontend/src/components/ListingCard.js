@@ -27,7 +27,7 @@ const ListingCard = ({ listing }) => {
       <div className="item-actions">
         {listing.listing_url ? (
           <a href={listing.listing_url} target="_blank" rel="noopener noreferrer">
-            <button style={{ backgroundColor: '#6b7280' }}>View Listing</button>
+            <button className="view-listing-btn">View Listing</button>
           </a>
         ) : (
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>

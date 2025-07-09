@@ -4,7 +4,7 @@ Re-Style Application Startup Script (Fixed for Windows)
 This script starts the entire Re-Style application including:
 - Docker services (backend, frontend, Redis, Celery)
 - Database setup and migrations
-- Frontend build and serve
+- Frontend build and server
 - Health checks
 """
 

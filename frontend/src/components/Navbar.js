@@ -93,6 +93,34 @@ const Navbar = () => {
             >
               Dashboard
             </Link>
+            <Link 
+              to="/inventory" 
+              style={linkStyle} 
+              onMouseOver={e => {
+                e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }} 
+              onMouseOut={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              Inventory
+            </Link>
+            <Link 
+              to="/listings" 
+              style={linkStyle} 
+              onMouseOver={e => {
+                e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }} 
+              onMouseOut={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              Listings
+            </Link>
             <button 
               onClick={handleLogout}
               style={buttonStyle}
