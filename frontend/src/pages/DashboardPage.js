@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
 import useAuthStore from '../store/authStore';
-import { useNavigate } from 'react-router-dom';
-import ItemList from '../components/ItemList';
+import { useNavigate, Link } from 'react-router-dom';
 import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
+import api from '../services/api';
 
 const DashboardPage = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -14,7 +14,8 @@ const DashboardPage = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [currentQuery, setCurrentQuery] = useState('');
 
   useEffect(() => {
     // This is a protected route. If the user is not authenticated,
@@ -30,16 +31,48 @@ const DashboardPage = () => {
     return null; 
   }
 
-  const handleSearchResults = (results) => {
-    setSearchResults(results);
-    setShowSearchResults(true);
+  const handleSearchResults = (results, isNewSearch = true, query = '') => {
+    if (isNewSearch) {
+      setSearchResults(results);
+      setShowSearchResults(true);
+      setHasMoreResults(results.length === 20); // If we got 20 results, there might be more
+      setCurrentQuery(query); // Store the current search query
+    } else {
+      // Append new results to existing ones
+      setSearchResults(prev => [...prev, ...results]);
+      setHasMoreResults(results.length === 20); // If we got 20 results, there might be more
+    }
+  };
+
+  const handleShowMore = async () => {
+    if (!currentQuery.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      // Calculate the next offset based on current results
+      const nextOffset = searchResults.length;
+      const response = await api.get('/core/ebay-search/', {
+        params: {
+          q: currentQuery.trim(),
+          limit: 20,
+          offset: nextOffset
+        }
+      });
+      
+      setSearchResults(prev => [...prev, ...response.data]);
+      setHasMoreResults(response.data.length === 20); // If we got 20 results, there might be more
+    } catch (error) {
+      console.error('Failed to load more results:', error);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleAddToInventory = (newItem) => {
-    // Trigger refresh of the item list
-    setRefreshTrigger(prev => prev + 1);
+    // Show success message and clear search results
     setShowSearchResults(false);
     setSearchResults([]);
+    // You could add a toast notification here
   };
 
   const pageStyle = {
@@ -117,14 +150,50 @@ const DashboardPage = () => {
             results={searchResults}
             onAddToInventory={handleAddToInventory}
             onLoading={setIsSearching}
+            onShowMore={handleShowMore}
+            hasMoreResults={hasMoreResults}
           />
         )}
       </section>
       
       <hr style={dividerStyle}/>
       
-      {/* Inventory Section */}
-      <ItemList refreshTrigger={refreshTrigger} />
+      {/* Quick Actions Section */}
+      <section style={{ textAlign: 'center', marginBottom: '3rem' }}>
+        <h2 style={searchTitleStyle}>Quick Actions</h2>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link to="/inventory" style={{ textDecoration: 'none' }}>
+            <button style={{
+              backgroundColor: 'var(--primary-color)',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}>
+              Manage Inventory
+            </button>
+          </Link>
+          <Link to="/listings" style={{ textDecoration: 'none' }}>
+            <button style={{
+              backgroundColor: 'var(--surface-color)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}>
+              View Listings
+            </button>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 };

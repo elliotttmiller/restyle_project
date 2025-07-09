@@ -210,6 +210,21 @@
   font-size: 1rem;
 }
 
+/* Loading spinner animation */
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top: 2px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .search-results-grid {
