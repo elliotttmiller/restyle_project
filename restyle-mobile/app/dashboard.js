@@ -3,14 +3,40 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../shared/authStore';
 import AlgorithmEbaySearchBar from './AlgorithmEbaySearchBar';
+import { useActionSheet } from '@expo/react-native-action-sheet';
 
 export default function Dashboard() {
   const router = useRouter();
   const { logout } = useAuthStore();
+  const { showActionSheetWithOptions } = useActionSheet();
 
   const handleLogout = () => {
     logout();
     router.replace('/login');
+  };
+
+  const handleImageSearchPress = () => {
+    const options = ['Take Picture', 'Choose from Library', 'Live Camera Search', 'Cancel'];
+    const cancelButtonIndex = 3;
+    showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex,
+        title: 'Image Search',
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 0) {
+          // Take Picture
+          router.push({ pathname: '/camera-search', params: { mode: 'camera' } });
+        } else if (buttonIndex === 1) {
+          // Choose from Library
+          router.push({ pathname: '/camera-search', params: { mode: 'library' } });
+        } else if (buttonIndex === 2) {
+          // Live Camera Search
+          router.push('/live-search');
+        }
+      }
+    );
   };
 
   return (
@@ -25,9 +51,15 @@ export default function Dashboard() {
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
             style={styles.cameraButton} 
-            onPress={() => router.push('/camera-search')}
+            onPress={handleImageSearchPress}
           >
             <Text style={styles.cameraButtonText}>📷 AI Image Search</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.liveButton}
+            onPress={() => router.push('/live-search')}
+          >
+            <Text style={styles.cameraButtonText}>🔴 Live Search (Real-Time)</Text>
           </TouchableOpacity>
         </View>
         <AlgorithmEbaySearchBar />
@@ -82,5 +114,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  liveButton: {
+    backgroundColor: '#F87171',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 16,
   },
 }); 

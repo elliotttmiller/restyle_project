@@ -16,48 +16,6 @@ API_CONFIG_FILE = os.path.join(MOBILE_DIR, 'shared', 'api.js')
 
 print('--- Rebuilding and Starting restyle-mobile app with automatic IP detection ---')
 
-def kill_expo_processes():
-    """Kill any running Expo/React Native processes that might lock files"""
-    print('Checking for running Expo/React Native processes...')
-    
-    processes_to_kill = [
-        'expo',
-        'node',
-        'metro',
-        'react-native',
-        'npx',
-        'npm'
-    ]
-    
-    killed_count = 0
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        try:
-            proc_name = proc.info['name'].lower()
-            cmdline = ' '.join(proc.info['cmdline'] or []).lower()
-            
-            # Check if this is an Expo/React Native related process
-            should_kill = False
-            for target in processes_to_kill:
-                if target in proc_name or target in cmdline:
-                    # Additional check to avoid killing our own script
-                    if 'rebuild_and_start_restyle-mobile.py' not in cmdline and 'start_restyle-mobile.py' not in cmdline:
-                        should_kill = True
-                        break
-            
-            if should_kill:
-                print(f'Killing process: {proc.info["name"]} (PID: {proc.info["pid"]})')
-                proc.terminate()
-                killed_count += 1
-                
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    
-    if killed_count > 0:
-        print(f'Killed {killed_count} processes. Waiting 3 seconds for cleanup...')
-        time.sleep(3)
-    else:
-        print('No running Expo/React Native processes found.')
-
 def get_local_ip():
     """Get the current local IP address"""
     try:
@@ -136,48 +94,6 @@ def safe_remove_path(path, max_retries=3):
             print(f'Error removing {path}: {e}')
             return False
 
-def kill_expo_processes():
-    """Kill any running Expo/React Native processes that might lock files"""
-    print('Checking for running Expo/React Native processes...')
-    
-    processes_to_kill = [
-        'expo',
-        'node',
-        'metro',
-        'react-native',
-        'npx',
-        'npm'
-    ]
-    
-    killed_count = 0
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        try:
-            proc_name = proc.info['name'].lower()
-            cmdline = ' '.join(proc.info['cmdline'] or []).lower()
-            
-            # Check if this is an Expo/React Native related process
-            should_kill = False
-            for target in processes_to_kill:
-                if target in proc_name or target in cmdline:
-                    # Additional check to avoid killing our own script
-                    if 'rebuild_and_start_restyle-mobile.py' not in cmdline and 'start_restyle-mobile.py' not in cmdline:
-                        should_kill = True
-                        break
-            
-            if should_kill:
-                print(f'Killing process: {proc.info["name"]} (PID: {proc.info["pid"]})')
-                proc.terminate()
-                killed_count += 1
-                
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    
-    if killed_count > 0:
-        print(f'Killed {killed_count} processes. Waiting 3 seconds for cleanup...')
-        time.sleep(3)
-    else:
-        print('No running Expo/React Native processes found.')
-
 def clean_mobile():
     print('Cleaning node_modules and lockfiles...')
     files_to_remove = ['node_modules', 'yarn.lock', 'package-lock.json']
@@ -222,10 +138,6 @@ def start_expo():
     subprocess.run(['npx', 'expo', 'start', '--clear'], cwd=MOBILE_DIR, shell=True)
 
 if __name__ == '__main__':
-    # Kill any running Expo/React Native processes first
-    # Temporarily disabled to fix startup issues
-    # kill_expo_processes()
-    
     # Detect and configure IP address
     print("Detecting current IP address...")
     current_ip = get_local_ip()

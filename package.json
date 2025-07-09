@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@expo/react-native-action-sheet": "^4.1.1"
+  }
+}

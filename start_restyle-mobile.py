@@ -27,52 +27,6 @@ def get_local_ip():
         print(f"Error getting IP address: {e}")
         return None
 
-def kill_expo_processes():
-    """Kill any running Expo/React Native processes that might lock files"""
-    print('Checking for running Expo/React Native processes...')
-    
-    processes_to_kill = [
-        'expo',
-        'metro',
-        'react-native'
-    ]
-    
-    killed_count = 0
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        try:
-            proc_name = proc.info['name'].lower()
-            cmdline = ' '.join(proc.info['cmdline'] or []).lower()
-            
-            # Check if this is an Expo/React Native related process
-            should_kill = False
-            for target in processes_to_kill:
-                if target in proc_name or target in cmdline:
-                    # Additional checks to avoid killing essential processes
-                    if ('rebuild_and_start_restyle-mobile.py' not in cmdline and 
-                        'start_restyle-mobile.py' not in cmdline and
-                        'manage.py' not in cmdline and
-                        'python' not in proc_name and
-                        'django' not in cmdline):
-                        should_kill = True
-                        break
-            
-            if should_kill:
-                print(f'Killing process: {proc.info["name"]} (PID: {proc.info["pid"]})')
-                try:
-                    proc.terminate()
-                    killed_count += 1
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    pass
-                
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    
-    if killed_count > 0:
-        print(f'Killed {killed_count} processes. Waiting 2 seconds for cleanup...')
-        time.sleep(2)
-    else:
-        print('No running Expo/React Native processes found.')
-
 def update_api_config(ip_address):
     """Update the API configuration file with the current IP address"""
     if not ip_address:
@@ -160,10 +114,6 @@ def start_expo():
     subprocess.run(['npx', 'expo', 'start'], shell=True)
 
 if __name__ == '__main__':
-    # Kill any running Expo/React Native processes first
-    # Temporarily disabled to fix startup issues
-    # kill_expo_processes()
-    
     # Detect and configure IP address
     print("Detecting current IP address...")
     current_ip = get_local_ip()

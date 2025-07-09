@@ -89,7 +89,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'restyle_db',
         'USER': 'restyle_user',
-        'PASSWORD': 'restyle_password',
+        'PASSWORD': 'E$$io$$2',
         'HOST': 'localhost',  # Changed from 'db' to 'localhost' for local development
         'PORT': '5432',
     }

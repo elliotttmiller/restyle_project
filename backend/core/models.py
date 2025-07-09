@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.db.models.constraints import UniqueConstraint
 import uuid
+from django.contrib.postgres.fields import ArrayField
 
 class Item(models.Model):
     class ConditionChoices(models.TextChoices):
@@ -103,3 +104,22 @@ class Listing(models.Model):
     
     def __str__(self):
         return f"{self.item.title} on {self.get_platform_display()}"
+
+class ItemEmbedding(models.Model):
+    item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name='embedding')
+    embedding = ArrayField(models.FloatField(), size=512)  # 512 for CLIP ViT-B/32, adjust as needed
+    model_name = models.CharField(max_length=100, default='clip-vit-b32')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return f"Embedding for {self.item.title} ({self.model_name})"
+
+class SearchFeedback(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='feedbacks')
+    query = models.CharField(max_length=255)
+    relevant = models.BooleanField()
+    matched_on = models.CharField(max_length=255, blank=True, null=True)  # e.g., 'color,brand,label'
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f"Feedback: {self.item.title} - {'Relevant' if self.relevant else 'Irrelevant'}"

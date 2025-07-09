@@ -3,6 +3,7 @@ import { useAuthStore } from '../shared/authStore';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
+import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
 export default function RootLayout() {
   const router = useRouter();
@@ -58,36 +59,38 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack>
-      <Stack.Screen 
-        name="index" 
-        options={{ 
-          headerShown: false,
-          gestureEnabled: false 
-        }} 
-      />
-      <Stack.Screen 
-        name="login" 
-        options={{ 
-          headerShown: false,
-          gestureEnabled: false 
-        }} 
-      />
-      <Stack.Screen 
-        name="dashboard" 
-        options={{ 
-          headerShown: false,
-          gestureEnabled: false 
-        }} 
-      />
-      <Stack.Screen 
-        name="test-connection" 
-        options={{ 
-          title: "Test Connection",
-          headerShown: true 
-        }} 
-      />
-    </Stack>
+    <ActionSheetProvider>
+      <Stack>
+        <Stack.Screen 
+          name="index" 
+          options={{ 
+            headerShown: false,
+            gestureEnabled: false 
+          }} 
+        />
+        <Stack.Screen 
+          name="login" 
+          options={{ 
+            headerShown: false,
+            gestureEnabled: false 
+          }} 
+        />
+        <Stack.Screen 
+          name="dashboard" 
+          options={{ 
+            headerShown: false,
+            gestureEnabled: false 
+          }} 
+        />
+        <Stack.Screen 
+          name="test-connection" 
+          options={{ 
+            title: "Test Connection",
+            headerShown: true 
+          }} 
+        />
+      </Stack>
+    </ActionSheetProvider>
   );
 }
 

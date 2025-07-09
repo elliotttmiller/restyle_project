@@ -512,9 +512,37 @@ class AIImageSearchView(APIView):
                 
                 logger.info(f"eBay API returned {len(items)} items for query: '{query}'")
                 
-                # Format results similar to regular search
+                # Detect objects and bounding boxes
+                detected_objects = ai_service.detect_objects_and_regions(image_data)
+                # Get selected region/object from request (bounding box or object index)
+                bounding_box = None
+                object_index = request.data.get('object_index') or request.POST.get('object_index') or request.query_params.get('object_index')
+                if object_index is not None and detected_objects:
+                    try:
+                        idx = int(object_index)
+                        if 0 <= idx < len(detected_objects):
+                            bounding_box = detected_objects[idx]['bounding_box']
+                    except Exception:
+                        pass
+                # Hybrid ensemble search (region-aware)
+                text_query = request.data.get('query') or request.POST.get('query') or request.query_params.get('query')
+                ensemble_results = ai_service.ensemble_search(image_data, text_query=text_query, bounding_box=bounding_box, top_k=10)
+                # Visual similarity search (for compatibility)
+                visual_similar_results = ai_service.get_visual_similar_items(image_data, text_query=text_query, top_k=5, bounding_box=bounding_box)
+                
+                # Format eBay results with explainable 'matched_on' and attributes
                 results = []
                 for item in items:
+                    matched_on = []
+                    title = item.get('title', '').lower()
+                    for term in search_terms:
+                        if term.lower() in title:
+                            matched_on.append(term)
+                    if 'brand' in item and item['brand']:
+                        for brand in analysis_results.get('search_terms', []):
+                            if brand.lower() in str(item['brand']).lower():
+                                matched_on.append(brand)
+                    attributes = ai_service.extract_attributes(item)
                     results.append({
                         'itemId': item.get('itemId'),
                         'title': item.get('title'),
@@ -523,12 +551,24 @@ class AIImageSearchView(APIView):
                         'seller': item.get('seller'),
                         'itemWebUrl': item.get('itemWebUrl'),
                         'itemAffiliateWebUrl': item.get('itemAffiliateWebUrl'),
+                        'matched_on': list(set(matched_on)),
+                        'attributes': attributes,
                     })
                 
                 return Response({
                     'results': results,
+                    'ensemble_results': ensemble_results,
+                    'detected_objects': detected_objects,
                     'query': query,
                     'analysis': analysis_results,
+                    'best_guess': analysis_results.get('best_guess', ''),
+                    'suggested_queries': analysis_results.get('suggested_queries', []),
+                    'ocr_text': analysis_results.get('ocr_text', ''),
+                    'labels': analysis_results.get('labels', []),
+                    'objects': analysis_results.get('objects', []),
+                    'dominant_colors': analysis_results.get('dominant_colors', []),
+                    'search_terms': analysis_results.get('search_terms', []),
+                    'visual_similar_results': visual_similar_results,
                     'message': f'AI image search completed using {len(search_terms)} search terms'
                 }, status=200)
             else:
