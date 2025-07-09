@@ -1,11 +1,12 @@
-import { StyleSheet, Text, View } from "react-native";
+import React from 'react';
+import { StyleSheet, Text, View, Platform } from "react-native";
 
 export default function Page() {
   return (
     <View style={styles.container}>
-      <View style={styles.main}>
-        <Text style={styles.title}>Hello World</Text>
-        <Text style={styles.subtitle}>This is the first page of your app.</Text>
+      <View style={styles.card}>
+        <Text style={styles.title}>Restyle</Text>
+        <Text style={styles.subtitle}>Loading...</Text>
       </View>
     </View>
   );
@@ -14,21 +15,32 @@ export default function Page() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    padding: 24,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  main: {
-    flex: 1,
-    justifyContent: "center",
-    maxWidth: 960,
-    marginHorizontal: "auto",
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   title: {
-    fontSize: 64,
-    fontWeight: "bold",
+    fontSize: 48,
+    fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
+    color: '#222',
+    marginBottom: 12,
+    fontFamily: Platform.OS === 'ios' ? 'San Francisco' : 'Roboto',
   },
   subtitle: {
-    fontSize: 36,
-    color: "#38434D",
+    fontSize: 20,
+    color: '#555',
+    marginBottom: 32,
+    textAlign: 'center',
   },
 });

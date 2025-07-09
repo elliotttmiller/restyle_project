@@ -3,6 +3,7 @@
 import requests
 import base64
 import json
+import math
 from decimal import Decimal
 from celery import shared_task, group
 from django.conf import settings
@@ -11,7 +12,7 @@ from .models import Item, MarketAnalysis, ComparableSale, Listing
 from ebaysdk.trading import Connection as Trading
 from ebaysdk.exception import ConnectionError as EbayConnectionError
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 import os
 import numpy as np
@@ -108,7 +109,7 @@ def should_skip_api_call():
                             logger.info(f"Rate limit info - Remaining: {remaining}/{limit}, Reset: {reset_time}, Window: {time_window}s")
                             
                             # If we have very few calls remaining, skip this call
-                            if remaining <= 2:
+                            if remaining <= 1:
                                 logger.warning(f"Rate limit nearly exhausted ({remaining} calls remaining), skipping API call")
                                 return True
                             
@@ -132,58 +133,363 @@ def should_skip_api_call():
 
 @shared_task
 def aggregate_analysis_results(results, analysis_id):
-    """Aggregate results from multiple API calls"""
+    """
+    Enhanced Advanced Pricing Algorithm with 5 major improvements:
+    1. Enhanced Confidence Scoring with multiple factors
+    2. Geographic & Platform Weighting
+    3. Seasonal & Trend Analysis
+    4. Dynamic Decay Rate based on market volatility
+    5. Advanced Outlier Detection with multi-dimensional analysis
+    """
+    print(f"--- Running Enhanced Advanced Pricing Algorithm for Analysis ID: {analysis_id} ---")
     try:
         analysis = MarketAnalysis.objects.get(id=analysis_id)
-        comps = ComparableSale.objects.filter(analysis=analysis)
-        rate_limited = any(result.get('rate_limited', False) for result in results)
-        prices = [float(comp.sold_price) for comp in comps]
-        outliers_removed = 0
-        filtered_prices = prices
-        if len(prices) >= 3:
-            q1 = np.percentile(prices, 25)
-            q3 = np.percentile(prices, 75)
-            iqr = q3 - q1
-            lower_bound = q1 - 1.5 * iqr
-            upper_bound = q3 + 1.5 * iqr
-            filtered_prices = [p for p in prices if lower_bound <= p <= upper_bound]
-            outliers_removed = len(prices) - len(filtered_prices)
-        if filtered_prices:
-            median_price = float(np.median(filtered_prices))
-            min_price = min(filtered_prices)
-            max_price = max(filtered_prices)
-        else:
-            median_price = min_price = max_price = 0
-        analysis.suggested_price = Decimal(str(round(median_price, 2)))
-        analysis.price_range_low = Decimal(str(round(min_price, 2)))
-        analysis.price_range_high = Decimal(str(round(max_price, 2)))
-        # Confidence score based on number of comps after filtering
-        if len(filtered_prices) >= 10:
-            analysis.confidence_score = "HIGH"
-        elif len(filtered_prices) >= 5:
-            analysis.confidence_score = "MEDIUM"
-        elif len(filtered_prices) > 0:
-            analysis.confidence_score = "LOW"
-        else:
-            if rate_limited:
-                analysis.suggested_price = Decimal('75.00')
-                analysis.price_range_low = Decimal('60.00')
-                analysis.price_range_high = Decimal('90.00')
-                analysis.confidence_score = "LOW (Rate Limited)"
-            else:
-                analysis.suggested_price = Decimal('50.00')
-                analysis.price_range_low = Decimal('40.00')
-                analysis.price_range_high = Decimal('60.00')
-                analysis.confidence_score = "LOW"
-        analysis.status = "COMPLETED"
-        analysis.save()
-        logger.info(f"[ANALYSIS] IQR filtering: {outliers_removed} outliers removed, {len(filtered_prices)} comps used.")
-        return {"status": "success", "analysis_id": analysis_id, "rate_limited": rate_limited, "outliers_removed": outliers_removed}
+        # Fetch comprehensive data including additional fields for advanced analysis
+        comps = list(ComparableSale.objects.filter(analysis=analysis).values(
+            'sold_price', 'sale_date', 'platform', 'source_url', 'title', 'condition'
+        ))
     except MarketAnalysis.DoesNotExist:
-        return {"status": "error", "message": "Analysis not found"}
-    except Exception as e:
-        logger.error(f"Error in aggregate_analysis_results: {e}")
-        return {"status": "error", "message": str(e)}
+        return f"Cannot aggregate. Analysis {analysis_id} not found."
+
+    if not comps or len(comps) < 5:
+        analysis.status = 'NO_RESULTS'
+        analysis.confidence_score = f"Very Low ({len(comps)} comps)"
+        analysis.save()
+        return "Not enough data for advanced analysis."
+
+    # Extract data for analysis
+    prices = [float(comp['sold_price']) for comp in comps]
+    sale_dates = [comp['sale_date'] for comp in comps]
+    platforms = [comp['platform'] for comp in comps]
+    conditions = [comp['condition'] for comp in comps]
+    titles = [comp['title'] for comp in comps]
+
+    print(f"Initial analysis with {len(comps)} comparable sales")
+
+    # --- IMPROVEMENT 1: Enhanced Confidence Scoring ---
+    confidence_factors = calculate_confidence_factors(comps, prices, sale_dates, platforms)
+    overall_confidence = sum(confidence_factors.values()) / len(confidence_factors)
+    
+    print(f"Confidence Analysis: {confidence_factors}")
+
+    # --- IMPROVEMENT 2: Advanced Outlier Detection ---
+    outlier_flags = advanced_outlier_detection(prices, conditions, titles, platforms)
+    filtered_comps = [comp for i, comp in enumerate(comps) if not outlier_flags[i]]
+    
+    if len(filtered_comps) < 3:  # Fallback if too many outliers
+        filtered_comps = comps
+        print("Warning: Too many outliers detected, using all data")
+    
+    print(f"After outlier detection: {len(filtered_comps)} comps remaining")
+
+    # --- IMPROVEMENT 3: Dynamic Decay Rate ---
+    market_volatility = calculate_market_volatility(prices, sale_dates)
+    decay_rate = calculate_adaptive_decay_rate(market_volatility)
+    print(f"Market volatility: {market_volatility:.3f}, Decay rate: {decay_rate:.3f}")
+
+    # --- IMPROVEMENT 4: Enhanced Temporal Weighting with Seasonal Analysis ---
+    weighted_prices = []
+    for comp in filtered_comps:
+        price = float(comp['sold_price'])
+        sale_date = comp['sale_date']
+        
+        # Base temporal weight
+        if sale_date is None:
+            time_weight = 0.7
+        else:
+            days_old = (datetime.now(timezone.utc) - sale_date).days
+            time_weight = math.exp(-decay_rate * max(0, days_old))
+        
+        # Seasonal adjustment
+        seasonal_multiplier = calculate_seasonal_multiplier(sale_date, comp['title'])
+        
+        # Platform weighting
+        platform_weight = get_platform_reliability_score(comp['platform'])
+        
+        # Geographic weighting (simplified - could be enhanced with actual location data)
+        geo_weight = 1.0  # Default, could be enhanced with location data
+        
+        # Combined weight
+        final_weight = time_weight * seasonal_multiplier * platform_weight * geo_weight
+        
+        weighted_prices.append({
+            'price': price,
+            'weight': final_weight,
+            'original_weight': time_weight,
+            'seasonal_mult': seasonal_multiplier,
+            'platform_weight': platform_weight
+        })
+
+    # --- IMPROVEMENT 5: Enhanced Hot Zone Analysis ---
+    if not weighted_prices:
+        analysis.status = 'NO_RESULTS'
+        analysis.save()
+        return "No valid prices after filtering."
+
+    sorted_by_price = sorted(weighted_prices, key=lambda x: x['price'])
+    total_weight = sum(p['weight'] for p in sorted_by_price)
+
+    # Find the price at which 25% and 75% of the "sales weight" is accumulated
+    cumulative_weight = 0
+    hot_zone_min = sorted_by_price[0]['price']
+    for p in sorted_by_price:
+        cumulative_weight += p['weight']
+        if cumulative_weight >= total_weight * 0.25:
+            hot_zone_min = p['price']
+            break
+
+    cumulative_weight = 0
+    hot_zone_max = sorted_by_price[-1]['price']
+    for p in sorted_by_price:
+        cumulative_weight += p['weight']
+        if cumulative_weight >= total_weight * 0.75:
+            hot_zone_max = p['price']
+            break
+
+    # Final weighted average calculation within hot zone
+    hot_zone_prices = [p for p in weighted_prices if hot_zone_min <= p['price'] <= hot_zone_max]
+    
+    if not hot_zone_prices:
+        hot_zone_prices = weighted_prices
+
+    sum_of_weighted_prices = sum(p['price'] * p['weight'] for p in hot_zone_prices)
+    sum_of_weights_in_hot_zone = sum(p['weight'] for p in hot_zone_prices)
+    
+    suggested_price = sum_of_weighted_prices / sum_of_weights_in_hot_zone if sum_of_weights_in_hot_zone > 0 else 0
+
+    # Generate detailed confidence report
+    confidence_report = generate_confidence_report(confidence_factors, overall_confidence, len(filtered_comps))
+
+    # --- Save Enhanced Results ---
+    analysis.suggested_price = Decimal(suggested_price).quantize(Decimal("0.01"))
+    analysis.price_range_low = Decimal(min(p['price'] for p in weighted_prices)).quantize(Decimal("0.01"))
+    analysis.price_range_high = Decimal(max(p['price'] for p in weighted_prices)).quantize(Decimal("0.01"))
+    analysis.confidence_score = confidence_report
+    analysis.status = 'COMPLETE'
+    analysis.save()
+
+    print(f"+++ Enhanced Analysis Complete. Suggested Price: ${analysis.suggested_price} +++")
+    print(f"Confidence: {overall_confidence:.2f}/1.0 - {confidence_report}")
+    return f"Enhanced aggregation complete for Analysis {analysis.id}."
+
+# --- HELPER FUNCTIONS FOR ENHANCED ALGORITHM ---
+
+def calculate_confidence_factors(comps, prices, sale_dates, platforms):
+    """Calculate multi-factor confidence scoring"""
+    factors = {}
+    
+    # Data quantity factor (0-1)
+    factors['data_quantity'] = min(len(comps) / 20, 1.0)
+    
+    # Data recency factor
+    recent_sales = sum(1 for date in sale_dates if date and (datetime.now(timezone.utc) - date).days <= 30)
+    factors['data_recency'] = recent_sales / len(comps) if comps else 0
+    
+    # Price consistency factor
+    if len(prices) > 1:
+        price_std = np.std(prices)
+        price_mean = np.mean(prices)
+        factors['price_consistency'] = max(0, 1 - (price_std / price_mean)) if price_mean > 0 else 0
+    else:
+        factors['price_consistency'] = 0.5
+    
+    # Market volatility factor (inverse relationship)
+    volatility = calculate_market_volatility(prices, sale_dates)
+    factors['market_stability'] = max(0, 1 - volatility)
+    
+    # Platform diversity factor
+    unique_platforms = len(set(platforms))
+    factors['platform_diversity'] = min(unique_platforms / 3, 1.0)
+    
+    # Geographic diversity (simplified - could be enhanced)
+    factors['geographic_diversity'] = 0.8  # Default, could be enhanced with actual location data
+    
+    return factors
+
+def advanced_outlier_detection(prices, conditions, titles, platforms):
+    """Multi-dimensional outlier detection"""
+    outlier_flags = [False] * len(prices)
+    
+    # Price-based outliers (IQR method)
+    if len(prices) >= 4:
+        q1 = np.percentile(prices, 25)
+        q3 = np.percentile(prices, 75)
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        
+        for i, price in enumerate(prices):
+            if price < lower_bound or price > upper_bound:
+                outlier_flags[i] = True
+    
+    # Condition-based outliers (if condition data is available)
+    condition_groups = {}
+    for i, condition in enumerate(conditions):
+        if condition:
+            if condition not in condition_groups:
+                condition_groups[condition] = []
+            condition_groups[condition].append(prices[i])
+    
+    # Detect condition-specific outliers
+    for condition, condition_prices in condition_groups.items():
+        if len(condition_prices) >= 3:
+            condition_mean = np.mean(condition_prices)
+            condition_std = np.std(condition_prices)
+            for i, (price, comp_condition) in enumerate(zip(prices, conditions)):
+                if comp_condition == condition and abs(price - condition_mean) > 2 * condition_std:
+                    outlier_flags[i] = True
+    
+    # Platform-based validation
+    platform_groups = {}
+    for i, platform in enumerate(platforms):
+        if platform not in platform_groups:
+            platform_groups[platform] = []
+        platform_groups[platform].append(prices[i])
+    
+    # Detect platform-specific outliers
+    for platform, platform_prices in platform_groups.items():
+        if len(platform_prices) >= 3:
+            platform_mean = np.mean(platform_prices)
+            platform_std = np.std(platform_prices)
+            for i, (price, comp_platform) in enumerate(zip(prices, platforms)):
+                if comp_platform == platform and abs(price - platform_mean) > 2.5 * platform_std:
+                    outlier_flags[i] = True
+    
+    return outlier_flags
+
+def calculate_market_volatility(prices, sale_dates):
+    """Calculate market volatility based on recent price movements"""
+    if len(prices) < 2:
+        return 0.5  # Default moderate volatility
+    
+    # Get recent prices (last 30 days if available)
+    recent_prices = []
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
+    
+    for price, sale_date in zip(prices, sale_dates):
+        if sale_date and sale_date >= cutoff_date:
+            recent_prices.append(price)
+    
+    if len(recent_prices) < 2:
+        recent_prices = prices  # Use all prices if not enough recent data
+    
+    # Calculate coefficient of variation
+    mean_price = np.mean(recent_prices)
+    std_price = np.std(recent_prices)
+    
+    if mean_price > 0:
+        volatility = std_price / mean_price
+    else:
+        volatility = 0.5
+    
+    return min(volatility, 1.0)  # Cap at 1.0
+
+def calculate_adaptive_decay_rate(volatility):
+    """Calculate adaptive decay rate based on market volatility - FINE-TUNED"""
+    base_decay_rate = 0.03  # Reduced from 0.05 for more gradual decay
+    
+    if volatility > 0.25:  # Lowered threshold from 0.3 - more sensitive to volatility
+        decay_rate = base_decay_rate * 1.8  # Increased multiplier for high volatility
+    elif volatility < 0.08:  # Lowered threshold from 0.1 - more sensitive to stability
+        decay_rate = base_decay_rate * 0.5  # Reduced multiplier for low volatility
+    else:  # Moderate volatility
+        decay_rate = base_decay_rate
+    
+    return decay_rate
+
+def calculate_seasonal_multiplier(sale_date, title):
+    """Calculate seasonal adjustment multiplier - ENHANCED"""
+    if not sale_date:
+        return 1.0
+    
+    month = sale_date.month
+    title_lower = title.lower()
+    
+    # Enhanced seasonal patterns with more categories
+    # Winter items (coats, boots, etc.)
+    if any(word in title_lower for word in ['coat', 'jacket', 'boot', 'sweater', 'hoodie', 'winter', 'snow']):
+        if month in [12, 1, 2]:  # Winter months
+            return 1.25  # Increased from 1.2
+        elif month in [6, 7, 8]:  # Summer months
+            return 0.75  # Decreased from 0.8
+    
+    # Summer items (shorts, t-shirts, etc.)
+    elif any(word in title_lower for word in ['shorts', 't-shirt', 'tank', 'swimsuit', 'summer', 'beach']):
+        if month in [6, 7, 8]:  # Summer months
+            return 1.25  # Increased from 1.2
+        elif month in [12, 1, 2]:  # Winter months
+            return 0.75  # Decreased from 0.8
+    
+    # Electronics (holiday season impact)
+    elif any(word in title_lower for word in ['iphone', 'samsung', 'laptop', 'computer', 'gaming', 'console']):
+        if month in [11, 12]:  # Holiday season
+            return 1.15  # Holiday premium
+        elif month in [1, 2]:  # Post-holiday
+            return 0.85  # Post-holiday discount
+    
+    # Sports equipment (seasonal sports)
+    elif any(word in title_lower for word in ['basketball', 'football', 'soccer', 'baseball', 'tennis']):
+        if month in [3, 4, 5, 9, 10]:  # Sports seasons
+            return 1.1
+        else:
+            return 0.9
+    
+    # Default seasonal pattern (general retail)
+    if month in [11, 12]:  # Holiday season
+        return 1.1
+    elif month in [1, 2]:  # Post-holiday
+        return 0.9
+    
+    return 1.0
+
+def get_platform_reliability_score(platform):
+    """Get platform reliability weighting - FINE-TUNED"""
+    platform_scores = {
+        'EBAY': 1.0,      # Most reliable
+        'ETSY': 0.92,     # Slightly increased from 0.9
+        'AMAZON': 0.97,   # Slightly increased from 0.95
+        'FACEBOOK': 0.75, # Slightly decreased from 0.8
+        'CRAIGSLIST': 0.65, # Slightly decreased from 0.7
+        'MERCARI': 0.85,  # New platform
+        'POSHMARK': 0.88, # New platform
+        'DEPOP': 0.82,    # New platform
+        'OTHER': 0.75     # Decreased from 0.8
+    }
+    
+    return platform_scores.get(platform.upper(), 0.75)
+
+def generate_confidence_report(confidence_factors, overall_confidence, comps_count):
+    """Generate detailed confidence report - ENHANCED"""
+    # Fine-tuned confidence thresholds
+    if overall_confidence >= 0.85:  # Increased from 0.8
+        level = "Very High"
+    elif overall_confidence >= 0.65:  # Increased from 0.6
+        level = "High"
+    elif overall_confidence >= 0.45:  # Increased from 0.4
+        level = "Medium"
+    elif overall_confidence >= 0.25:  # Increased from 0.2
+        level = "Low"
+    else:
+        level = "Very Low"
+    
+    # Enhanced recommendations
+    recommendations = []
+    if confidence_factors['data_quantity'] < 0.4:  # Lowered threshold
+        recommendations.append("More data needed")
+    if confidence_factors['data_recency'] < 0.25:  # Lowered threshold
+        recommendations.append("Recent data limited")
+    if confidence_factors['price_consistency'] < 0.4:  # Lowered threshold
+        recommendations.append("High price variance")
+    if confidence_factors['market_stability'] < 0.4:  # Lowered threshold
+        recommendations.append("Market volatility detected")
+    if confidence_factors['platform_diversity'] < 0.3:  # New threshold
+        recommendations.append("Limited platform diversity")
+    
+    report = f"{level} ({comps_count} comps, {overall_confidence:.2f}/1.0)"
+    if recommendations:
+        report += f" - {'; '.join(recommendations)}"
+    
+    return report
 
 @shared_task(name="core.tasks.perform_market_analysis")
 def perform_market_analysis(analysis_id):
@@ -301,100 +607,128 @@ def call_ebay_browse_api_restful(analysis_id):
 
 @shared_task
 def create_ebay_listing(listing_id):
-    """Create eBay listing for an item - DISABLED TO AVOID RATE LIMITS"""
+    """Create eBay listing for an item using eBay Trading API"""
     try:
         listing = Listing.objects.get(id=listing_id)
         item = listing.item
         
-        # DISABLED: eBay listing creation to avoid rate limits
-        logger.warning(f"eBay listing creation disabled for item {item.id} to avoid rate limits")
+        logger.info(f"Starting eBay listing creation for item {item.id} (listing {listing_id})")
         
-        # Return mock success response
-        mock_ebay_item_id = f"MOCK_{listing.id}_{int(time.time())}"
+        # Get eBay OAuth token
+        user_token = get_ebay_oauth_token()
+        if not user_token:
+            logger.error("No eBay user token available for listing creation")
+            return {"status": "error", "message": "No eBay user token available"}
         
-        # Update listing with mock eBay data
-        listing.is_active = True
-        listing.platform_item_id = mock_ebay_item_id
-        listing.listing_url = f"https://www.ebay.com/itm/{mock_ebay_item_id}"
-        listing.save()
+        # Check rate limits before proceeding
+        if should_skip_api_call():
+            logger.warning("Skipping eBay listing creation due to rate limits")
+            return {"status": "error", "message": "eBay API rate limit reached, please try again later"}
         
-        logger.info(f"Created mock eBay listing {mock_ebay_item_id} for item {item.id} (API disabled)")
-        return {"status": "success", "listing_id": listing_id, "ebay_item_id": mock_ebay_item_id, "mock_data": True, "api_disabled": True}
+        # Create eBay Trading API connection
+        api = Trading(
+            appid=getattr(settings, 'EBAY_PRODUCTION_APP_ID', ''),
+            devid=getattr(settings, 'EBAY_PRODUCTION_DEV_ID', ''),
+            certid=getattr(settings, 'EBAY_PRODUCTION_CERT_ID', ''),
+            token=user_token,
+            sandbox=False,  # Use production
+            config_file=None  # Don't use YAML config file
+        )
         
-        # COMMENTED OUT: Original eBay API listing creation
-        # # Get eBay OAuth token
-        # user_token = get_ebay_oauth_token()
-        # if not user_token:
-        #     raise Exception("No eBay user token available")
-        # 
-        # # Create eBay Trading API connection
-        # api = Trading(
-        #     appid=getattr(settings, 'EBAY_PRODUCTION_APP_ID', ''),
-        #     devid=getattr(settings, 'EBAY_PRODUCTION_DEV_ID', ''),
-        #     certid=getattr(settings, 'EBAY_PRODUCTION_CERT_ID', ''),
-        #     token=user_token,
-        #     sandbox=False,  # Use production
-        #     config_file=None  # Don't use YAML config file
-        # )
-        # 
-        # # Prepare item data for eBay
-        # item_data = {
-        #     'Item': {
-        #         'Title': f"{item.brand} {item.title}",
-        #         'Description': f"Brand: {item.brand}\nCategory: {item.category}\nSize: {item.size}\nColor: {item.color}\nCondition: {item.get_condition_display()}",
-        #         'PrimaryCategory': {'CategoryID': '11450'},  # Clothing, Shoes & Accessories
-        #         'StartPrice': str(listing.list_price),
-        #         'Currency': 'USD',
-        #         'Country': 'US',
-        #         'Location': 'US',
-        #         'ListingDuration': 'Days_7',
-        #         'PaymentMethods': ['PayPal'],
-        #         'PayPalEmailAddress': 'your-paypal@email.com',  # Update with actual PayPal email
-        #         'ReturnPolicy': {
-        #             'ReturnsAcceptedOption': 'ReturnsAccepted',
-        #             'RefundOption': 'MoneyBack',
-        #             'ReturnsWithinOption': 'Days_30',
-        #             'ShippingCostPaidByOption': 'Buyer'
-        #         },
-        #         'ShippingDetails': {
-        #             'ShippingType': 'Flat',
-        #             'ShippingServiceOptions': {
-        #                 'ShippingServicePriority': '1',
-        #                 'ShippingService': 'USPSFirstClass',
-        #                 'ShippingServiceCost': '5.00'
-        #             }
-        #         },
-        #         'DispatchTimeMax': '3'
-        #     }
-        # }
-        # 
-        # # Add item specifics
-        # item_data['Item']['ItemSpecifics'] = {
-        #     'NameValueList': [
-        #         {'Name': 'Brand', 'Value': item.brand},
-        #         {'Name': 'Size', 'Value': item.size},
-        #         {'Name': 'Color', 'Value': item.color},
-        #         {'Name': 'Condition', 'Value': item.get_condition_display()},
-        #         {'Name': 'Style', 'Value': item.category}
-        #     ]
-        # }
-        # 
-        # # Call eBay API to create listing
-        # response = api.execute('AddItem', item_data)
-        # 
-        # if response.reply.Ack == 'Success':
-        #     # Update listing with eBay data
-        #     listing.is_active = True
-        #     listing.platform_item_id = response.reply.ItemID
-        #     listing.listing_url = f"https://www.ebay.com/itm/{response.reply.ItemID}"
-        #     listing.save()
-        #     
-        #     logger.info(f"Successfully created eBay listing {response.reply.ItemID} for item {item.id}")
-        #     return {"status": "success", "listing_id": listing_id, "ebay_item_id": response.reply.ItemID}
-        # else:
-        #     error_msg = f"eBay API error: {response.reply.Errors[0].LongMessage if hasattr(response.reply, 'Errors') else 'Unknown error'}"
-        #     logger.error(error_msg)
-        #     return {"status": "error", "message": error_msg}
+        # Prepare item data for eBay
+        item_data = {
+            'Item': {
+                'Title': f"{item.brand} {item.title}",
+                'Description': f"Brand: {item.brand}\nCategory: {item.category}\nSize: {item.size}\nColor: {item.color}\nCondition: {item.get_condition_display()}",
+                'PrimaryCategory': {'CategoryID': '15709'},  # Athletic Shoes (leaf category)
+                'StartPrice': str(listing.list_price),
+                'Currency': 'USD',
+                'Country': 'US',
+                'Location': 'US',
+                'ListingDuration': 'Days_7',
+                'ReturnPolicy': {
+                    'ReturnsAcceptedOption': 'ReturnsAccepted',
+                    'RefundOption': 'MoneyBack',
+                    'ReturnsWithinOption': 'Days_30',
+                    'ShippingCostPaidByOption': 'Buyer'
+                },
+                'ShippingDetails': {
+                    'ShippingType': 'Flat',
+                    'ShippingServiceOptions': {
+                        'ShippingServicePriority': '1',
+                        'ShippingService': 'USPSFirstClass',
+                        'ShippingServiceCost': '5.00'
+                    }
+                },
+                'DispatchTimeMax': '3',
+                'ConditionID': '1000'  # New with box
+            }
+        }
+        
+        # Add item specifics
+        item_data['Item']['ItemSpecifics'] = {
+            'NameValueList': [
+                {'Name': 'Brand', 'Value': item.brand},
+                {'Name': 'Size', 'Value': item.size},
+                {'Name': 'Color', 'Value': item.color},
+                {'Name': 'Condition', 'Value': item.get_condition_display()},
+                {'Name': 'Style', 'Value': item.category},
+                {'Name': 'Department', 'Value': 'Men'}  # Required for shoes category
+            ]
+        }
+        
+        # Add a placeholder image (required by eBay)
+        item_data['Item']['PictureDetails'] = {
+            'PictureURL': ['https://via.placeholder.com/400x400/cccccc/666666?text=No+Image+Available']
+        }
+        
+        logger.info(f"Calling eBay API to create listing for item {item.id}")
+        
+        # Call eBay API to create listing
+        response = api.execute('AddItem', item_data)
+        
+        # Check if we have an ItemID (success) even if there are warnings
+        if hasattr(response.reply, 'ItemID') and response.reply.ItemID:
+            ebay_item_id = response.reply.ItemID
+            # --- Verification step: Call GetItem to confirm listing is active ---
+            try:
+                getitem_response = api.execute('GetItem', {'ItemID': ebay_item_id})
+                listing_status = getattr(getitem_response.reply, 'ListingStatus', None)
+                if listing_status and listing_status.upper() == 'ACTIVE':
+                    listing.is_active = True
+                else:
+                    listing.is_active = False
+                    logger.error(f"eBay listing {ebay_item_id} for item {item.id} is not active after creation. ListingStatus: {listing_status}")
+            except Exception as e:
+                listing.is_active = False
+                logger.error(f"Failed to verify eBay listing {ebay_item_id} for item {item.id}: {e}")
+            # --- End verification step ---
+            listing.platform_item_id = ebay_item_id
+            listing.listing_url = f"https://www.ebay.com/itm/{ebay_item_id}"
+            listing.save()
+            logger.info(f"Successfully created eBay listing {ebay_item_id} for item {item.id}")
+            
+            # Check for warnings but don't treat them as errors
+            warnings = []
+            if hasattr(response.reply, 'Errors'):
+                for error in response.reply.Errors:
+                    if error.SeverityCode == 'Warning':
+                        warnings.append(error.LongMessage)
+                        logger.warning(f"eBay warning: {error.LongMessage}")
+            
+            return {
+                "status": "success", 
+                "listing_id": listing_id, 
+                "ebay_item_id": response.reply.ItemID,
+                "warnings": warnings
+            }
+        else:
+            # This is a real error
+            error_msg = f"eBay API error: {response.reply.Errors[0].LongMessage if hasattr(response.reply, 'Errors') else 'Unknown error'}"
+            logger.error(error_msg)
+            return {"status": "error", "message": error_msg}
+        
+
             
     except Listing.DoesNotExist:
         return {"status": "error", "message": "Listing not found"}
@@ -681,3 +1015,6 @@ def emergency_token_refresh_task():
         logger.error(f"❌ Error in emergency token refresh: {e}")
         alert_token_health.delay("emergency_refresh_error", f"Emergency refresh error: {str(e)}")
         return {"status": "error", "message": str(e)}
+
+# --- PERFORMANCE TRACKING FOR DASHBOARD ---
+# All performance tracking functions removed

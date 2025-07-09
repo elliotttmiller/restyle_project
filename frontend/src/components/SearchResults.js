@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../services/api';
 import './SearchResults.css';
 import Modal from './Modal';
 import '../pages/AnalysisPage.css';
 
-const SearchResults = ({ results, onAddToInventory, onLoading }) => {
+const SearchResults = ({ results, onAddToInventory, onLoading, onShowMore, hasMoreResults }) => {
   const [addingItems, setAddingItems] = useState(new Set());
   const [message, setMessage] = useState('');
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
@@ -12,6 +12,84 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
   const [analysisError, setAnalysisError] = useState('');
   const [analysisData, setAnalysisData] = useState(null);
   const [analysisItem, setAnalysisItem] = useState(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [analysisCurrentPage, setAnalysisCurrentPage] = useState(1);
+  const [analysisLoadingMore, setAnalysisLoadingMore] = useState(false);
+  const [analysisHasMore, setAnalysisHasMore] = useState(false);
+
+  // Refs for intersection observers
+  const searchResultsRef = useRef(null);
+  const analysisResultsRef = useRef(null);
+  const searchObserverRef = useRef(null);
+  const analysisObserverRef = useRef(null);
+
+  // Intersection Observer for search results infinite scroll
+  const searchIntersectionCallback = useCallback((entries) => {
+    const [entry] = entries;
+    if (entry.isIntersecting && hasMoreResults && !isLoadingMore) {
+      handleShowMore();
+    }
+  }, [hasMoreResults, isLoadingMore]);
+
+  // Intersection Observer for analysis results infinite scroll
+  const analysisIntersectionCallback = useCallback((entries) => {
+    const [entry] = entries;
+    if (entry.isIntersecting && analysisHasMore && !analysisLoadingMore) {
+      handleLoadMoreAnalysis();
+    }
+  }, [analysisHasMore, analysisLoadingMore]);
+
+  // Setup intersection observers
+  useEffect(() => {
+    // Setup search results observer
+    if (searchResultsRef.current && hasMoreResults) {
+      searchObserverRef.current = new IntersectionObserver(searchIntersectionCallback, {
+        root: null,
+        rootMargin: '100px', // Start loading 100px before reaching the bottom
+        threshold: 0.1
+      });
+      searchObserverRef.current.observe(searchResultsRef.current);
+    }
+
+    // Setup analysis results observer
+    if (analysisResultsRef.current && analysisHasMore) {
+      analysisObserverRef.current = new IntersectionObserver(analysisIntersectionCallback, {
+        root: null,
+        rootMargin: '100px',
+        threshold: 0.1
+      });
+      analysisObserverRef.current.observe(analysisResultsRef.current);
+    }
+
+    // Cleanup observers
+    return () => {
+      if (searchObserverRef.current) {
+        searchObserverRef.current.disconnect();
+      }
+      if (analysisObserverRef.current) {
+        analysisObserverRef.current.disconnect();
+      }
+    };
+  }, [searchIntersectionCallback, analysisIntersectionCallback, hasMoreResults, analysisHasMore]);
+
+  // Update observers when dependencies change
+  useEffect(() => {
+    if (searchObserverRef.current && searchResultsRef.current) {
+      searchObserverRef.current.disconnect();
+      if (hasMoreResults) {
+        searchObserverRef.current.observe(searchResultsRef.current);
+      }
+    }
+  }, [hasMoreResults, isLoadingMore]);
+
+  useEffect(() => {
+    if (analysisObserverRef.current && analysisResultsRef.current) {
+      analysisObserverRef.current.disconnect();
+      if (analysisHasMore) {
+        analysisObserverRef.current.observe(analysisResultsRef.current);
+      }
+    }
+  }, [analysisHasMore, analysisLoadingMore]);
 
   const CONDITION_CHOICES = [
     { value: 'NWT', label: 'New with tags' },
@@ -72,26 +150,62 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
   };
 
   const handlePriceAnalysis = async (item) => {
+    setAnalysisItem(item);
     setAnalysisModalOpen(true);
     setAnalysisLoading(true);
     setAnalysisError('');
+    setAnalysisCurrentPage(1);
     setAnalysisData(null);
-    setAnalysisItem(item);
+    
     try {
-      const payload = {
-        title: item.title || '',
-        brand: extractBrand(item.title) || '',
-        category: item.categoryPath || '',
-        size: extractSize(item.title) || '',
-        color: extractColor(item.title) || '',
-        condition: mapEbayConditionToBackend(item.condition?.[0]?.conditionDisplayName),
-      };
-      const response = await api.post('/core/price-analysis/', payload);
+      const response = await api.post('/core/price-analysis/', {
+        title: item.title,
+        brand: extractBrand(item.title),
+        size: extractSize(item.title),
+        color: extractColor(item.title),
+        condition: mapEbayConditionToBackend(item.condition?.[0]?.conditionDisplayName)
+      });
+      
       setAnalysisData(response.data);
-    } catch (err) {
-      setAnalysisError('Failed to fetch price analysis.');
+      setAnalysisHasMore(response.data.pagination?.has_more || false);
+    } catch (error) {
+      console.error('Price analysis failed:', error);
+      setAnalysisError('Failed to load price analysis. Please try again.');
     } finally {
       setAnalysisLoading(false);
+    }
+  };
+
+  const handleLoadMoreAnalysis = async () => {
+    if (!analysisItem || !analysisHasMore || analysisLoadingMore) return;
+    
+    setAnalysisLoadingMore(true);
+    try {
+      const nextPage = analysisCurrentPage + 1;
+      const response = await api.post('/core/price-analysis/', {
+        title: analysisItem.title,
+        brand: extractBrand(analysisItem.title),
+        size: extractSize(analysisItem.title),
+        color: extractColor(analysisItem.title),
+        condition: mapEbayConditionToBackend(analysisItem.condition?.[0]?.conditionDisplayName),
+        page: nextPage
+      });
+      
+      // Append new comps to existing data
+      if (response.data.comps) {
+        setAnalysisData(prev => ({
+          ...prev,
+          comps: [...(prev.comps || []), ...response.data.comps],
+          pagination: response.data.pagination
+        }));
+      }
+      
+      setAnalysisCurrentPage(nextPage);
+      setAnalysisHasMore(response.data.pagination?.has_more || false);
+    } catch (error) {
+      console.error('Failed to load more analysis data:', error);
+    } finally {
+      setAnalysisLoadingMore(false);
     }
   };
 
@@ -140,6 +254,19 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
   const formatPrice = (price) => {
     if (!price || !price.value) return 'Price not available';
     return `$${parseFloat(price.value).toFixed(2)} ${price.currency || 'USD'}`;
+  };
+
+  const handleShowMore = async () => {
+    if (!onShowMore || isLoadingMore) return;
+    
+    setIsLoadingMore(true);
+    try {
+      await onShowMore();
+    } catch (error) {
+      console.error('Failed to load more results:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   if (!results || results.length === 0) {
@@ -233,6 +360,34 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
           </div>
         ))}
       </div>
+
+      {/* Infinite scroll trigger for search results */}
+      {hasMoreResults && (
+        <div 
+          ref={searchResultsRef}
+          style={{ 
+            height: '20px', 
+            marginTop: '1rem',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          {isLoadingMore && (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              color: 'var(--text-secondary)',
+              fontSize: '0.9rem'
+            }}>
+              <div className="loading-spinner"></div>
+              Loading more results...
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Price Analysis Modal */}
       {analysisModalOpen && (
         <Modal onClose={() => setAnalysisModalOpen(false)}>
@@ -297,6 +452,33 @@ const SearchResults = ({ results, onAddToInventory, onLoading }) => {
                       </div>
                       </div>
                     ))}
+                    
+                    {/* Infinite scroll trigger for analysis */}
+                    {analysisHasMore && (
+                      <div 
+                        ref={analysisResultsRef}
+                        style={{ 
+                          height: '20px', 
+                          marginTop: '1rem',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                        }}
+                      >
+                        {analysisLoadingMore && (
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.9rem'
+                          }}>
+                            <div className="loading-spinner"></div>
+                            Loading more listings...
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                 <p>No comparable listings found or analysis has not completed.</p>

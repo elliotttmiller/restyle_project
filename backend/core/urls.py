@@ -17,6 +17,7 @@ from .views import (
     EbayOAuthCallbackView,
     EbayOAuthDeclinedView,
     PriceAnalysisView,
+    AIImageSearchView,
 )
 
 urlpatterns = [
@@ -49,4 +50,7 @@ urlpatterns = [
     path('ebay-oauth-declined/', EbayOAuthDeclinedView.as_view(), name='ebay-oauth-declined'),
 
     path('price-analysis/', PriceAnalysisView.as_view(), name='price-analysis'),
+    
+    # AI Image Search
+    path('ai/image-search/', AIImageSearchView.as_view(), name='ai-image-search'),
 ]

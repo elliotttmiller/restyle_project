@@ -6,7 +6,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import AnalysisPage from './pages/AnalysisPage';
-import ItemDetailPage from './pages/ItemDetailPage'; // <-- New page is imported
+import ItemDetailPage from './pages/ItemDetailPage';
+import InventoryPage from './pages/InventoryPage';
+import ListingsPage from './pages/ListingsPage';
 import Navbar from './components/Navbar';
 
 function App() {
@@ -26,7 +28,9 @@ function App() {
             
             {/* Core Application Routes */}
             <Route path="/item/:itemId/analysis" element={<AnalysisPage />} />
-            <Route path="/item/:itemId" element={<ItemDetailPage />} /> {/* <-- New route is added */}
+            <Route path="/item/:itemId" element={<ItemDetailPage />} />
+            <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/listings" element={<ListingsPage />} />
             <Route path="/" element={<DashboardPage />} />
           </Routes>
         </main>

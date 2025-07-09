@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-_)b^sb+*n_na(vlnlln5w6_jm37)3txt4s68boll_5$dry-we#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.0.204', '0.0.0.0']
 
 # restyle_project/backend/backend/settings.py
 
@@ -90,7 +90,7 @@ DATABASES = {
         'NAME': 'restyle_db',
         'USER': 'restyle_user',
         'PASSWORD': 'restyle_password',
-        'HOST': 'db',  # This is the service name from docker-compose.yml
+        'HOST': 'localhost',  # Changed from 'db' to 'localhost' for local development
         'PORT': '5432',
     }
 }
@@ -165,6 +165,19 @@ except ImportError:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000", # The address of our React front-end
     "http://127.0.0.1:3000",
+    "http://192.168.0.204:3000",
+    "http://192.168.0.204:8000",
+]
+
+# Allow all headers and methods for mobile app
+CORS_ALLOW_ALL_HEADERS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
 ]
 
 try:

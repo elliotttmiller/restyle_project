@@ -6,6 +6,7 @@ const SearchBar = ({ onSearchResults, onLoading }) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
+  const [currentOffset, setCurrentOffset] = useState(0);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -17,14 +18,20 @@ const SearchBar = ({ onSearchResults, onLoading }) => {
 
     setIsSearching(true);
     setError('');
+    setCurrentOffset(0); // Reset offset for new search
     onLoading && onLoading(true);
 
     try {
       const response = await api.get('/core/ebay-search/', {
-        params: { q: query.trim() }
+        params: { 
+          q: query.trim(),
+          limit: 20,
+          offset: 0
+        }
       });
       
-      onSearchResults && onSearchResults(response.data);
+      setCurrentOffset(0); // Reset offset for new search
+      onSearchResults && onSearchResults(response.data, true, query.trim()); // true = new search, pass query
     } catch (err) {
       console.error('Search failed:', err);
       setError(err.response?.data?.error || 'Search failed. Please try again.');
@@ -33,6 +40,8 @@ const SearchBar = ({ onSearchResults, onLoading }) => {
       onLoading && onLoading(false);
     }
   };
+
+
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -78,6 +87,8 @@ const SearchBar = ({ onSearchResults, onLoading }) => {
           Searching eBay...
         </div>
       )}
+      
+      {/* Show More button moved to SearchResults component */}
     </div>
   );
 };
