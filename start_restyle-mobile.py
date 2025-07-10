@@ -12,7 +12,7 @@ MOBILE_DIR = os.path.join(PROJECT_ROOT, 'restyle-mobile')
 NODE_MODULES = os.path.join(MOBILE_DIR, 'node_modules')
 API_CONFIG_FILE = os.path.join(MOBILE_DIR, 'shared', 'api.js')
 
-print('--- Starting restyle-mobile app with automatic IP detection ---')
+print('--- Starting restyle-mobile app with automatic IP detection and Docker containers ---')
 
 def get_local_ip():
     """Get the current local IP address"""
@@ -70,27 +70,92 @@ def update_api_config(ip_address):
         print(f"Error updating API configuration: {e}")
         return False
 
-# Step 1: Start backend server from project root
-def start_backend():
-    print('Starting Django backend server...')
-    backend_manage_py = os.path.join(PROJECT_ROOT, 'backend', 'manage.py')
-    backend_process = subprocess.Popen([
-        sys.executable, backend_manage_py, 'runserver', '0.0.0.0:8000'
-    ], cwd=PROJECT_ROOT)
-    return backend_process
+def start_docker_services():
+    """Start all Docker services using docker-compose"""
+    print('Starting Docker services...')
+    
+    # Check if Docker is available
+    try:
+        result = subprocess.run(['docker', '--version'], shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
+            print('Docker not found. Skipping container startup.')
+            return False
+    except:
+        print('Docker not found. Skipping container startup.')
+        return False
+    
+    # Check if docker-compose is available
+    try:
+        result = subprocess.run(['docker-compose', '--version'], shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
+            print('docker-compose not found. Skipping container startup.')
+            return False
+    except:
+        print('docker-compose not found. Skipping container startup.')
+        return False
+    
+    # Start all services using docker-compose
+    print('Starting all Docker services (PostgreSQL, Redis, Django, Celery)...')
+    start_result = subprocess.run([
+        'docker-compose', 'up', '-d'
+    ], shell=True, capture_output=True, text=True)
+    
+    if start_result.returncode == 0:
+        print('All Docker services started successfully.')
+        print('Services running:')
+        print('- PostgreSQL database')
+        print('- Redis cache')
+        print('- Django backend (port 8000)')
+        print('- Celery worker')
+        print('- Celery beat scheduler')
+        print('- Celery monitor/Flower (port 5555)')
+        return True
+    else:
+        print(f'Failed to start Docker services: {start_result.stderr}')
+        return False
 
-# Step 2: Change directory
+def stop_docker_services():
+    """Stop all Docker services"""
+    print('Stopping Docker services...')
+    subprocess.run(['docker-compose', 'down'], shell=True)
+    print('Docker services stopped.')
+
+def detect_package_manager():
+    """Detect which package manager to use (npm or yarn)"""
+    # Check if yarn is available and preferred
+    try:
+        yarn_result = subprocess.run(['yarn', '--version'], shell=True, capture_output=True, text=True)
+        if yarn_result.returncode == 0:
+            # Check if yarn.lock exists
+            yarn_lock_path = os.path.join(MOBILE_DIR, 'yarn.lock')
+            if os.path.exists(yarn_lock_path):
+                print('Detected yarn.lock - using yarn package manager')
+                return 'yarn'
+    except:
+        pass
+    
+    # Default to npm
+    print('Using npm package manager')
+    return 'npm'
+
 def cd_mobile():
+    """Change to mobile directory"""
     os.chdir(MOBILE_DIR)
     print(f'Changed directory to {MOBILE_DIR}')
 
-# Step 3: Install dependencies if needed
 def ensure_dependencies():
+    """Ensure all dependencies are installed"""
+    package_manager = detect_package_manager()
+    
     if not os.path.exists(NODE_MODULES):
-        print('node_modules not found. Installing dependencies...')
-        result = subprocess.run(['npm', 'install'], shell=True)
+        print(f'node_modules not found. Installing dependencies with {package_manager}...')
+        if package_manager == 'yarn':
+            result = subprocess.run(['yarn', 'install'], shell=True)
+        else:
+            result = subprocess.run(['npm', 'install'], shell=True)
+        
         if result.returncode != 0:
-            print('npm install failed. Exiting.')
+            print(f'{package_manager} install failed. Exiting.')
             sys.exit(1)
     else:
         print('Dependencies already installed.')
@@ -100,7 +165,10 @@ def ensure_dependencies():
         result = subprocess.run(['npx', 'expo', '--version'], shell=True, capture_output=True, text=True)
         if result.returncode != 0:
             print('Expo not found. Installing expo...')
-            subprocess.run(['npm', 'install', 'expo'], shell=True, check=True)
+            if package_manager == 'yarn':
+                subprocess.run(['yarn', 'add', 'expo'], shell=True, check=True)
+            else:
+                subprocess.run(['npm', 'install', 'expo'], shell=True, check=True)
             print('Expo installed successfully.')
         else:
             print('Expo is already installed.')
@@ -108,8 +176,8 @@ def ensure_dependencies():
         print(f'Failed to install expo: {e}')
         sys.exit(1)
 
-# Step 4: Start Expo server
 def start_expo():
+    """Start Expo development server"""
     print('Starting Expo development server...')
     subprocess.run(['npx', 'expo', 'start'], shell=True)
 
@@ -117,21 +185,68 @@ if __name__ == '__main__':
     # Detect and configure IP address
     print("Detecting current IP address...")
     current_ip = get_local_ip()
-    
+
+    # --- NEW: Update backend settings.py with current IP ---
+    SETTINGS_PATH = os.path.join(PROJECT_ROOT, 'backend', 'backend', 'settings.py')
     if current_ip:
         print(f"Detected IP address: {current_ip}")
+        # Read settings.py
+        with open(SETTINGS_PATH, 'r') as f:
+            settings_content = f.read()
+        changed = False
+        # Update ALLOWED_HOSTS
+        allowed_hosts_pattern = r"ALLOWED_HOSTS\s*=\s*\[(.*?)\]"
+        match = re.search(allowed_hosts_pattern, settings_content, re.DOTALL)
+        if match:
+            allowed_hosts_str = match.group(1)
+            if f"'{current_ip}'" not in allowed_hosts_str:
+                # Insert before last ]
+                new_hosts = allowed_hosts_str.strip() + f", '{current_ip}'"
+                settings_content = re.sub(allowed_hosts_pattern,
+                    f"ALLOWED_HOSTS = [{new_hosts}]", settings_content, flags=re.DOTALL)
+                changed = True
+        # Update CORS_ALLOWED_ORIGINS
+        cors_pattern = r"CORS_ALLOWED_ORIGINS\s*=\s*\[(.*?)\]"
+        match = re.search(cors_pattern, settings_content, re.DOTALL)
+        cors_url = f'"http://{current_ip}:8000"'
+        if match:
+            cors_str = match.group(1)
+            if cors_url not in cors_str:
+                new_cors = cors_str.strip() + f", {cors_url}"
+                settings_content = re.sub(cors_pattern,
+                    f"CORS_ALLOWED_ORIGINS = [{new_cors}]", settings_content, flags=re.DOTALL)
+                changed = True
+        if changed:
+            with open(SETTINGS_PATH, 'w') as f:
+                f.write(settings_content)
+            print(f"Updated backend/settings.py with IP: {current_ip}")
+        else:
+            print(f"backend/settings.py already contains IP: {current_ip}")
+    else:
+        print("Warning: Could not detect IP address. Using existing configuration.")
+    # --- END NEW ---
+    # Update mobile API config
+    if current_ip:
         if update_api_config(current_ip):
             print("API configuration updated successfully!")
         else:
             print("Warning: Failed to update API configuration")
     else:
         print("Warning: Could not detect IP address. Using existing configuration.")
+    # Start Docker services
+    docker_started = start_docker_services()
     
-    backend_process = start_backend()
+    if docker_started:
+        print("Waiting for Docker services to be ready...")
+        time.sleep(10)  # Give services time to start up
+    
     try:
         cd_mobile()
         ensure_dependencies()
         start_expo()
     finally:
-        print('Shutting down backend server...')
-        backend_process.terminate() 
+        print('Shutting down services...')
+        
+        # Stop Docker services
+        if docker_started:
+            stop_docker_services() 

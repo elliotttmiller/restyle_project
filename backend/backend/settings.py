@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-_)b^sb+*n_na(vlnlln5w6_jm37)3txt4s68boll_5$dry-we#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.0.204', '0.0.0.0']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.0.204', '192.168.0.13', '0.0.0.0']
 
 # restyle_project/backend/backend/settings.py
 
@@ -89,8 +89,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'restyle_db',
         'USER': 'restyle_user',
-        'PASSWORD': 'E$$io$$2',
-        'HOST': 'localhost',  # Changed from 'db' to 'localhost' for local development
+        'PASSWORD': 'restyle_password',
+        'HOST': 'db',  # Use 'db' for Docker containers
         'PORT': '5432',
     }
 }
@@ -167,6 +167,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://192.168.0.204:3000",
     "http://192.168.0.204:8000",
+    "http://192.168.0.13:8000", # Mobile app IP
 ]
 
 # Allow all headers and methods for mobile app

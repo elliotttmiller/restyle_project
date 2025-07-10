@@ -33,19 +33,19 @@ class SystemShutdown:
         
     def log_step(self, message):
         """Log a shutdown step with timestamp"""
-        logger.info(f"🔄 {message}")
+        logger.info(f"STEP: {message}")
         
     def log_success(self, message):
         """Log a successful operation"""
-        logger.info(f"✅ {message}")
+        logger.info(f"SUCCESS: {message}")
         
     def log_error(self, message):
         """Log an error"""
-        logger.error(f"❌ {message}")
+        logger.error(f"ERROR: {message}")
         
     def log_warning(self, message):
         """Log a warning"""
-        logger.warning(f"⚠️ {message}")
+        logger.warning(f"WARNING: {message}")
         
     def find_processes_by_name(self, process_names):
         """Find processes by name and return list of PIDs"""
@@ -189,19 +189,31 @@ class SystemShutdown:
     def stop_docker_compose(self):
         """Stop Docker Compose services"""
         self.log_step("Stopping Docker Compose services...")
-        
+
         compose_file = self.project_root / "docker-compose.yml"
         if compose_file.exists():
             try:
-                subprocess.run(
-                    ['docker-compose', 'down'],
-                    cwd=self.project_root,
-                    capture_output=True,
-                    timeout=30
-                )
-                self.log_success("Docker Compose services stopped")
-            except FileNotFoundError:
-                self.log_warning("Docker Compose not found")
+                # Try both 'docker-compose' and 'docker compose'
+                try:
+                    subprocess.run(
+                        ['docker-compose', 'down'],
+                        cwd=self.project_root,
+                        capture_output=True,
+                        timeout=30
+                    )
+                    self.log_success("Docker Compose services stopped (docker-compose)")
+                except FileNotFoundError:
+                    # Try 'docker compose'
+                    try:
+                        subprocess.run(
+                            ['docker', 'compose', 'down'],
+                            cwd=self.project_root,
+                            capture_output=True,
+                            timeout=30
+                        )
+                        self.log_success("Docker Compose services stopped (docker compose)")
+                    except Exception as e2:
+                        self.log_warning(f"Error stopping Docker Compose (docker compose): {e2}")
             except subprocess.TimeoutExpired:
                 self.log_error("Timeout stopping Docker Compose services")
             except Exception as e:
@@ -212,69 +224,58 @@ class SystemShutdown:
     def cleanup_temp_files(self):
         """Clean up temporary files and logs"""
         self.log_step("Cleaning up temporary files...")
-        
-        temp_files = [
+
+        import glob
+        import shutil
+        temp_patterns = [
             "celerybeat-schedule",
             "*.pyc",
-            "__pycache__",
+            "**/__pycache__",
             ".pytest_cache",
             "*.log",
-            "node_modules/.cache"
+            "frontend/node_modules/.cache"
         ]
-        
-        for pattern in temp_files:
+
+        for pattern in temp_patterns:
             try:
-                if '*' in pattern:
-                    # Use glob for wildcard patterns
-                    import glob
-                    files = glob.glob(str(self.project_root / pattern))
-                    for file in files:
-                        try:
-                            if os.path.isfile(file):
-                                os.remove(file)
-                            elif os.path.isdir(file):
-                                import shutil
-                                shutil.rmtree(file)
-                        except Exception as e:
-                            self.log_warning(f"Could not remove {file}: {e}")
-                else:
-                    file_path = self.project_root / pattern
-                    if file_path.exists():
-                        file_path.unlink()
-                        self.log_success(f"Removed {pattern}")
+                files = glob.glob(str(self.project_root / pattern), recursive=True)
+                for file in files:
+                    try:
+                        if os.path.isfile(file):
+                            os.remove(file)
+                            self.log_success(f"Removed file {file}")
+                        elif os.path.isdir(file):
+                            shutil.rmtree(file)
+                            self.log_success(f"Removed directory {file}")
+                    except Exception as e:
+                        self.log_warning(f"Could not remove {file}: {e}")
             except Exception as e:
                 self.log_warning(f"Error cleaning up {pattern}: {e}")
                 
     def stop_port_processes(self):
         """Stop processes running on specific ports"""
         self.log_step("Stopping processes on specific ports...")
-        
+
         ports_to_check = [8000, 3000, 5000, 5432, 6379]  # Common ports
-        
+
         for port in ports_to_check:
             try:
-                # Find process using the port
-                result = subprocess.run(
-                    ['netstat', '-ano', '|', 'findstr', f':{port}'],
-                    shell=True,
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                
+                # Use shell=True and a single string for Windows netstat/findstr
+                cmd = f'netstat -ano | findstr :{port}'
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=5)
+
                 if result.stdout.strip():
                     lines = result.stdout.strip().split('\n')
                     for line in lines:
                         if f':{port}' in line:
                             parts = line.split()
-                            if len(parts) >= 5:
-                                pid = parts[-1]
-                                try:
-                                    self.kill_processes([int(pid)])
-                                    self.log_success(f"Stopped process on port {port}")
-                                except ValueError:
-                                    continue
-                                    
+                            # PID is always the last column in netstat output
+                            pid = parts[-1]
+                            try:
+                                self.kill_processes([int(pid)])
+                                self.log_success(f"Stopped process on port {port}")
+                            except ValueError:
+                                continue
             except Exception as e:
                 self.log_warning(f"Error checking port {port}: {e}")
                 
@@ -370,7 +371,7 @@ class SystemShutdown:
             
     def shutdown_system(self, force=False):
         """Complete system shutdown"""
-        logger.info("🚀 Starting comprehensive system shutdown...")
+        logger.info("Starting comprehensive system shutdown...")
         
         try:
             # 1. Stop Django server
@@ -403,18 +404,18 @@ class SystemShutdown:
             # 10. Verify shutdown
             self.verify_shutdown()
             
-            logger.info("🎉 System shutdown completed successfully!")
+            logger.info("System shutdown completed successfully!")
             
         except KeyboardInterrupt:
-            logger.info("⚠️ Shutdown interrupted by user")
+            logger.info("Shutdown interrupted by user")
             sys.exit(1)
         except Exception as e:
-            logger.error(f"❌ Error during shutdown: {e}")
+            logger.error(f"Error during shutdown: {e}")
             sys.exit(1)
             
     def emergency_shutdown(self):
         """Emergency shutdown - force kill all related processes"""
-        logger.warning("🚨 EMERGENCY SHUTDOWN - Force killing all processes...")
+        logger.warning("EMERGENCY SHUTDOWN - Force killing all processes...")
         
         # Force kill all related processes
         all_pids = self.find_processes_by_name([
@@ -432,7 +433,7 @@ class SystemShutdown:
         except:
             pass
             
-        logger.info("🚨 Emergency shutdown completed")
+        logger.info("Emergency shutdown completed")
 
 def main():
     """Main function"""

@@ -12,3 +12,6 @@ flower==2.0.1
 redis==5.0.1
 google-cloud-vision==3.10.2
 pillow
+faiss-cpu
+torch
+open_clip_torch
