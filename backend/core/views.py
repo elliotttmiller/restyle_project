@@ -18,7 +18,10 @@ from django.core.cache import cache
 from datetime import datetime, timedelta
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from .ai_service import ai_service  # Import the AI service
+from .ai_service import get_ai_service  # Import the AI service getter
+import base64
+import psutil
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -408,7 +411,7 @@ class EbayOAuthCallbackView(APIView):
             client_id = getattr(settings, 'EBAY_PRODUCTION_APP_ID', None)
             client_secret = getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
             # Hardcoded redirect_uri to match eBay app settings
-            redirect_uri = "https://f8e6-2601-444-882-b090-394b-9d47-4958-eca9.ngrok-free.app/api/core/ebay-oauth-callback/"
+            redirect_uri = "https://4022a978ecf9.ngrok-free.app/api/core/ebay-oauth-callback/"
             if not all([client_id, client_secret]):
                 return Response({'error': 'Missing eBay client credentials.'}, status=500)
 
@@ -451,132 +454,95 @@ class EbayOAuthDeclinedView(APIView):
 class AIImageSearchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
-    def post(self, request):
-        """AI-powered image search using uploaded image"""
+    def search_ebay_with_queries(self, search_terms):
+        """
+        Search eBay with a list of search terms and return results.
+        """
+        if not search_terms:
+            return []
+        
+        # Use the first search term for now (can be enhanced to use multiple terms)
+        query = search_terms[0] if isinstance(search_terms, list) else str(search_terms)
+        
         try:
-            # Get the uploaded image
-            image_file = request.FILES.get('image')
-            if not image_file:
-                return Response({'error': 'No image file provided'}, status=400)
-            
-            # Read image data
-            image_data = image_file.read()
-            
-            # Analyze image using AI service
-            analysis_results = ai_service.analyze_image(image_data)
-            
-            logger.info(f"AI analysis results: {analysis_results}")
-            
-            # Get search terms from AI analysis
-            search_terms = analysis_results.get('search_terms', ['clothing', 'fashion'])
-            
-            # Log the search terms being used
-            logger.info(f"AI search terms: {search_terms}")
-            
-            # Get eBay auth token
             from .ebay_auth import get_ebay_oauth_token
             auth_token = get_ebay_oauth_token()
-            if not auth_token:
-                return Response({'error': 'No valid eBay OAuth token available'}, status=503)
-            
-            # Search eBay with AI-generated terms
-            headers = {
-                'Authorization': f'Bearer {auth_token}',
-                'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Content-Language': 'en-US',
-            }
-            
-            # Combine terms for search (limit to 2-3 terms for better results)
-            query = ' '.join(search_terms[:3])  # Limit to top 3 terms
-            params = {
-                'q': query,
-                'limit': 20,
-            }
-            
-            logger.info(f"eBay search query: '{query}'")
-            logger.info(f"eBay search params: {params}")
-            
-            api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
-            
+        except Exception as e:
+            logger.error(f"Error getting eBay token: {e}")
+            return []
+        
+        if not auth_token:
+            logger.error("No valid eBay OAuth token available")
+            return []
+        
+        headers = {
+            'Authorization': f'Bearer {auth_token}',
+            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+            'Accept': 'application/json',
+            'Content-Language': 'en-US',
+        }
+        
+        params = {
+            'q': query,
+            'limit': 20,
+        }
+        
+        api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
+        
+        try:
             response = requests.get(api_url, headers=headers, params=params, timeout=15)
-            
-            logger.info(f"eBay API response status: {response.status_code}")
-            if response.status_code != 200:
-                logger.error(f"eBay API error: {response.text[:500]}")
-            
             if response.status_code == 200:
                 data = response.json()
                 items = data.get('itemSummaries', [])
-                
-                logger.info(f"eBay API returned {len(items)} items for query: '{query}'")
-                
-                # Detect objects and bounding boxes
-                detected_objects = ai_service.detect_objects_and_regions(image_data)
-                # Get selected region/object from request (bounding box or object index)
-                bounding_box = None
-                object_index = request.data.get('object_index') or request.POST.get('object_index') or request.query_params.get('object_index')
-                if object_index is not None and detected_objects:
-                    try:
-                        idx = int(object_index)
-                        if 0 <= idx < len(detected_objects):
-                            bounding_box = detected_objects[idx]['bounding_box']
-                    except Exception:
-                        pass
-                # Hybrid ensemble search (region-aware)
-                text_query = request.data.get('query') or request.POST.get('query') or request.query_params.get('query')
-                ensemble_results = ai_service.ensemble_search(image_data, text_query=text_query, bounding_box=bounding_box, top_k=10)
-                # Visual similarity search (for compatibility)
-                visual_similar_results = ai_service.get_visual_similar_items(image_data, text_query=text_query, top_k=5, bounding_box=bounding_box)
-                
-                # Format eBay results with explainable 'matched_on' and attributes
-                results = []
-                for item in items:
-                    matched_on = []
-                    title = item.get('title', '').lower()
-                    for term in search_terms:
-                        if term.lower() in title:
-                            matched_on.append(term)
-                    if 'brand' in item and item['brand']:
-                        for brand in analysis_results.get('search_terms', []):
-                            if brand.lower() in str(item['brand']).lower():
-                                matched_on.append(brand)
-                    attributes = ai_service.extract_attributes(item)
-                    results.append({
-                        'itemId': item.get('itemId'),
-                        'title': item.get('title'),
-                        'price': item.get('price'),
-                        'image': item.get('image'),
-                        'seller': item.get('seller'),
-                        'itemWebUrl': item.get('itemWebUrl'),
-                        'itemAffiliateWebUrl': item.get('itemAffiliateWebUrl'),
-                        'matched_on': list(set(matched_on)),
-                        'attributes': attributes,
-                    })
-                
-                return Response({
-                    'results': results,
-                    'ensemble_results': ensemble_results,
-                    'detected_objects': detected_objects,
-                    'query': query,
-                    'analysis': analysis_results,
-                    'best_guess': analysis_results.get('best_guess', ''),
-                    'suggested_queries': analysis_results.get('suggested_queries', []),
-                    'ocr_text': analysis_results.get('ocr_text', ''),
-                    'labels': analysis_results.get('labels', []),
-                    'objects': analysis_results.get('objects', []),
-                    'dominant_colors': analysis_results.get('dominant_colors', []),
-                    'search_terms': analysis_results.get('search_terms', []),
-                    'visual_similar_results': visual_similar_results,
-                    'message': f'AI image search completed using {len(search_terms)} search terms'
-                }, status=200)
+                logger.info(f"eBay API returned {len(items)} items for query: {query}")
+                return items
             else:
-                return Response({'error': 'Failed to search eBay'}, status=503)
-                
+                logger.error(f"eBay API error: {response.status_code} - {response.text}")
+                return []
         except Exception as e:
-            logger.error(f"Error in AI image search: {e}")
-            return Response({'error': 'An unexpected error occurred'}, status=500)
+            logger.error(f"Error in eBay search: {e}")
+            return []
+    
+    def post(self, request):
+        print("--- HYBRID ENSEMBLE AI SEARCH VIEW ---")
+        process = psutil.Process(os.getpid())
+        mem_start = process.memory_info().rss / (1024 * 1024)
+        print(f"[MEMORY] Start: {mem_start:.2f} MB")
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            image_data = image_file.read()
+            # --- Path 1: Hybrid Vision+CLIP Search ---
+            print("Running Hybrid Vision+CLIP Path...")
+            def ebay_search_func(queries):
+                print(f"[DEBUG] Search terms sent to eBay: {queries}")
+                results = self.search_ebay_with_queries(queries)
+                print(f"[DEBUG] eBay API returned {len(results)} items for queries: {queries}")
+                if results:
+                    print(f"[DEBUG] First eBay item: {results[0]}")
+                return results
+            hybrid_results = get_ai_service().hybrid_image_search(image_data, ebay_search_func, top_k=10)
+            # --- Path 2: Visual Similarity (eBay's own image search) ---
+            print("Running Visual Path (eBay API)...")
+            image_data_b64 = base64.b64encode(image_data).decode('utf-8')
+            # visual_match_results = call_ebay_image_search(image_data_b64)
+            visual_match_results = []  # Disabled: function not implemented
+            mem_end = process.memory_info().rss / (1024 * 1024)
+            print(f"[MEMORY] End: {mem_end:.2f} MB")
+            print(f"[MEMORY] Peak: {psutil.virtual_memory().used / (1024 * 1024):.2f} MB used system-wide")
+            # --- Structured Response ---
+            return Response({
+                'message': 'Hybrid analysis successful.',
+                'hybrid_results': hybrid_results,
+                'visual_match_results': {
+                    'item_count': len(visual_match_results),
+                    'items': visual_match_results[:10]
+                }
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error in Hybrid AI search view: {e}")
+            return Response({'error': 'An unexpected error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PriceAnalysisView(APIView):

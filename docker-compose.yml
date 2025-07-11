@@ -40,6 +40,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - ./silent-polygon-465403-h9-1f5d8e0580fc.json:/app/silent-polygon-465403-h9-1f5d8e0580fc.json:ro
     depends_on:
       db:
         condition: service_healthy
@@ -49,6 +50,7 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/silent-polygon-465403-h9-1f5d8e0580fc.json
 
   celery_worker:
     build:
@@ -57,6 +59,7 @@ services:
     command: celery -A backend worker -l info -Q default,ebay_tokens
     volumes:
       - ./backend:/app
+      - ./silent-polygon-465403-h9-1f5d8e0580fc.json:/app/silent-polygon-465403-h9-1f5d8e0580fc.json:ro
     depends_on:
       db:
         condition: service_healthy
@@ -66,6 +69,7 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/silent-polygon-465403-h9-1f5d8e0580fc.json
 
   celery_beat:
     build:
@@ -74,6 +78,7 @@ services:
     command: celery -A backend beat -l info
     volumes:
       - ./backend:/app
+      - ./silent-polygon-465403-h9-1f5d8e0580fc.json:/app/silent-polygon-465403-h9-1f5d8e0580fc.json:ro
     depends_on:
       db:
         condition: service_healthy
@@ -83,6 +88,7 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/silent-polygon-465403-h9-1f5d8e0580fc.json
 
   celery_monitor:
     build:
@@ -93,6 +99,7 @@ services:
       - "5555:5555"
     volumes:
       - ./backend:/app
+      - ./silent-polygon-465403-h9-1f5d8e0580fc.json:/app/silent-polygon-465403-h9-1f5d8e0580fc.json:ro
     depends_on:
       db:
         condition: service_healthy
@@ -102,6 +109,7 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/silent-polygon-465403-h9-1f5d8e0580fc.json
 
 volumes:
   postgres_data:

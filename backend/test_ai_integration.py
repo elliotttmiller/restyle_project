@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
 
-from core.ai_service import ai_service
+from core.ai_service import get_ai_service
 import requests
 from PIL import Image
 import io
@@ -30,7 +30,7 @@ def test_ai_service():
     
     # Test AI analysis
     try:
-        results = ai_service.analyze_image(image_data)
+        results = get_ai_service().analyze_image(image_data)
         print("✅ AI Service Test Results:")
         print(f"  - Labels found: {len(results.get('labels', []))}")
         print(f"  - Objects found: {len(results.get('objects', []))}")

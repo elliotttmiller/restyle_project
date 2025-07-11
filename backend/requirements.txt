@@ -15,3 +15,5 @@ pillow
 faiss-cpu
 torch
 open_clip_torch
+rapidfuzz
+psutil

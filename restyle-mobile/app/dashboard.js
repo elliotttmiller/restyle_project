@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../shared/authStore';
 import AlgorithmEbaySearchBar from './AlgorithmEbaySearchBar';
@@ -47,7 +47,7 @@ export default function Dashboard() {
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
-      <ScrollView style={styles.content} contentContainerStyle={{ flexGrow: 1 }}>
+      <View style={styles.content}>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
             style={styles.cameraButton} 
@@ -63,7 +63,7 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
         <AlgorithmEbaySearchBar />
-      </ScrollView>
+      </View>
     </View>
   );
 }

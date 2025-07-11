@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, ActivityIndicator, TextInput, ScrollView, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, ActivityIndicator, TextInput, ScrollView, Dimensions, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -97,11 +97,43 @@ export default function CameraSearch() {
     }
     setSearching(true);
     try {
-      const response = await fetch(selectedImage.uri);
-      const blob = await response.blob();
+      console.log('Selected image URI:', selectedImage.uri);
+      console.log('Selected image type:', selectedImage.type);
+      console.log('Selected image size:', selectedImage.fileSize);
+      
+      // Try to get the image data more reliably
+      let imageData;
+      try {
+        const response = await fetch(selectedImage.uri);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        imageData = await response.blob();
+        console.log('Image blob size:', imageData.size);
+        
+        if (imageData.size === 0) {
+          throw new Error('Image blob is empty');
+        }
+      } catch (fetchError) {
+        console.error('Error fetching image:', fetchError);
+        Alert.alert('Error', 'Failed to process image. Please try again.');
+        setSearching(false);
+        return;
+      }
+      
+      // Create FormData with proper file object
       const formData = new FormData();
-      formData.append('image', blob, 'image.jpg');
+      
+      // Create a proper file object for React Native
+      const file = {
+        uri: selectedImage.uri,
+        type: 'image/jpeg',
+        name: 'image.jpg',
+      };
+      
+      formData.append('image', file);
       formData.append('image_type', 'image/jpeg');
+      
       const queryToSend = queryOverride !== null ? queryOverride : textQuery;
       if (queryToSend) {
         formData.append('query', queryToSend);
@@ -109,9 +141,11 @@ export default function CameraSearch() {
       if (selectedObjectIndex !== null) {
         formData.append('object_index', selectedObjectIndex);
       }
+      
+      console.log('Sending image to backend...');
       const searchResponse = await api.post('/core/ai/image-search/', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          // Don't set Content-Type - let the browser set it with boundary
         },
       });
       setSearchResults(searchResponse.data.results || []);
@@ -160,7 +194,7 @@ export default function CameraSearch() {
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}>
         <Text style={styles.subtitle}>
           Take a photo or select an image to search for similar items on eBay
         </Text>
@@ -259,7 +293,10 @@ export default function CameraSearch() {
             )}
             {suggestedQueries.length > 0 && (
               <View style={styles.chipRow}><Text style={styles.chipLabel}>Suggested Queries:</Text>{suggestedQueries.map((q, i) => (
-                <TouchableOpacity key={i} style={styles.suggestedChip} onPress={() => searchByImage(q)}>
+                <TouchableOpacity key={i} style={styles.suggestedChip} onPress={() => {
+                  console.log('User selected suggested query:', q);
+                  searchByImage(q);
+                }}>
                   <Text style={styles.suggestedChipText}>{q}</Text>
                 </TouchableOpacity>
               ))}</View>
@@ -290,10 +327,20 @@ export default function CameraSearch() {
                   key={`${item.itemId || index}-${Date.now()}`}
                   style={styles.resultCard}
                   onPress={() => {
-                    router.push({ 
-                      pathname: '/item-detail', 
-                      params: { item: JSON.stringify(item) } 
-                    });
+                    console.log('Clicked item:', item);
+                    if (item.itemWebUrl) {
+                      console.log('Opening itemWebUrl:', item.itemWebUrl);
+                      Linking.openURL(item.itemWebUrl);
+                    } else if (item.itemAffiliateWebUrl) {
+                      console.log('Opening itemAffiliateWebUrl:', item.itemAffiliateWebUrl);
+                      Linking.openURL(item.itemAffiliateWebUrl);
+                    } else {
+                      console.log('No eBay URL found, navigating to item-detail');
+                      router.push({ 
+                        pathname: '/item-detail', 
+                        params: { item: JSON.stringify(item) } 
+                      });
+                    }
                   }}
                 >
                   {item.image?.imageUrl && (
@@ -343,7 +390,7 @@ export default function CameraSearch() {
             </ScrollView>
           </View>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }

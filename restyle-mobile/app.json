@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "restyle-mobile",
+    "slug": "restyle-mobile",
+    "version": "1.0.0",
+    "scheme": "restyle-mobile",
+    "platforms": ["ios", "android", "web"],
+    "sdkVersion": "53.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+} 

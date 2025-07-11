@@ -25,7 +25,16 @@ SECRET_KEY = 'django-insecure-_)b^sb+*n_na(vlnlln5w6_jm37)3txt4s68boll_5$dry-we#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.0.204', '192.168.0.13', '0.0.0.0']
+ALLOWED_HOSTS = ['localhost',
+    '127.0.0.1',
+    '192.168.0.204',
+    '192.168.0.13',
+    '0.0.0.0',
+    '192.168.0.18',
+    '6012dc93ed69.ngrok-free.app',
+    '0b4bbb13fe08.ngrok-free.app',
+    '4022a978ecf9.ngrok-free.app',
+    '192.168.0.22', '192.168.0.24']
 
 # restyle_project/backend/backend/settings.py
 
@@ -155,20 +164,14 @@ REST_FRAMEWORK = {
 # backend/backend/local_settings.py
 EBAY_APP_ID = "Your-App-ID-Goes-Here" 
 
-# At the bottom of backend/backend/settings.py
-try:
-    from .local_settings import *
-except ImportError:
-    pass # No local_settings.py found. 
-
 # CORS CONFIGURATION
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", # The address of our React front-end
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000", # The address of our React front-end
     "http://127.0.0.1:3000",
     "http://192.168.0.204:3000",
     "http://192.168.0.204:8000",
     "http://192.168.0.13:8000", # Mobile app IP
-]
+    "http://192.168.0.18:8000", 
+    "http://192.168.0.22:8000", "http://192.168.0.24:8000"]
 
 # Allow all headers and methods for mobile app
 CORS_ALLOW_ALL_HEADERS = True
@@ -181,6 +184,7 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
+# At the bottom of backend/backend/settings.py
 try:
     from .local_settings import *
 except ImportError:
