@@ -9,7 +9,7 @@ from datetime import datetime
 
 API_URL = 'http://localhost:8000/api/core/ai/image-search/'
 # Use absolute path for the new test image
-IMAGE_PATH = r'C:\Users\AMD\restyle_project\test_files\example2.JPG'
+IMAGE_PATH = r'C:\Users\AMD\restyle_project\test_files\example.JPG'
 AUTH_URL = 'http://localhost:8000/api/token/'
 
 # Use environment variables or defaults for test credentials
@@ -82,7 +82,7 @@ def analyze_ai_results(response_data):
     print(f"\n📈 ACCURACY ASSESSMENT:")
     
     # Check for expected terms in search results
-    expected_terms = ['burberry', 'shirt', 'long sleeve', 'button', 'beige', 'thornaby']
+    expected_terms = ['minnesota', 'timberwolves', 'playoffs', '2024', 'white', 't-shirt']
     detected_terms = [term.lower() for term in search_terms]
     
     print(f"   Expected Terms: {expected_terms}")
@@ -98,25 +98,25 @@ def analyze_ai_results(response_data):
     # Specific accuracy checks
     print(f"\n✅ SPECIFIC ACCURACY CHECKS:")
     
-    # Brand detection
-    brand_detected = any('burberry' in term.lower() for term in search_terms)
-    print(f"   • Brand (Burberry): {'✅' if brand_detected else '❌'}")
+    # Team detection
+    team_detected = any(team in ' '.join(search_terms).lower() for team in ['minnesota', 'timberwolves'])
+    print(f"   • Team (Minnesota Timberwolves): {'✅' if team_detected else '❌'}")
     
     # Product type detection
-    shirt_detected = any('shirt' in term.lower() for term in search_terms)
-    print(f"   • Product Type (Shirt): {'✅' if shirt_detected else '❌'}")
+    shirt_detected = any('t-shirt' in term.lower() or 'shirt' in term.lower() for term in search_terms)
+    print(f"   • Product Type (T-Shirt): {'✅' if shirt_detected else '❌'}")
     
     # Color detection
-    color_detected = any(color in ' '.join(search_terms).lower() for color in ['beige', 'tan', 'cream', 'light brown'])
-    print(f"   • Color (Beige/Tan): {'✅' if color_detected else '❌'}")
+    color_detected = any(color in ' '.join(search_terms).lower() for color in ['white', 'light'])
+    print(f"   • Color (White): {'✅' if color_detected else '❌'}")
     
-    # Style detection
-    style_detected = any(style in ' '.join(search_terms).lower() for style in ['long sleeve', 'button', 'formal'])
-    print(f"   • Style (Long Sleeve/Button): {'✅' if style_detected else '❌'}")
+    # Event detection
+    event_detected = any(event in ' '.join(search_terms).lower() for event in ['playoffs', 'playoff'])
+    print(f"   • Event (Playoffs): {'✅' if event_detected else '❌'}")
     
-    # Model detection
-    model_detected = any('thornaby' in term.lower() for term in search_terms)
-    print(f"   • Model (Thornaby): {'✅' if model_detected else '❌'}")
+    # Year detection
+    year_detected = any('2024' in term.lower() for term in search_terms)
+    print(f"   • Year (2024): {'✅' if year_detected else '❌'}")
     
     # Overall assessment
     print(f"\n🎯 OVERALL ASSESSMENT:")

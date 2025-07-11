@@ -400,44 +400,472 @@ class AIService:
         Enhanced AI-driven detection: Extract all entities from image analysis (labels, objects, web entities, OCR, best guess labels)
         Returns: (search_terms, best_guess, suggested_queries)
         """
+        import re
+        from difflib import get_close_matches, SequenceMatcher
+        
+        # AI-driven team name mappings with fuzzy matching
+        team_abbreviations = {
+            'wolves': 'minnesota timberwolves',
+            'timberwolves': 'minnesota timberwolves',
+            'minn': 'minnesota timberwolves',
+            'minnesota': 'minnesota timberwolves',
+            'lakers': 'los angeles lakers',
+            'la': 'los angeles lakers',
+            'celtics': 'boston celtics',
+            'boston': 'boston celtics',
+            'warriors': 'golden state warriors',
+            'gs': 'golden state warriors',
+            'bulls': 'chicago bulls',
+            'chicago': 'chicago bulls',
+            'heat': 'miami heat',
+            'miami': 'miami heat',
+            'knicks': 'new york knicks',
+            'ny': 'new york knicks',
+            'nets': 'brooklyn nets',
+            'brooklyn': 'brooklyn nets',
+            'suns': 'phoenix suns',
+            'phoenix': 'phoenix suns',
+            'nuggets': 'denver nuggets',
+            'denver': 'denver nuggets',
+            'clippers': 'los angeles clippers',
+            'lac': 'los angeles clippers',
+            'mavericks': 'dallas mavericks',
+            'dallas': 'dallas mavericks',
+            'spurs': 'san antonio spurs',
+            'san antonio': 'san antonio spurs',
+            'rockets': 'houston rockets',
+            'houston': 'houston rockets',
+            'thunder': 'oklahoma city thunder',
+            'okc': 'oklahoma city thunder',
+            'pelicans': 'new orleans pelicans',
+            'new orleans': 'new orleans pelicans',
+            'kings': 'sacramento kings',
+            'sacramento': 'sacramento kings',
+            'jazz': 'utah jazz',
+            'utah': 'utah jazz',
+            'trail blazers': 'portland trail blazers',
+            'blazers': 'portland trail blazers',
+            'portland': 'portland trail blazers',
+            'grizzlies': 'memphis grizzlies',
+            'memphis': 'memphis grizzlies'
+        }
+        
+        # AI-driven color mappings with context awareness
+        color_mappings = {
+            'white': ['white', 'cream', 'ivory', 'off-white', 'bone'],
+            'black': ['black', 'charcoal', 'navy', 'dark'],
+            'red': ['red', 'crimson', 'scarlet', 'burgundy', 'maroon'],
+            'blue': ['blue', 'navy', 'royal', 'cobalt', 'indigo'],
+            'green': ['green', 'forest', 'olive', 'emerald', 'sage'],
+            'yellow': ['yellow', 'gold', 'mustard', 'amber'],
+            'purple': ['purple', 'violet', 'lavender', 'plum'],
+            'orange': ['orange', 'tangerine', 'coral', 'peach'],
+            'pink': ['pink', 'rose', 'salmon', 'fuchsia'],
+            'brown': ['brown', 'tan', 'beige', 'khaki', 'taupe'],
+            'gray': ['gray', 'grey', 'silver', 'slate', 'steel'],
+            'multi': ['multi', 'colorful', 'patterned', 'printed']
+        }
+        
+        # AI-driven product type normalization
+        product_type_mappings = {
+            'shirt': ['shirt', 't-shirt', 'tee', 'top', 'blouse'],
+            'jersey': ['jersey', 'uniform', 'team shirt', 'athletic shirt'],
+            'hoodie': ['hoodie', 'sweatshirt', 'pullover', 'hooded'],
+            'jacket': ['jacket', 'coat', 'outerwear', 'windbreaker'],
+            'pants': ['pants', 'trousers', 'jeans', 'slacks'],
+            'shorts': ['shorts', 'athletic shorts', 'basketball shorts'],
+            'dress': ['dress', 'gown', 'frock'],
+            'skirt': ['skirt', 'mini', 'midi', 'maxi'],
+            'shoes': ['shoes', 'sneakers', 'boots', 'footwear'],
+            'hat': ['hat', 'cap', 'beanie', 'headwear'],
+            'bag': ['bag', 'purse', 'handbag', 'backpack']
+        }
+        
+        def fuzzy_match(term1, term2, threshold=0.7):
+            """Fuzzy string matching using SequenceMatcher"""
+            return SequenceMatcher(None, term1.lower(), term2.lower()).ratio() >= threshold
+        
+        def find_team_match(term):
+            """AI-driven team name detection with fuzzy matching"""
+            # Direct abbreviation matching
+            if term in team_abbreviations:
+                return team_abbreviations[term]
+            
+            # Fuzzy matching for partial matches
+            for abbrev, full_name in team_abbreviations.items():
+                if fuzzy_match(term, abbrev, threshold=0.6):
+                    return full_name
+            
+            # Check if term contains team keywords
+            team_keywords = ['wolves', 'timberwolves', 'lakers', 'celtics', 'warriors', 
+                            'bulls', 'heat', 'knicks', 'nets', 'suns', 'nuggets', 
+                            'clippers', 'mavericks', 'spurs', 'rockets', 'thunder',
+                            'pelicans', 'kings', 'jazz', 'blazers', 'grizzlies']
+            
+            for keyword in team_keywords:
+                if keyword in term:
+                    return team_abbreviations.get(keyword, term)
+            
+            return None
+        
+        def find_product_type_match(term):
+            """AI-driven product type detection with normalization"""
+            # Direct mapping
+            for normalized, variants in product_type_mappings.items():
+                if term in variants:
+                    return normalized
+            
+            # Fuzzy matching for product types
+            for normalized, variants in product_type_mappings.items():
+                for variant in variants:
+                    if fuzzy_match(term, variant, threshold=0.7):
+                        return normalized
+            
+            # Context-aware product type detection
+            if any(word in term for word in ['shirt', 'tee', 'top']):
+                return 'shirt'
+            elif any(word in term for word in ['jersey', 'uniform', 'team']):
+                return 'jersey'
+            elif any(word in term for word in ['hoodie', 'sweatshirt', 'pullover']):
+                return 'hoodie'
+            elif any(word in term for word in ['jacket', 'coat', 'outerwear']):
+                return 'jacket'
+            
+            return None
+        
+        def find_color_match(term):
+            """AI-driven color detection with mapping"""
+            # Direct color mapping
+            for normalized, variants in color_mappings.items():
+                if term in variants:
+                    return normalized
+            
+            # Fuzzy matching for colors
+            for normalized, variants in color_mappings.items():
+                for variant in variants:
+                    if fuzzy_match(term, variant, threshold=0.7):
+                        return normalized
+            
+            # Context-aware color detection
+            if any(word in term for word in ['white', 'cream', 'ivory']):
+                return 'white'
+            elif any(word in term for word in ['black', 'charcoal', 'dark']):
+                return 'black'
+            elif any(word in term for word in ['red', 'crimson', 'scarlet']):
+                return 'red'
+            elif any(word in term for word in ['blue', 'navy', 'royal']):
+                return 'blue'
+            
+            return None
+        
         # Extract brands/models
         brands_models = self._extract_brands_models([analysis_results.get('ocr_text', '')])
+        
         # Extract product and style terms (now includes all relevant terms)
         product_terms, _ = self._extract_product_terms(analysis_results, return_priority=True)
+        
         # Extract color
         color = None
+        rgb = None
         if analysis_results.get('dominant_colors'):
             color = self._get_meaningful_color(analysis_results['dominant_colors'])
-        # Combine all detected terms
-        search_terms = []
-        if brands_models:
-            search_terms.extend(brands_models)
-        if product_terms:
-            search_terms.extend(product_terms)
-        if color:
-            search_terms.append(color)
+            rgb = analysis_results['dominant_colors'][0]
+        
+        # Extract all text and context
+        all_text = analysis_results.get('ocr_text', '').lower()
+        for label in analysis_results.get('labels', []):
+            all_text += ' ' + label['description'].lower()
+        for entity in analysis_results.get('web_entities', []):
+            all_text += ' ' + entity['description'].lower()
+        
+        # AI-driven term analysis and categorization
+        brand_terms = []
+        product_terms_enhanced = []
+        color_terms = []
+        team_terms = []
+        year_event_terms = []
+        style_terms = []
+        material_terms = []
+        
+        # Enhanced AI-driven categorization with fuzzy matching
+        all_text_terms = all_text.split()
+        
+        # AI-driven brand detection with fuzzy matching
+        for term in all_text_terms:
+            term_lower = term.lower()
+            
+            # AI-driven brand detection
+            if self.is_brand_term(term_lower):
+                brand_terms.append(term)
+                continue
+            
+            # AI-driven team name detection with fuzzy matching
+            team_match = find_team_match(term_lower)
+            if team_match:
+                team_terms.append(team_match)
+                continue
+            
+            # AI-driven product type detection with normalization
+            product_match = find_product_type_match(term_lower)
+            if product_match:
+                product_terms_enhanced.append(product_match)
+                continue
+            
+            # AI-driven color detection with mapping
+            color_match = find_color_match(term_lower)
+            if color_match:
+                color_terms.append(color_match)
+                continue
+            
+            # AI-driven year/event detection
+            if self.is_year_or_event(term_lower):
+                year_event_terms.append(term)
+                continue
+            
+            # AI-driven style detection
+            if self.is_style_term(term_lower):
+                style_terms.append(term)
+                continue
+            
+            # AI-driven material detection
+            if self.is_material_term(term_lower):
+                material_terms.append(term)
+                continue
+        
+        # AI-driven query prioritization and combination
+        query_parts = []
+        
+        # Prioritize brand terms
+        if brand_terms:
+            query_parts.extend(brand_terms[:2])  # Limit to top 2 brands
+        
+        # Prioritize team terms with full expansion
+        if team_terms:
+            query_parts.extend(team_terms[:2])  # Limit to top 2 teams
+        
+        # Enhanced product type normalization with context awareness
+        if product_terms_enhanced:
+            # Gather all cues for t-shirt/tee
+            tshirt_cues = ['t-shirt', 't shirt', 'tee', 'crewneck', 'short sleeve', 'cotton']
+            jersey_cues = ['jersey', 'uniform', 'mesh', 'athletic']
+            all_text_lower = all_text.lower()
+            has_tshirt_cue = any(self.fuzzy_match(cue, all_text_lower, threshold=0.8) or cue in all_text_lower for cue in tshirt_cues)
+            has_jersey_cue = any(self.fuzzy_match(cue, all_text_lower, threshold=0.8) or cue in all_text_lower for cue in jersey_cues)
+            # Check label/object confidence for t-shirt/tee
+            high_conf_tshirt = False
+            for label in analysis_results.get('labels', []):
+                if any(self.fuzzy_match(label['description'], cue, threshold=0.8) for cue in tshirt_cues) and label.get('score', 0) > 0.6:
+                    high_conf_tshirt = True
+            for obj in analysis_results.get('objects', []):
+                if any(self.fuzzy_match(obj['name'], cue, threshold=0.8) for cue in tshirt_cues) and obj.get('score', 0) > 0.6:
+                    high_conf_tshirt = True
+            # Final product type selection
+            normalized_products = []
+            for product in product_terms_enhanced:
+                if (product == 'shirt' or product == 't-shirt' or product == 'tee') and (has_tshirt_cue or high_conf_tshirt):
+                    normalized_products.append('t-shirt')
+                elif product == 'jersey' and has_jersey_cue:
+                    normalized_products.append('jersey')
+                elif product == 'jersey' and not has_jersey_cue:
+                    continue  # skip false positive jersey
+                else:
+                    normalized_products.append(product)
+            # If no t-shirt detected but cues are present, add it
+            if has_tshirt_cue and 't-shirt' not in normalized_products:
+                normalized_products.insert(0, 't-shirt')
+            query_parts.extend(normalized_products[:2])
+        elif product_terms:
+            query_parts.extend(product_terms[:2])  # Fallback to original product terms
+        
+        # Enhanced AI-driven color detection with multi-source analysis
+        detected_colors = []
+        color_confidence = {}
+        
+        # 1. RGB Analysis with fashion-specific ranges
+        if rgb:
+            r, g, b = rgb['red'], rgb['green'], rgb['blue']
+            total = r + g + b
+            max_comp = max(r, g, b)
+            min_comp = min(r, g, b)
+            range_comp = max_comp - min_comp
+            
+            # Enhanced white detection (most important)
+            if total > 700 and range_comp < 50:  # Very light, low saturation
+                if r > 220 and g > 220 and b > 220:  # Pure white
+                    detected_colors.append('white')
+                    color_confidence['white'] = 0.95
+                elif r > 180 and g > 180 and b > 180:  # Off-white/cream/light colors
+                    # Context-aware white detection
+                    if any(word in all_text for word in ['cotton', 'fashion', 'crewneck', 'casual', 'shirt']):
+                        detected_colors.append('white')
+                        color_confidence['white'] = 0.9
+                    else:
+                        detected_colors.append('white')  # Default to white for light colors
+                        color_confidence['white'] = 0.85
+                else:  # Light but not white
+                    detected_colors.append('light')
+                    color_confidence['light'] = 0.75
+            
+            # Enhanced color detection for fashion items
+            elif range_comp > 100:  # Saturated colors
+                if r > g + 80 and r > b + 80:
+                    detected_colors.append('red')
+                    color_confidence['red'] = 0.9
+                elif g > r + 80 and g > b + 80:
+                    detected_colors.append('green')
+                    color_confidence['green'] = 0.9
+                elif b > r + 80 and b > g + 80:
+                    detected_colors.append('blue')
+                    color_confidence['blue'] = 0.9
+                elif r > 200 and g > 150 and b < 100:  # Orange/yellow
+                    detected_colors.append('orange')
+                    color_confidence['orange'] = 0.8
+                elif r > 150 and g < 100 and b > 150:  # Purple
+                    detected_colors.append('purple')
+                    color_confidence['purple'] = 0.8
+            
+            # Neutral colors
+            elif range_comp < 80:
+                if total < 300:  # Dark neutrals
+                    detected_colors.append('dark')
+                    color_confidence['dark'] = 0.8
+                elif 300 <= total <= 600:  # Medium neutrals
+                    if r > g and g > b:  # Warm neutral
+                        detected_colors.append('beige')
+                        color_confidence['beige'] = 0.7
+                    else:  # Cool neutral
+                        detected_colors.append('gray')
+                        color_confidence['gray'] = 0.7
+        
+        # 2. OCR Text Color Detection
+        color_keywords = {
+            'white': ['white', 'cream', 'ivory', 'bone', 'off-white'],
+            'black': ['black', 'charcoal', 'navy', 'dark'],
+            'red': ['red', 'crimson', 'scarlet', 'burgundy', 'maroon'],
+            'blue': ['blue', 'navy', 'royal', 'cobalt', 'indigo'],
+            'green': ['green', 'forest', 'olive', 'emerald', 'sage'],
+            'yellow': ['yellow', 'gold', 'mustard', 'amber'],
+            'purple': ['purple', 'violet', 'lavender', 'plum'],
+            'orange': ['orange', 'tangerine', 'coral', 'peach'],
+            'pink': ['pink', 'rose', 'salmon', 'fuchsia'],
+            'brown': ['brown', 'tan', 'beige', 'khaki', 'taupe'],
+            'gray': ['gray', 'grey', 'silver', 'slate', 'steel']
+        }
+        
+        for color_name, keywords in color_keywords.items():
+            for keyword in keywords:
+                if keyword in all_text.lower():
+                    if color_name not in detected_colors:
+                        detected_colors.append(color_name)
+                        color_confidence[color_name] = 0.9  # High confidence from text
+                    break
+        
+        # 3. Label/Object Color Detection
+        for label in analysis_results.get('labels', []):
+            label_text = label['description'].lower()
+            confidence = label.get('score', 0.5)
+            
+            for color_name, keywords in color_keywords.items():
+                for keyword in keywords:
+                    if keyword in label_text:
+                        if color_name not in detected_colors:
+                            detected_colors.append(color_name)
+                            color_confidence[color_name] = max(color_confidence.get(color_name, 0), confidence)
+                        break
+        
+        # 4. Web Entity Color Detection
+        for entity in analysis_results.get('web_entities', []):
+            entity_text = entity['description'].lower()
+            confidence = entity.get('score', 0.5)
+            
+            for color_name, keywords in color_keywords.items():
+                for keyword in keywords:
+                    if keyword in entity_text:
+                        if color_name not in detected_colors:
+                            detected_colors.append(color_name)
+                            color_confidence[color_name] = max(color_confidence.get(color_name, 0), confidence)
+                        break
+        
+        # 5. Context-Aware Color Enhancement
+        # If we have cotton/fashion context and light RGB, reinforce white
+        if rgb and any(word in all_text for word in ['cotton', 'fashion', 'casual', 'crewneck', 'shirt', 'playoffs']):
+            r, g, b = rgb['red'], rgb['green'], rgb['blue']
+            if r > 150 and g > 150 and b > 150:  # Much lower threshold for clothing
+                if 'white' not in detected_colors:
+                    detected_colors.append('white')
+                    color_confidence['white'] = 0.9  # High confidence for clothing context
+                # Override beige/light with white for clothing context
+                if 'beige' in detected_colors:
+                    detected_colors.remove('beige')
+                    if 'white' not in detected_colors:
+                        detected_colors.append('white')
+                        color_confidence['white'] = 0.9
+        
+        # 6. Confidence-Weighted Color Selection
+        if detected_colors:
+            # Sort by confidence and select top colors
+            sorted_colors = sorted(detected_colors, key=lambda c: color_confidence.get(c, 0), reverse=True)
+            query_parts.extend(sorted_colors[:2])  # Top 2 most confident colors
+        elif color:
+            query_parts.append(color)  # Fallback to original color detection
+        
+        # Add year/event terms
+        if year_event_terms:
+            query_parts.extend(year_event_terms[:2])  # Limit to top 2 years/events
+        
+        # Add style terms
+        if style_terms:
+            query_parts.extend(style_terms[:2])  # Limit to top 2 styles
+        
+        # Add material terms
+        if material_terms:
+            query_parts.extend(material_terms[:1])  # Limit to top 1 material
+        
+        # AI-driven query construction with confidence weighting
+        if query_parts:
+            search_terms = query_parts
+        else:
+            # Fallback to original logic
+            search_terms = []
+            if team_terms:
+                search_terms.extend(team_terms)
+            if product_terms:
+                search_terms.extend(product_terms)
+            if year_event_terms:
+                search_terms.extend(year_event_terms)
+            if color:
+                search_terms.append(color)
+        
         # Remove duplicates, preserve order
         search_terms = list(dict.fromkeys(search_terms))
-        # Best guess is the most confident product term or brand
-        best_guess = brands_models[0] if brands_models else (product_terms[0] if product_terms else None)
+        
+        # Ensure minimum query length
+        if len(search_terms) == 0:
+            search_terms = ['clothing']
+        
+        # Best guess is the most confident product term or team
+        best_guess = team_terms[0] if team_terms else (product_terms_enhanced[0] if product_terms_enhanced else (product_terms[0] if product_terms else None))
+        
         # Generate all prioritized query combinations (from most specific to general)
         from itertools import combinations
         suggested_queries = []
         n = len(search_terms)
-        # Most specific: all terms
         if n > 1:
             suggested_queries.append(' '.join(search_terms))
-        # All combinations of n-1, n-2, ... 2 terms
         for r in range(n-1, 1, -1):
             for combo in combinations(search_terms, r):
                 q = ' '.join(combo)
                 if q not in suggested_queries:
                     suggested_queries.append(q)
-        # Add all pairs (if not already included)
         for combo in combinations(search_terms, 2):
             q = ' '.join(combo)
             if q not in suggested_queries:
                 suggested_queries.append(q)
+        
+        logger.info(f"[AI ENHANCED] Final search terms: {search_terms}")
+        logger.info(f"[AI ENHANCED] Best guess: {best_guess}")
+        logger.info(f"[AI ENHANCED] Suggested queries: {suggested_queries[:5]}")
+        
         return search_terms, best_guess, suggested_queries
 
     def _extract_brands_models(self, text_list: List[str]) -> List[str]:
@@ -825,6 +1253,67 @@ class AIService:
         else:
             logger.debug(f"[AI DEBUG] AI detected cool neutral - RGB: ({r}, {g}, {b})")
             return 'cool'
+
+    def is_brand_term(self, term):
+        """AI-driven brand detection"""
+        brand_indicators = [
+            'burberry', 'nike', 'adidas', 'puma', 'reebok', 'under armour',
+            'champion', 'hanes', 'fruit of the loom', 'gildan', 'american apparel',
+            'levi', 'calvin klein', 'tommy hilfiger', 'ralph lauren', 'polo',
+            'gucci', 'prada', 'louis vuitton', 'hermes', 'chanel', 'dior',
+            'versace', 'dolce', 'gabbana', 'fendi', 'givenchy', 'balenciaga',
+            'off-white', 'supreme', 'palace', 'bape', 'stussy', 'obey',
+            'vans', 'converse', 'new balance', 'asics', 'mizuno', 'wilson'
+        ]
+        
+        # Fuzzy matching for brand detection
+        for brand in brand_indicators:
+            if self.fuzzy_match(term, brand, threshold=0.7):
+                return True
+        
+        return False
+
+    def is_year_or_event(self, term):
+        """AI-driven year and event detection"""
+        # Year patterns
+        if re.match(r'\b(19|20)\d{2}\b', term):
+            return True
+        
+        # Event keywords
+        event_keywords = [
+            'playoffs', 'championship', 'finals', 'all-star', 'allstar',
+            'opening night', 'season', 'regular', 'postseason', 'playoff',
+            'conference', 'division', 'semifinals', 'quarterfinals',
+            'champions', 'title', 'trophy', 'ring', 'medal'
+        ]
+        
+        return any(keyword in term for keyword in event_keywords)
+
+    def is_style_term(self, term):
+        """AI-driven style detection"""
+        style_keywords = [
+            'long sleeve', 'short sleeve', 'sleeveless', 'v-neck', 'crew neck',
+            'round neck', 'turtle neck', 'polo', 'button down', 'button up',
+            'casual', 'formal', 'athletic', 'sport', 'fashion', 'street',
+            'vintage', 'retro', 'modern', 'classic', 'contemporary'
+        ]
+        
+        return any(keyword in term for keyword in style_keywords)
+
+    def is_material_term(self, term):
+        """AI-driven material detection"""
+        material_keywords = [
+            'cotton', 'polyester', 'wool', 'silk', 'linen', 'denim',
+            'leather', 'suede', 'mesh', 'nylon', 'spandex', 'elastane',
+            'acrylic', 'rayon', 'viscose', 'modal', 'bamboo', 'hemp'
+        ]
+        
+        return any(keyword in term for keyword in material_keywords)
+
+    def fuzzy_match(self, term1, term2, threshold=0.7):
+        """Fuzzy string matching using SequenceMatcher"""
+        from difflib import SequenceMatcher
+        return SequenceMatcher(None, term1.lower(), term2.lower()).ratio() >= threshold
 
     def fuzzy_find_brand(self, ocr_text):
         if not ocr_text:
