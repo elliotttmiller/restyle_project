@@ -22,6 +22,7 @@ from .ai_service import get_ai_service  # Import the AI service getter
 import base64
 import psutil
 import os
+from .services import EbayService
 
 logger = logging.getLogger(__name__)
 
@@ -187,71 +188,19 @@ class EbaySearchView(APIView):
             params['limit'] = 20
         if 'offset' not in params:
             params['offset'] = 0
-
-        # Auth - Use token manager with automatic refresh
+        # Use EbayService for search
         try:
-            from .ebay_auth import get_ebay_oauth_token
-            auth_token = get_ebay_oauth_token()
+            ebay_service = EbayService()
+            items = ebay_service.search_items(
+                query=params.get('q', ''),
+                category_ids=params.get('category_ids'),
+                limit=int(params.get('limit', 20)),
+                localization=request.query_params.get('delivery_country')
+            )
+            return Response(items, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Error getting eBay token: {e}")
-            auth_token = None
-        
-        # Always log the access token being used (mask for security)
-        if auth_token:
-            masked_token = auth_token[:6] + '...' + auth_token[-4:]
-            logger.error(f"Using eBay access token for API call: {masked_token}")
-        else:
-            logger.warning("No valid eBay OAuth token available for search (no fallback).")
-            return Response({'error': 'No valid eBay OAuth token available. Please re-authorize the app.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-
-        # Headers
-        headers = {
-            'Authorization': f'Bearer {auth_token}',
-            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Content-Language': 'en-US',
-        }
-        # Optionally support localization
-        if 'delivery_country' in request.query_params:
-            headers['X-EBAY-C-ENDUSERCTX'] = f"contextualLocation=country={request.query_params['delivery_country']}"
-
-        api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
-        logger.info(f"Proxying eBay search: {params}")
-        try:
-            response = requests.get(api_url, headers=headers, params=params, timeout=15)
-            logger.error(f"eBay API response status: {response.status_code}")
-            logger.error(f"eBay API response body: {response.text[:500]}")  # Log first 500 chars
-            if response.status_code == 200:
-                data = response.json()
-                items = data.get('itemSummaries', [])
-                logger.error(f"eBay API returned {len(items)} items for query: {params}")
-                # Return all relevant fields, including affiliate link if present
-                for item in items:
-                    if 'itemAffiliateWebUrl' not in item and 'itemWebUrl' in item:
-                        item['itemAffiliateWebUrl'] = item['itemWebUrl']
-                return Response(items, status=status.HTTP_200_OK)
-            elif response.status_code == 429:
-                logger.warning(f"eBay API rate limit hit: {response.text}")
-                return Response({'error': 'eBay rate limit reached. Please try again later.'}, status=429)
-            elif response.status_code == 401:
-                logger.error(f"eBay API authentication failed: {response.status_code} - {response.text}")
-                return Response({'error': 'eBay authentication failed. OAuth token may have expired. Please refresh the token.'}, status=503)
-            elif response.status_code == 403:
-                logger.error(f"eBay API access denied: {response.status_code} - {response.text}")
-                return Response({'error': 'eBay access denied. Check API permissions.'}, status=503)
-            else:
-                logger.warning(f"eBay API error: {response.status_code} - {response.text}")
-                return Response({'error': 'Failed to search eBay'}, status=503)
-        except requests.exceptions.Timeout:
-            logger.error("eBay API timeout")
-            return Response({'error': 'eBay search timed out'}, status=504)
-        except requests.exceptions.RequestException as e:
-            logger.error(f"eBay API request error: {e}")
-            return Response({'error': 'Failed to connect to eBay'}, status=503)
-        except Exception as e:
-            logger.error(f"Unexpected error in eBay search: {e}")
-            return Response({'error': 'An unexpected error occurred'}, status=500)
+            logger.error(f"EbaySearchView error: {e}")
+            return Response({'error': str(e)}, status=503)
 
 # --- Item Views ---
 class ItemListCreateView(generics.ListCreateAPIView):
@@ -452,7 +401,7 @@ class EbayOAuthDeclinedView(APIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AIImageSearchView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     
     def search_ebay_with_queries(self, search_terms):
         """
@@ -460,51 +409,18 @@ class AIImageSearchView(APIView):
         """
         if not search_terms:
             return []
-        
-        # Use the first search term for now (can be enhanced to use multiple terms)
         query = search_terms[0] if isinstance(search_terms, list) else str(search_terms)
-        
         try:
-            from .ebay_auth import get_ebay_oauth_token
-            auth_token = get_ebay_oauth_token()
-        except Exception as e:
-            logger.error(f"Error getting eBay token: {e}")
-            return []
-        
-        if not auth_token:
-            logger.error("No valid eBay OAuth token available")
-            return []
-        
-        headers = {
-            'Authorization': f'Bearer {auth_token}',
-            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-            'Accept': 'application/json',
-            'Content-Language': 'en-US',
-        }
-        
-        params = {
-            'q': query,
-            'limit': 20,
-        }
-        
-        api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
-        
-        try:
-            response = requests.get(api_url, headers=headers, params=params, timeout=15)
-            if response.status_code == 200:
-                data = response.json()
-                items = data.get('itemSummaries', [])
-                logger.info(f"eBay API returned {len(items)} items for query: {query}")
-                return items
-            else:
-                logger.error(f"eBay API error: {response.status_code} - {response.text}")
-                return []
+            ebay_service = EbayService()
+            items = ebay_service.search_items(query=query, limit=20)
+            logger.info(f"eBay API returned {len(items)} items for query: {query}")
+            return items
         except Exception as e:
             logger.error(f"Error in eBay search: {e}")
             return []
     
     def post(self, request):
-        print("--- HYBRID ENSEMBLE AI SEARCH VIEW ---")
+        print("--- ENHANCED AI SEARCH VIEW ---")
         process = psutil.Process(os.getpid())
         mem_start = process.memory_info().rss / (1024 * 1024)
         print(f"[MEMORY] Start: {mem_start:.2f} MB")
@@ -513,8 +429,14 @@ class AIImageSearchView(APIView):
             return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             image_data = image_file.read()
-            # --- Path 1: Hybrid Vision+CLIP Search ---
-            print("Running Hybrid Vision+CLIP Path...")
+            ai_service = get_ai_service()
+            
+            # Step 1: Try Google Vision Product Search (Primary Method)
+            print("Running Comprehensive Visual Search...")
+            visual_search_results = ai_service.comprehensive_visual_search(image_data)
+            
+            # Step 2: Also run Ensemble Search for enhanced query building demonstration
+            print("Running Ensemble Search with Enhanced Query Building...")
             def ebay_search_func(queries):
                 print(f"[DEBUG] Search terms sent to eBay: {queries}")
                 results = self.search_ebay_with_queries(queries)
@@ -522,26 +444,27 @@ class AIImageSearchView(APIView):
                 if results:
                     print(f"[DEBUG] First eBay item: {results[0]}")
                 return results
-            hybrid_results = get_ai_service().hybrid_image_search(image_data, ebay_search_func, top_k=10)
-            # --- Path 2: Visual Similarity (eBay's own image search) ---
-            print("Running Visual Path (eBay API)...")
-            image_data_b64 = base64.b64encode(image_data).decode('utf-8')
-            # visual_match_results = call_ebay_image_search(image_data_b64)
-            visual_match_results = []  # Disabled: function not implemented
+            hybrid_results = ai_service.ensemble_search(image_data, text_query=None, top_k=10)
+            
             mem_end = process.memory_info().rss / (1024 * 1024)
             print(f"[MEMORY] End: {mem_end:.2f} MB")
             print(f"[MEMORY] Peak: {psutil.virtual_memory().used / (1024 * 1024):.2f} MB used system-wide")
-            # --- Structured Response ---
+            
+            # Get search terms from AI analysis
+            analysis_results = ai_service.analyze_image(image_data)
+            search_terms, best_guess, suggested_queries = ai_service._nlp_enhanced_search_terms(analysis_results)
+            
+            # Return structured response with search terms
             return Response({
-                'message': 'Hybrid analysis successful.',
-                'hybrid_results': hybrid_results,
-                'visual_match_results': {
-                    'item_count': len(visual_match_results),
-                    'items': visual_match_results[:10]
-                }
+                'message': 'AI search successful.',
+                'search_terms': search_terms,
+                'suggested_queries': suggested_queries,
+                'best_guess': best_guess,
+                'visual_search_results': visual_search_results,
+                'hybrid_results': hybrid_results
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Error in Hybrid AI search view: {e}")
+            logger.error(f"Error in Enhanced AI search view: {e}")
             return Response({'error': 'An unexpected error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -549,7 +472,6 @@ class PriceAnalysisView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        # Accepts: title, brand, category, size, color, condition, etc.
         data = request.data
         title = data.get('title')
         brand = data.get('brand')
@@ -558,125 +480,74 @@ class PriceAnalysisView(APIView):
         color = data.get('color')
         condition = data.get('condition')
         page = int(data.get('page', 1))
-        page_size = int(data.get('page_size', 10))  # Reverted back to 10 for compatibility
-        
-        # Compose a query string for eBay search
+        page_size = int(data.get('page_size', 10))
         query = f"{brand or ''} {title or ''} {size or ''} {color or ''} {condition or ''}".strip()
-        params = {
-            'q': query,
-            'limit': 20,  # Reverted back to 20 for compatibility
-        }
-        
-        # Add category filter if available
-        if category and category != 'Unknown':
-            params['category_ids'] = category
-        
         try:
-            from .ebay_auth import get_ebay_oauth_token
-            auth_token = get_ebay_oauth_token()
-        except Exception as e:
-            logger.error(f"Error getting eBay token: {e}")
-            auth_token = None
-        if not auth_token:
-            return Response({'error': 'No valid eBay OAuth token available. Please re-authorize the app.'}, status=503)
-        headers = {
-            'Authorization': f'Bearer {auth_token}',
-            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Content-Language': 'en-US',
-        }
-        api_url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
-        
-        try:
-            response = requests.get(api_url, headers=headers, params=params, timeout=15)
-            logger.error(f"eBay API response status: {response.status_code}")
-            logger.error(f"eBay API response body: {response.text[:500]}")  # Log first 500 chars
-            if response.status_code == 200:
-                data = response.json()
-                items = data.get('itemSummaries', [])
-                logger.error(f"eBay API returned {len(items)} items for query: {query}")
-                comps = []
-                prices = []
-                
-                # Apply pagination to the results
-                offset = (page - 1) * page_size
-                paginated_items = items[offset:offset + page_size]
-                total_items = len(items)
-                has_more = (offset + page_size) < total_items
-                
-                for idx, item in enumerate(paginated_items):
-                    price = item.get('price', {}).get('value')
-                    if price:
-                        prices.append(float(price))
-                    comps.append({
-                        'id': offset + idx + 1,
-                        'title': item.get('title', ''),
-                        'sold_price': float(price) if price else 0.0,
-                        'platform': 'EBAY',
-                        'image_url': item.get('image', {}).get('imageUrl', ''),
-                        'source_url': item.get('itemWebUrl', ''),
-                    })
-                
-                # Use simple algorithm for price analysis (reverted from enhanced)
-                if prices and len(prices) >= 3:
-                    # Simple weighted average
+            ebay_service = EbayService()
+            items = ebay_service.search_items(query=query, category_ids=category if category and category != 'Unknown' else None, limit=20)
+            comps = []
+            prices = []
+            offset = (page - 1) * page_size
+            paginated_items = items[offset:offset + page_size]
+            total_items = len(items)
+            has_more = (offset + page_size) < total_items
+            for idx, item in enumerate(paginated_items):
+                price = item.get('price', {}).get('value')
+                if price:
+                    prices.append(float(price))
+                comps.append({
+                    'id': offset + idx + 1,
+                    'title': item.get('title', ''),
+                    'sold_price': float(price) if price else 0.0,
+                    'platform': 'EBAY',
+                    'image_url': item.get('image', {}).get('imageUrl', ''),
+                    'source_url': item.get('itemWebUrl', ''),
+                })
+            if prices and len(prices) >= 3:
+                price_range_low = min(prices)
+                price_range_high = max(prices)
+                suggested_price = sum(prices) / len(prices)
+                analysis_result = {
+                    'price_range_low': price_range_low,
+                    'price_range_high': price_range_high,
+                    'suggested_price': suggested_price,
+                    'status': 'COMPLETE',
+                    'confidence_score': f'Medium ({len(prices)} comparable listings)',
+                    'comps': comps,
+                    'pagination': {
+                        'page': page,
+                        'page_size': page_size,
+                        'total_items': total_items,
+                        'has_more': has_more,
+                        'offset': offset
+                    }
+                }
+            else:
+                if prices:
                     price_range_low = min(prices)
                     price_range_high = max(prices)
                     suggested_price = sum(prices) / len(prices)
-                    
-                    analysis_result = {
-                        'price_range_low': price_range_low,
-                        'price_range_high': price_range_high,
-                        'suggested_price': suggested_price,
-                        'status': 'COMPLETE',
-                        'confidence_score': f'Medium ({len(prices)} comparable listings)',
-                        'comps': comps,
-                        'pagination': {
-                            'page': page,
-                            'page_size': page_size,
-                            'total_items': total_items,
-                            'has_more': has_more,
-                            'offset': offset
-                        }
-                    }
                 else:
-                    # Fallback to simple average if not enough data
-                    if prices:
-                        price_range_low = min(prices)
-                        price_range_high = max(prices)
-                        suggested_price = sum(prices) / len(prices)
-                    else:
-                        price_range_low = price_range_high = suggested_price = 0.0
-                    
-                    analysis_result = {
-                        'price_range_low': price_range_low,
-                        'price_range_high': price_range_high,
-                        'suggested_price': suggested_price,
-                        'status': 'COMPLETE',
-                        'confidence_score': f'Low (only {len(prices)} comparable listings found)',
-                        'comps': comps,
-                        'pagination': {
-                            'page': page,
-                            'page_size': page_size,
-                            'total_items': total_items,
-                            'has_more': has_more,
-                            'offset': offset
-                        }
+                    price_range_low = price_range_high = suggested_price = 0.0
+                analysis_result = {
+                    'price_range_low': price_range_low,
+                    'price_range_high': price_range_high,
+                    'suggested_price': suggested_price,
+                    'status': 'COMPLETE',
+                    'confidence_score': f'Low (only {len(prices)} comparable listings found)',
+                    'comps': comps,
+                    'pagination': {
+                        'page': page,
+                        'page_size': page_size,
+                        'total_items': total_items,
+                        'has_more': has_more,
+                        'offset': offset
                     }
-                
-                return Response(analysis_result, status=200)
-            elif response.status_code == 429:
-                return Response({'error': 'eBay rate limit reached. Please try again later.'}, status=429)
-            elif response.status_code == 401:
-                return Response({'error': 'eBay authentication failed. OAuth token may have expired. Please refresh the token.'}, status=503)
-            else:
-                return Response({'error': 'Failed to search eBay for comps.'}, status=503)
-        except requests.exceptions.Timeout:
-            return Response({'error': 'eBay search timed out'}, status=504)
+                }
+            return Response(analysis_result, status=200)
         except Exception as e:
-            logger.error(f"Error in PriceAnalysisView: {e}")
-            return Response({'error': 'An unexpected error occurred'}, status=500)
+            logger.error(f"PriceAnalysisView error: {e}")
+            return Response({'error': str(e)}, status=503)
 
 ItemDoesNotExist = Item.DoesNotExist
 MarketAnalysisDoesNotExist = MarketAnalysis.DoesNotExist

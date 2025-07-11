@@ -185,7 +185,51 @@ CORS_ALLOW_METHODS = [
 ]
 
 # At the bottom of backend/backend/settings.py
+
+# Google Vision Product Search Configuration
+GOOGLE_CLOUD_PROJECT_ID = 'silent-polygon-465403'  # Your Google Cloud Project ID
+GOOGLE_VISION_LOCATION = 'us-central1'  # Default location for Vision API
+GOOGLE_PRODUCT_SET_ID = 'apparel-products'  # Your Product Set ID (create this in Google Cloud Console)
+
 try:
     from .local_settings import *
 except ImportError:
     pass # No local_settings.py found. This is fine, especially in production.
+
+# Logging configuration for DEBUG level output
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {name} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+    'loggers': {
+        'core.ai_service': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
