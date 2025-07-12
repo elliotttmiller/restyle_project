@@ -15,12 +15,12 @@ def test_aws_rekognition():
     print("=" * 50)
     
     # Get credentials from environment or use defaults
-    access_key = os.environ.get('AWS_ACCESS_KEY_ID', '***REMOVED***')
-    secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY', '3LAsYxgRHS0msvNQLdAf7Nnab89j//0oFp2JfEja')
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', 'REDACTED')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', 'REDACTED')
     region = os.environ.get('AWS_REGION_NAME', 'us-east-1')
     
-    print(f"Access Key ID: {access_key[:10]}...")
-    print(f"Secret Access Key: {secret_key[:10]}...")
+    print(f"Access Key ID: {AWS_ACCESS_KEY_ID[:10]}...")
+    print(f"Secret Access Key: {AWS_SECRET_ACCESS_KEY[:10]}...")
     print(f"Region: {region}")
     print()
     
@@ -28,8 +28,8 @@ def test_aws_rekognition():
         # Create Rekognition client
         rekognition = boto3.client(
             'rekognition',
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
             region_name=region
         )
         

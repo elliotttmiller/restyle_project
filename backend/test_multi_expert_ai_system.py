@@ -70,8 +70,8 @@ def test_aws_rekognition(image_path):
         # Initialize Rekognition client
         rekognition = boto3.client(
             'rekognition',
-            aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID', '***REMOVED***'),
-            aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY', '3LAsYxgRHS0msvNQLdAf7Nnab89j//0oFp2JfEja'),
+            aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID', 'REDACTED'),
+            aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY', 'REDACTED'),
             region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
         )
         
