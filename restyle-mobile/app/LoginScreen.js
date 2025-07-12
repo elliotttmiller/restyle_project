@@ -9,7 +9,7 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const setToken = useAuthStore((state) => state.setToken);
+  const setTokens = useAuthStore((state) => state.setTokens);
 
   const handleLogin = async () => {
     console.log('LoginScreen: handleLogin called');
@@ -24,9 +24,16 @@ export default function LoginScreen() {
       console.log('Attempting login to:', api.defaults.baseURL);
       const response = await api.post('/token/', { username, password });
       console.log('Login successful:', response.data);
-      setToken(response.data.access);
-      // Debug: print the token after storing
-      console.log('Stored token in auth store:', useAuthStore.getState().token);
+      
+      // Store both access and refresh tokens
+      setTokens(response.data.access, response.data.refresh);
+      
+      // Debug: print the tokens after storing
+      console.log('Stored tokens in auth store:', {
+        token: useAuthStore.getState().token,
+        refreshToken: useAuthStore.getState().refreshToken
+      });
+      
       router.replace('/dashboard');
       console.log('LoginScreen: navigation to /dashboard called');
     } catch (error) {

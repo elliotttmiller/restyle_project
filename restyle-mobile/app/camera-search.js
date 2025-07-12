@@ -24,6 +24,19 @@ export default function CameraSearch() {
   const [attributeFilter, setAttributeFilter] = useState(null);
   const [detectedObjects, setDetectedObjects] = useState([]);
   const [selectedObjectIndex, setSelectedObjectIndex] = useState(null);
+  
+  // Advanced AI Analysis State
+  const [advancedAnalysis, setAdvancedAnalysis] = useState(null);
+  const [confidenceScores, setConfidenceScores] = useState({});
+  const [queryVariants, setQueryVariants] = useState([]);
+  const [selectedQueryVariant, setSelectedQueryVariant] = useState(null);
+  const [analysisQuality, setAnalysisQuality] = useState('medium');
+  const [aiServicesStatus, setAiServicesStatus] = useState({
+    vision: false,
+    rekognition: false,
+    gemini: false,
+    vertex: false
+  });
 
   React.useEffect(() => {
     if (params.mode === 'camera') {
@@ -61,6 +74,8 @@ export default function CameraSearch() {
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0]);
         setSearchResults([]);
+        setAdvancedAnalysis(null);
+        setQueryVariants([]);
       }
     } catch (error) {
       console.error('Error taking photo:', error);
@@ -83,6 +98,8 @@ export default function CameraSearch() {
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0]);
         setSearchResults([]);
+        setAdvancedAnalysis(null);
+        setQueryVariants([]);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -142,39 +159,74 @@ export default function CameraSearch() {
         formData.append('object_index', selectedObjectIndex);
       }
       
-      console.log('Sending image to backend...');
-      const searchResponse = await api.post('/core/ai/image-search/', formData, {
+      console.log('Sending image to advanced AI backend...');
+      
+      // Use the new advanced AI endpoint
+      const searchResponse = await api.post('/core/ai/advanced-search/', formData, {
         headers: {
           // Don't set Content-Type - let the browser set it with boundary
         },
       });
-      setSearchResults(searchResponse.data.results || []);
-      setAnalysis(searchResponse.data.analysis || null);
-      setBestGuess(searchResponse.data.best_guess || '');
-      setSuggestedQueries(searchResponse.data.suggested_queries || []);
-      setOcrText(searchResponse.data.ocr_text || '');
-      setLabels(searchResponse.data.labels || []);
-      setObjects(searchResponse.data.objects || []);
-      setDominantColors(searchResponse.data.dominant_colors || []);
-      setSearchTerms(searchResponse.data.search_terms || []);
-      setVisualSimilars(searchResponse.data.visual_similar_results || []);
-      setDetectedObjects(searchResponse.data.detected_objects || []);
-      if (searchResponse.data.results && searchResponse.data.results.length > 0) {
-        Alert.alert('Success', `Found ${searchResponse.data.results.length} items!`);
+      
+      // Handle advanced AI response
+      const responseData = searchResponse.data;
+      
+      // Set basic results
+      setSearchResults(responseData.results || []);
+      setAnalysis(responseData.analysis || null);
+      
+      // Set advanced AI analysis
+      setAdvancedAnalysis(responseData.analysis);
+      setConfidenceScores(responseData.analysis?.confidence_scores || {});
+      setQueryVariants(responseData.queries?.variants || []);
+      setSelectedQueryVariant(responseData.queries?.primary || '');
+      setAnalysisQuality(responseData.summary?.analysis_quality || 'medium');
+      
+      // Set AI services status
+      setAiServicesStatus({
+        vision: !!responseData.analysis?.vision,
+        rekognition: !!responseData.analysis?.rekognition,
+        gemini: !!responseData.analysis?.gemini,
+        vertex: !!responseData.analysis?.vertex
+      });
+      
+      // Set legacy fields for backward compatibility
+      setBestGuess(responseData.queries?.primary || '');
+      setSuggestedQueries(responseData.queries?.variants?.map(v => v.query) || []);
+      
+      if (responseData.results && responseData.results.length > 0) {
+        Alert.alert(
+          'Advanced AI Search Complete', 
+          `Found ${responseData.results.length} items with ${responseData.summary?.analysis_quality || 'medium'} quality analysis!`
+        );
       } else {
         Alert.alert('No Results', 'No items found for this image. Try a different photo.');
       }
     } catch (error) {
-      console.error('AI search failed:', error);
+      console.error('Advanced AI search failed:', error);
       Alert.alert('Search Failed', error.response?.data?.error || 'Failed to search by image.');
     } finally {
       setSearching(false);
     }
   };
 
+  const searchWithQueryVariant = async (variant) => {
+    setSelectedQueryVariant(variant.query);
+    await searchByImage(variant.query);
+  };
+
   const clearImage = () => {
     setSelectedImage(null);
     setSearchResults([]);
+    setAdvancedAnalysis(null);
+    setQueryVariants([]);
+    setConfidenceScores({});
+    setAiServicesStatus({
+      vision: false,
+      rekognition: false,
+      gemini: false,
+      vertex: false
+    });
   };
 
   // Attribute filter logic
@@ -186,208 +238,165 @@ export default function CameraSearch() {
   const imageWidth = 200;
   const imageHeight = 150;
 
+  const renderConfidenceBar = (service, score) => {
+    const percentage = score || 0;
+    return (
+      <View style={styles.confidenceBarContainer}>
+        <Text style={styles.confidenceLabel}>{service}</Text>
+        <View style={styles.confidenceBar}>
+          <View style={[styles.confidenceFill, { width: `${percentage}%`, backgroundColor: percentage > 80 ? '#4CAF50' : percentage > 60 ? '#FF9800' : '#F44336' }]} />
+        </View>
+        <Text style={styles.confidenceScore}>{percentage}%</Text>
+      </View>
+    );
+  };
+
+  const renderQueryVariant = (variant, index) => (
+    <TouchableOpacity
+      key={index}
+      style={[
+        styles.queryVariant,
+        selectedQueryVariant === variant.query && styles.selectedQueryVariant
+      ]}
+      onPress={() => searchWithQueryVariant(variant)}
+    >
+      <Text style={styles.queryVariantText}>{variant.query}</Text>
+      <View style={styles.queryVariantMeta}>
+        <Text style={styles.querySource}>{variant.source}</Text>
+        <Text style={styles.queryConfidence}>{variant.confidence}%</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>AI Image Search</Text>
+        <Text style={styles.title}>Advanced AI Image Search</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
       <ScrollView style={styles.content} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}>
         <Text style={styles.subtitle}>
-          Take a photo or select an image to search for similar items on eBay
+          Multi-Expert AI System: Google Vision, AWS Rekognition, Gemini, Vertex AI
         </Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Add keywords (e.g. 'red Nike', 'leather')"
-          placeholderTextColor="#888"
-          value={textQuery}
-          onChangeText={setTextQuery}
-          onSubmitEditing={() => searchByImage()}
-          returnKeyType="search"
-        />
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={takePhoto}>
-            <Text style={styles.buttonText}>📷 Take Photo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={pickImage}>
-            <Text style={styles.buttonText}>🖼️ Choose from Gallery</Text>
-          </TouchableOpacity>
-        </View>
-        {selectedImage && (
-          <View style={styles.imageContainer}>
-            <View style={{ position: 'relative' }}>
+        
+        {/* Image Selection */}
+        <View style={styles.imageSection}>
+          {selectedImage ? (
+            <View style={styles.selectedImageContainer}>
               <Image source={{ uri: selectedImage.uri }} style={styles.selectedImage} />
-              {/* Object overlays */}
-              {detectedObjects.map((obj, idx) => {
-                const [x_min, y_min, x_max, y_max] = obj.bounding_box;
-                const left = x_min * imageWidth;
-                const top = y_min * imageHeight;
-                const width = (x_max - x_min) * imageWidth;
-                const height = (y_max - y_min) * imageHeight;
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[
-                      styles.objectBox,
-                      {
-                        left,
-                        top,
-                        width,
-                        height,
-                        borderColor: selectedObjectIndex === idx ? '#8B5CF6' : '#fff',
-                        zIndex: 10,
-                      },
-                    ]}
-                    onPress={() => setSelectedObjectIndex(idx)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.objectLabel}>{obj.name} ({Math.round(obj.confidence * 100)}%)</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <View style={styles.imageActions}>
-              <TouchableOpacity style={styles.searchButton} onPress={() => searchByImage()}>
-                {searching ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.searchButtonText}>🔍 Search by Image</Text>
-                )}
-              </TouchableOpacity>
               <TouchableOpacity style={styles.clearButton} onPress={clearImage}>
                 <Text style={styles.clearButtonText}>Clear</Text>
               </TouchableOpacity>
-              {selectedObjectIndex !== null && (
-                <TouchableOpacity style={styles.clearButton} onPress={() => setSelectedObjectIndex(null)}>
-                  <Text style={styles.clearButtonText}>Clear Region</Text>
-                </TouchableOpacity>
-              )}
+            </View>
+          ) : (
+            <View style={styles.imageButtons}>
+              <TouchableOpacity style={styles.imageButton} onPress={takePhoto}>
+                <Text style={styles.imageButtonText}>📷 Take Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
+                <Text style={styles.imageButtonText}>🖼️ Choose from Library</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Advanced AI Analysis Results */}
+        {advancedAnalysis && (
+          <View style={styles.analysisSection}>
+            <Text style={styles.sectionTitle}>🤖 Multi-Expert AI Analysis</Text>
+            
+            {/* AI Services Status */}
+            <View style={styles.aiServicesStatus}>
+              <Text style={styles.statusTitle}>AI Services Status:</Text>
+              <View style={styles.statusGrid}>
+                <View style={[styles.statusItem, aiServicesStatus.vision && styles.statusActive]}>
+                  <Text style={styles.statusText}>👁️ Vision</Text>
+                </View>
+                <View style={[styles.statusItem, aiServicesStatus.rekognition && styles.statusActive]}>
+                  <Text style={styles.statusText}>🔍 Rekognition</Text>
+                </View>
+                <View style={[styles.statusItem, aiServicesStatus.gemini && styles.statusActive]}>
+                  <Text style={styles.statusText}>🧠 Gemini</Text>
+                </View>
+                <View style={[styles.statusItem, aiServicesStatus.vertex && styles.statusActive]}>
+                  <Text style={styles.statusText}>⚡ Vertex</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Confidence Scores */}
+            {Object.keys(confidenceScores).length > 0 && (
+              <View style={styles.confidenceSection}>
+                <Text style={styles.confidenceTitle}>Confidence Scores:</Text>
+                {Object.entries(confidenceScores).map(([service, score]) => 
+                  renderConfidenceBar(service, score)
+                )}
+              </View>
+            )}
+
+            {/* Query Variants */}
+            {queryVariants.length > 0 && (
+              <View style={styles.queryVariantsSection}>
+                <Text style={styles.queryVariantsTitle}>AI-Generated Query Variants:</Text>
+                {queryVariants.map((variant, index) => renderQueryVariant(variant, index))}
+              </View>
+            )}
+
+            {/* Analysis Quality */}
+            <View style={styles.qualitySection}>
+              <Text style={styles.qualityTitle}>Analysis Quality: </Text>
+              <Text style={[
+                styles.qualityValue,
+                analysisQuality === 'high' && styles.qualityHigh,
+                analysisQuality === 'medium' && styles.qualityMedium,
+                analysisQuality === 'low' && styles.qualityLow
+              ]}>
+                {analysisQuality.toUpperCase()}
+              </Text>
             </View>
           </View>
         )}
-        {/* Advanced AI Analysis UI */}
-        {analysis && (
-          <View style={styles.analysisContainer}>
-            {bestGuess ? (
-              <Text style={styles.bestGuess}>Best Guess: <Text style={{fontWeight:'bold'}}>{bestGuess}</Text></Text>
-            ) : null}
-            {ocrText ? (
-              <Text style={styles.ocrText}>OCR: "{ocrText}"</Text>
-            ) : null}
-            {labels.length > 0 && (
-              <View style={styles.chipRow}><Text style={styles.chipLabel}>Labels:</Text>{labels.map((l, i) => (
-                <Text key={i} style={styles.chip}>{l.description} ({(l.confidence*100).toFixed(0)}%)</Text>
-              ))}</View>
+
+        {/* Search Button */}
+        {selectedImage && (
+          <TouchableOpacity
+            style={[styles.searchButton, searching && styles.searchButtonDisabled]}
+            onPress={() => searchByImage()}
+            disabled={searching}
+          >
+            {searching ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.searchButtonText}>
+                🔍 Advanced AI Search
+              </Text>
             )}
-            {objects.length > 0 && (
-              <View style={styles.chipRow}><Text style={styles.chipLabel}>Objects:</Text>{objects.map((o, i) => (
-                <Text key={i} style={styles.chip}>{o.name} ({(o.confidence*100).toFixed(0)}%)</Text>
-              ))}</View>
-            )}
-            {dominantColors.length > 0 && (
-              <View style={styles.chipRow}><Text style={styles.chipLabel}>Colors:</Text>{dominantColors.map((c, i) => (
-                <Text key={i} style={styles.chip}>{`rgb(${c.red},${c.green},${c.blue})`}</Text>
-              ))}</View>
-            )}
-            {suggestedQueries.length > 0 && (
-              <View style={styles.chipRow}><Text style={styles.chipLabel}>Suggested Queries:</Text>{suggestedQueries.map((q, i) => (
-                <TouchableOpacity key={i} style={styles.suggestedChip} onPress={() => {
-                  console.log('User selected suggested query:', q);
-                  searchByImage(q);
-                }}>
-                  <Text style={styles.suggestedChipText}>{q}</Text>
-                </TouchableOpacity>
-              ))}</View>
-            )}
-          </View>
+          </TouchableOpacity>
         )}
-        {/* Attribute Filter Chips */}
+
+        {/* Search Results */}
         {searchResults.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 10}}>
-            {[...new Set(searchResults.flatMap(item => Object.values(item.attributes || {})))].map((attr, i) => (
+          <View style={styles.resultsSection}>
+            <Text style={styles.resultsTitle}>Found {searchResults.length} items:</Text>
+            {searchResults.slice(0, 5).map((item, index) => (
               <TouchableOpacity
-                key={i}
-                style={[styles.chip, attributeFilter === attr && {backgroundColor: '#8B5CF6'}]}
-                onPress={() => setAttributeFilter(attributeFilter === attr ? null : attr)}
+                key={index}
+                style={styles.resultItem}
+                onPress={() => {
+                  // Navigate to item detail
+                  router.push({
+                    pathname: '/item-detail',
+                    params: { itemId: item.id }
+                  });
+                }}
               >
-                <Text style={{color: '#fff'}}>{attr}</Text>
+                <Text style={styles.resultTitle}>{item.title}</Text>
+                <Text style={styles.resultPrice}>${item.price}</Text>
+                <Text style={styles.resultCondition}>{item.condition}</Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
-        )}
-        {/* Results Grid */}
-        {filteredResults.length > 0 && (
-          <View style={styles.resultsContainer}>
-            <Text style={styles.resultsTitle}>Search Results ({filteredResults.length})</Text>
-            <View style={styles.grid}>
-              {filteredResults.map((item, index) => (
-                <TouchableOpacity
-                  key={`${item.itemId || index}-${Date.now()}`}
-                  style={styles.resultCard}
-                  onPress={() => {
-                    console.log('Clicked item:', item);
-                    if (item.itemWebUrl) {
-                      console.log('Opening itemWebUrl:', item.itemWebUrl);
-                      Linking.openURL(item.itemWebUrl);
-                    } else if (item.itemAffiliateWebUrl) {
-                      console.log('Opening itemAffiliateWebUrl:', item.itemAffiliateWebUrl);
-                      Linking.openURL(item.itemAffiliateWebUrl);
-                    } else {
-                      console.log('No eBay URL found, navigating to item-detail');
-                      router.push({ 
-                        pathname: '/item-detail', 
-                        params: { item: JSON.stringify(item) } 
-                      });
-                    }
-                  }}
-                >
-                  {item.image?.imageUrl && (
-                    <Image source={{ uri: item.image.imageUrl }} style={styles.resultImage} />
-                  )}
-                  <Text style={styles.resultTitle} numberOfLines={2}>{item.title || 'No title'}</Text>
-                  {item.price?.value && (
-                    <Text style={styles.resultPrice}>${item.price.value}</Text>
-                  )}
-                  {/* Show attributes */}
-                  {item.attributes && (
-                    <Text style={styles.resultAttrs} numberOfLines={2}>
-                      {Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}
-                    </Text>
-                  )}
-                  {/* Show matched_on */}
-                  {item.matched_on && item.matched_on.length > 0 && (
-                    <Text style={styles.resultMatchedOn} numberOfLines={1}>
-                      Matched on: {item.matched_on.join(', ')}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
-        {/* Visually Similar Results */}
-        {visualSimilars.length > 0 && (
-          <View style={styles.similarContainer}>
-            <Text style={styles.similarTitle}>Visually Similar Items</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {visualSimilars.map((sim, i) => (
-                <View key={i} style={styles.similarCard}>
-                  {sim.image_url && (
-                    <Image source={{ uri: sim.image_url }} style={styles.similarImage} />
-                  )}
-                  <Text style={styles.similarTitleText} numberOfLines={1}>{sim.title}</Text>
-                  <Text style={styles.similarBrand}>{sim.brand}</Text>
-                  <Text style={styles.similarScore}>Score: {sim.similarity.toFixed(2)}</Text>
-                  {sim.attributes && (
-                    <Text style={styles.similarAttrs} numberOfLines={2}>
-                      {Object.entries(sim.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')}
-                    </Text>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
           </View>
         )}
       </ScrollView>
@@ -398,25 +407,25 @@ export default function CameraSearch() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#a259f7',
-    padding: 20,
-    paddingTop: 60,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#333',
   },
   backButton: {
-    backgroundColor: 'rgba(162, 89, 247, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    padding: 10,
+    backgroundColor: '#007AFF',
     borderRadius: 8,
   },
   backButtonText: {
@@ -429,239 +438,241 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#ccc',
+    color: '#666',
+    marginBottom: 20,
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
   },
-  buttonContainer: {
-    gap: 16,
-    marginBottom: 30,
+  imageSection: {
+    marginBottom: 20,
   },
-  button: {
-    backgroundColor: '#a259f7',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
+  imageButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
-  buttonText: {
+  imageButton: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
+    flex: 0.45,
+  },
+  imageButtonText: {
     color: '#fff',
-    fontSize: 16,
+    textAlign: 'center',
     fontWeight: '600',
   },
-  imageContainer: {
+  selectedImageContainer: {
     alignItems: 'center',
-    marginBottom: 20,
   },
   selectedImage: {
     width: 200,
     height: 150,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  imageActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  searchButton: {
-    backgroundColor: '#8B5CF6',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
     borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  searchButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    marginBottom: 10,
   },
   clearButton: {
-    backgroundColor: '#666',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    backgroundColor: '#FF3B30',
+    padding: 10,
     borderRadius: 8,
   },
   clearButtonText: {
     color: '#fff',
-    fontSize: 14,
     fontWeight: '600',
   },
-  resultsContainer: {
-    marginTop: 20,
-  },
-  resultsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 12,
-  },
-  resultItem: {
-    backgroundColor: '#1a1a1a',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  resultTitle: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  resultPrice: {
-    fontSize: 18,
-    color: '#8B5CF6',
-    fontWeight: 'bold',
-  },
-  // New styles for advanced analysis and grid
-  analysisContainer: {
-    backgroundColor: '#1a1a1a',
-    padding: 16,
-    borderRadius: 12,
+  searchButton: {
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
     marginBottom: 20,
   },
-  bestGuess: {
-    fontSize: 16,
-    color: '#ccc',
-    marginBottom: 8,
+  searchButtonDisabled: {
+    backgroundColor: '#ccc',
   },
-  ocrText: {
-    fontSize: 16,
-    color: '#ccc',
-    marginBottom: 12,
+  searchButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
+  analysisSection: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  chipLabel: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  aiServicesStatus: {
+    marginBottom: 15,
+  },
+  statusTitle: {
     fontSize: 14,
-    color: '#888',
     fontWeight: '600',
+    marginBottom: 8,
+    color: '#666',
   },
-  chip: {
-    backgroundColor: '#2a2a2a',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    fontSize: 13,
-    color: '#fff',
-  },
-  suggestedChip: {
-    backgroundColor: '#8B5CF6',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    fontSize: 13,
-    color: '#fff',
-  },
-  suggestedChipText: {
-    fontWeight: '600',
-  },
-  grid: {
+  statusGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  resultCard: {
-    width: '48%', // Two items per row
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  resultImage: {
-    width: '100%',
-    height: 120,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  textInput: {
-    backgroundColor: '#181818',
-    color: '#fff',
-    fontSize: 16,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  resultAttrs: {
-    color: '#bbb',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  resultMatchedOn: {
-    color: '#8B5CF6',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  similarContainer: {
-    marginTop: 24,
-  },
-  similarTitle: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  similarCard: {
-    backgroundColor: '#181818',
-    borderRadius: 12,
-    padding: 12,
-    marginRight: 12,
-    width: 140,
-    alignItems: 'center',
-  },
-  similarImage: {
-    width: 100,
-    height: 80,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  similarTitleText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  similarBrand: {
-    color: '#bbb',
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  similarScore: {
-    color: '#8B5CF6',
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  similarAttrs: {
-    color: '#bbb',
-    fontSize: 11,
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  objectBox: {
-    position: 'absolute',
-    borderWidth: 2,
+  statusItem: {
+    backgroundColor: '#f0f0f0',
+    padding: 8,
     borderRadius: 6,
-    backgroundColor: 'rgba(138,89,246,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    marginBottom: 5,
+    flex: 0.48,
   },
-  objectLabel: {
-    color: '#fff',
+  statusActive: {
+    backgroundColor: '#4CAF50',
+  },
+  statusText: {
     fontSize: 12,
-    fontWeight: 'bold',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 4,
+    textAlign: 'center',
+    color: '#333',
+  },
+  confidenceSection: {
+    marginBottom: 15,
+  },
+  confidenceTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#666',
+  },
+  confidenceBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  confidenceLabel: {
+    width: 80,
+    fontSize: 12,
+    color: '#666',
+  },
+  confidenceBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#e0e0e0',
     borderRadius: 4,
-    marginTop: 2,
+    marginHorizontal: 10,
+  },
+  confidenceFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  confidenceScore: {
+    width: 30,
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'right',
+  },
+  queryVariantsSection: {
+    marginBottom: 15,
+  },
+  queryVariantsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#666',
+  },
+  queryVariant: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  selectedQueryVariant: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#2196F3',
+  },
+  queryVariantText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  queryVariantMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  querySource: {
+    fontSize: 12,
+    color: '#666',
+  },
+  queryConfidence: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  qualitySection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  qualityTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  qualityValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  qualityHigh: {
+    color: '#4CAF50',
+  },
+  qualityMedium: {
+    color: '#FF9800',
+  },
+  qualityLow: {
+    color: '#F44336',
+  },
+  resultsSection: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  resultsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  resultItem: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  resultTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  resultPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginBottom: 2,
+  },
+  resultCondition: {
+    fontSize: 12,
+    color: '#666',
   },
 }); 

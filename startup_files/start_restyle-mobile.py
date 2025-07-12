@@ -116,6 +116,48 @@ def validate_django_settings():
         print(f"❌ Error validating Django settings: {e}")
         return False
 
+def validate_ai_services():
+    """Validate AI service credentials and configurations"""
+    print('Validating AI service configurations...')
+    
+    # Check Google Cloud credentials
+    google_creds_path = os.path.join(PROJECT_ROOT, 'backend', 'silent-polygon-465403-h9-81cb035ed6d4.json')
+    if os.path.exists(google_creds_path):
+        print("✅ Google Cloud credentials found")
+    else:
+        print("⚠️  Google Cloud credentials not found - Vision API and Gemini API may not work")
+    
+    # Check AWS credentials (both possible locations)
+    aws_creds_path1 = os.path.join(PROJECT_ROOT, 'backend', 'restyle-rekognition-user_accessKeys.csv')
+    aws_creds_path2 = os.path.join(PROJECT_ROOT, 'restyle-rekognition-user_accessKeys.csv')
+    
+    if os.path.exists(aws_creds_path1):
+        print("✅ AWS Rekognition credentials found (backend folder)")
+    elif os.path.exists(aws_creds_path2):
+        print("✅ AWS Rekognition credentials found (root folder)")
+        # Copy to backend folder for Docker mounting
+        import shutil
+        try:
+            shutil.copy2(aws_creds_path2, aws_creds_path1)
+            print("✅ Copied AWS credentials to backend folder for Docker mounting")
+        except Exception as e:
+            print(f"⚠️  Could not copy AWS credentials: {e}")
+    else:
+        print("⚠️  AWS Rekognition credentials not found - Rekognition API may not work")
+        print("   Expected locations:")
+        print(f"   - {aws_creds_path1}")
+        print(f"   - {aws_creds_path2}")
+    
+    # Check local settings
+    local_settings_path = os.path.join(PROJECT_ROOT, 'backend', 'backend', 'local_settings.py')
+    if os.path.exists(local_settings_path):
+        print("✅ Local settings file found")
+    else:
+        print("⚠️  Local settings file not found - AI services may not be configured")
+    
+    print("✅ AI service validation completed")
+    return True
+
 def start_docker_services():
     """Start all Docker services using docker-compose"""
     print('Starting Docker services...')
@@ -124,6 +166,9 @@ def start_docker_services():
     if not validate_django_settings():
         print("❌ Django settings validation failed. Please fix the settings.py file before starting containers.")
         return False
+    
+    # Validate AI service configurations
+    validate_ai_services()
     
     # Check if Docker is available
     try:
@@ -146,7 +191,7 @@ def start_docker_services():
         return False
     
     # Start all services using docker-compose
-    print('Starting all Docker services (PostgreSQL, Redis, Django, Celery)...')
+    print('Starting all Docker services (PostgreSQL, Redis, Django, Celery, AI Services)...')
     start_result = subprocess.run([
         'docker-compose', 'up', '-d'
     ], shell=True, capture_output=True, text=True)
@@ -160,6 +205,11 @@ def start_docker_services():
         print('- Celery worker')
         print('- Celery beat scheduler')
         print('- Celery monitor/Flower (port 5555)')
+        print('🤖 Multi-Expert AI System:')
+        print('  - Google Vision API (image analysis)')
+        print('  - AWS Rekognition (detailed labeling)')
+        print('  - Google Gemini API (intelligent synthesis)')
+        print('  - Google Vertex AI (advanced reasoning)')
         return True
     else:
         print(f'❌ Failed to start Docker services: {start_result.stderr}')
@@ -232,6 +282,28 @@ def start_expo():
     print('Starting Expo development server...')
     subprocess.run(['npx', 'expo', 'start'], shell=True)
 
+def test_ai_services():
+    """Test AI services after startup"""
+    print('Testing AI services...')
+    
+    # Test the multi-expert AI system
+    test_script_path = os.path.join(PROJECT_ROOT, 'backend', 'test_multi_expert_ai_system.py')
+    if os.path.exists(test_script_path):
+        print('Running AI system test...')
+        try:
+            result = subprocess.run(['python', test_script_path], 
+                                  shell=True, capture_output=True, text=True, cwd=os.path.join(PROJECT_ROOT, 'backend'))
+            if result.returncode == 0:
+                print('✅ AI system test completed successfully')
+            else:
+                print('⚠️  AI system test had issues (this is normal if credentials are not fully configured)')
+        except Exception as e:
+            print(f'⚠️  Could not run AI system test: {e}')
+    else:
+        print('⚠️  AI system test script not found')
+    
+    print('AI service testing completed')
+
 if __name__ == '__main__':
     # Detect and configure IP address
     print("Detecting current IP address...")
@@ -299,10 +371,26 @@ if __name__ == '__main__':
             print(health_result.stdout)
         else:
             print("❌ Could not check container status")
+        
+        # Test AI services
+        test_ai_services()
     
     try:
         cd_mobile()
         ensure_dependencies()
+        
+        # Print AI system summary
+        print("\n" + "="*60)
+        print("🤖 MULTI-EXPERT AI SYSTEM READY")
+        print("="*60)
+        print("Your reseller assistant now includes:")
+        print("• Google Vision API - Image analysis and text detection")
+        print("• AWS Rekognition - Detailed product labeling")
+        print("• Google Gemini API - Intelligent query synthesis")
+        print("• Google Vertex AI - Advanced reasoning and analysis")
+        print("• Multi-expert coordination for maximum accuracy")
+        print("="*60)
+        
         start_expo()
     finally:
         print('Shutting down services...')

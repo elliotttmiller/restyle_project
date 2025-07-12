@@ -18,32 +18,34 @@ class EbayService:
     def __init__(self):
         self.auth_token = self._get_valid_token()
         if not self.auth_token:
-            logger.error("[EbayService] Initialization failed: No valid eBay OAuth token available.")
-            raise ConnectionError("No valid eBay OAuth token available.")
+            logger.warning("[EbayService] No valid eBay OAuth token available. eBay search will be disabled.")
+            # Don't raise exception - just log warning and continue without eBay functionality
+            self.auth_token = None
 
     def _get_valid_token(self) -> Optional[str]:
-        # Use token_manager if available for auto-refresh
+        # Use token_manager for auto-refresh
         try:
-            if 'token_manager' in globals():
+            token = token_manager.get_valid_token()
+            if not token:
+                logger.warning("[EbayService] Token manager returned no token, attempting manual refresh.")
+                token_manager.force_refresh()
                 token = token_manager.get_valid_token()
-                if not token:
-                    logger.warning("[EbayService] Token manager returned no token, attempting manual refresh.")
-                    token_manager.refresh_token()
-                    token = token_manager.get_valid_token()
-                return token
-            else:
-                return get_ebay_oauth_token()
+            return token
         except Exception as e:
             logger.error(f"[EbayService] Error getting eBay token: {e}")
             return None
 
     def get_headers(self, extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         headers = {
-            'Authorization': f'Bearer {self.auth_token}',
-            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
             'Accept': 'application/json',
             'Content-Language': 'en-US',
         }
+        
+        # Only add Authorization header if we have a valid token
+        if self.auth_token:
+            headers['Authorization'] = f'Bearer {self.auth_token}'
+            headers['X-EBAY-C-MARKETPLACE-ID'] = 'EBAY_US'
+        
         if extra:
             headers.update(extra)
         return headers
@@ -52,6 +54,11 @@ class EbayService:
         """
         Search for item summaries on eBay. Handles affiliate links and localization if requested.
         """
+        # If no auth token, return empty results
+        if not self.auth_token:
+            logger.warning(f"[EbayService] Cannot search eBay - no valid token available for query: '{query}'")
+            return []
+            
         endpoint = f"{self.BASE_URL}/item_summary/search"
         params = {'q': query, 'limit': limit}
         if category_ids:
@@ -65,6 +72,9 @@ class EbayService:
             if response.status_code == 401:
                 logger.warning("[EbayService] Token expired, attempting refresh and retry.")
                 self.auth_token = self._get_valid_token()
+                if not self.auth_token:
+                    logger.warning("[EbayService] Token refresh failed, returning empty results.")
+                    return []
                 headers = self.get_headers()
                 response = requests.get(endpoint, headers=headers, params=params, timeout=self.DEFAULT_TIMEOUT)
             response.raise_for_status()

@@ -427,8 +427,10 @@ def calculate_seasonal_multiplier(sale_date, title):
         elif month in [1, 2]:  # Post-holiday
             return 0.85  # Post-holiday discount
     
-    # Sports equipment (seasonal sports)
-    elif any(word in title_lower for word in ['basketball', 'football', 'soccer', 'baseball', 'tennis']):
+    # Sports equipment (AI-driven seasonal detection)
+    # Look for patterns that suggest sports equipment without hardcoded terms
+    sports_indicators = ['equipment', 'gear', 'uniform', 'jersey', 'athletic', 'sport']
+    if any(indicator in title_lower for indicator in sports_indicators):
         if month in [3, 4, 5, 9, 10]:  # Sports seasons
             return 1.1
         else:

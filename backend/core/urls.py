@@ -16,9 +16,15 @@ from .views import (
     SetEbayRefreshTokenView,
     EbayOAuthCallbackView,
     EbayOAuthDeclinedView,
+    EbayOAuthView,
     PriceAnalysisView,
     AIImageSearchView,
+    AdvancedMultiExpertAISearchView,
+    PrivacyPolicyView,
 )
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
 
 urlpatterns = [
     # Health check endpoint
@@ -49,8 +55,25 @@ urlpatterns = [
 
     path('ebay-oauth-declined/', EbayOAuthDeclinedView.as_view(), name='ebay-oauth-declined'),
 
+    path('ebay-oauth/', EbayOAuthView.as_view(), name='ebay-oauth'),
+
     path('price-analysis/', PriceAnalysisView.as_view(), name='price-analysis'),
     
     # AI Image Search
     path('ai/image-search/', AIImageSearchView.as_view(), name='ai-image-search'),
+    
+    # Advanced Multi-Expert AI Search
+    path('ai/advanced-search/', AdvancedMultiExpertAISearchView.as_view(), name='advanced-ai-search'),
+
+    path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy-policy'),
+]
+
+# Authenticated health check endpoint
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def authenticated_health_check(request):
+    return Response({"status": "ok", "user": str(request.user)})
+
+urlpatterns += [
+    path('health-check/', authenticated_health_check, name='authenticated-health-check'),
 ]

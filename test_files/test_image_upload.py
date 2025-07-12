@@ -9,11 +9,11 @@ from datetime import datetime
 
 API_URL = 'http://localhost:8000/api/core/ai/image-search/'
 # Use absolute path for the new test image
-IMAGE_PATH = r'C:\Users\AMD\restyle_project\test_files\example.JPG'
+IMAGE_PATH = r'C:\Users\AMD\restyle_project\test_files\example2.JPG'
 AUTH_URL = 'http://localhost:8000/api/token/'
 
 # Use environment variables or defaults for test credentials
-username = os.environ.get('DJANGO_TEST_USER', 'testuser')
+username = os.environ.get('DJANGO_TEST_USER', 'admin')
 password = os.environ.get('DJANGO_TEST_PASS', 'elliott123')
 
 def get_jwt_token():
@@ -38,9 +38,9 @@ def get_jwt_token():
     return None
 
 def analyze_ai_results(response_data):
-    """Analyze AI system accuracy and provide detailed feedback"""
+    """Analyze AI system results and display real eBay search results"""
     print("\n" + "="*80)
-    print("🤖 AI SYSTEM ACCURACY ANALYSIS")
+    print("🤖 AI-DRIVEN SEARCH RESULTS ANALYSIS")
     print("="*80)
     
     # Extract key information
@@ -48,86 +48,75 @@ def analyze_ai_results(response_data):
     visual_results = response_data.get('visual_search_results', [])
     hybrid_results = response_data.get('hybrid_results', [])
     
-    print(f"\n📊 TEST SUMMARY:")
+    print(f"\n📊 AI SYSTEM SUMMARY:")
     print(f"   • Image: {os.path.basename(IMAGE_PATH)}")
     print(f"   • Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"   • Search Terms Generated: {len(search_terms)}")
-    print(f"   • Visual Results: {len(visual_results)}")
-    print(f"   • Hybrid Results: {len(hybrid_results)}")
+    print(f"   • AI-Detected Search Terms: {len(search_terms)}")
+    print(f"   • Visual Search Results: {len(visual_results)}")
+    print(f"   • Hybrid Search Results: {len(hybrid_results)}")
     
-    # Analyze search terms
-    print(f"\n🔍 AI DETECTED SEARCH TERMS:")
+    # Display AI-detected search terms
+    print(f"\n🔍 AI-DETECTED SEARCH TERMS:")
     for i, term in enumerate(search_terms, 1):
         print(f"   {i}. '{term}'")
     
-    # Analyze visual results
+    # Display search queries used
+    search_queries = response_data.get('search_queries_used', {})
+    print(f"\n🔍 AI-GENERATED SEARCH QUERIES:")
+    print(f"   Primary Query: {search_queries.get('primary_query', 'None')}")
+    print(f"   Suggested Queries Tried: {search_queries.get('suggested_queries_tried', [])}")
+    
+    # Display eBay search results
+    ebay_results = response_data.get('ebay_search_results', [])
+    print(f"\n🛒 EBAY SEARCH RESULTS (AI-GENERATED QUERY):")
+    print(f"   Total eBay Items Found: {len(ebay_results)}")
+    
+    if ebay_results:
+        print("   Top 10 eBay Items:")
+        for i, item in enumerate(ebay_results[:10], 1):
+            title = item.get('title', 'No title')
+            price = item.get('price', {}).get('value', 'No price')
+            url = item.get('itemWebUrl', 'No URL')
+            print(f"   {i}. {title}")
+            print(f"      Price: ${price}")
+            print(f"      URL: {url}")
+            print()
+    else:
+        print("   ❌ No eBay items found")
+    
+    # Display visual search results
     if visual_results:
-        print(f"\n👁️ TOP VISUAL SEARCH RESULTS:")
+        print(f"\n👁️ VISUAL SEARCH RESULTS:")
+        print(f"   Total Visual Results: {len(visual_results)}")
+        print("   Top 5 Visual Results:")
         for i, result in enumerate(visual_results[:5], 1):
             title = result.get('title', 'No title')
             url = result.get('url', 'No URL')
             print(f"   {i}. {title}")
             print(f"      URL: {url}")
     
-    # Analyze hybrid results
+    # Display hybrid results
     if hybrid_results:
-        print(f"\n🔄 TOP HYBRID SEARCH RESULTS:")
+        print(f"\n🔄 HYBRID SEARCH RESULTS:")
+        print(f"   Total Hybrid Results: {len(hybrid_results)}")
+        print("   Top 5 Hybrid Results:")
         for i, result in enumerate(hybrid_results[:5], 1):
             title = result.get('title', 'No title')
             url = result.get('url', 'No URL')
             print(f"   {i}. {title}")
             print(f"      URL: {url}")
     
-    # Accuracy assessment
-    print(f"\n📈 ACCURACY ASSESSMENT:")
+    # AI System Assessment
+    print(f"\n🎯 AI SYSTEM ASSESSMENT:")
+    print(f"   • Search Terms Detected: {len(search_terms)}")
+    print(f"   • eBay Items Found: {len(ebay_results)}")
+    print(f"   • Visual Results: {len(visual_results)}")
+    print(f"   • Hybrid Results: {len(hybrid_results)}")
     
-    # Check for expected terms in search results
-    expected_terms = ['minnesota', 'timberwolves', 'playoffs', '2024', 'white', 't-shirt']
-    detected_terms = [term.lower() for term in search_terms]
-    
-    print(f"   Expected Terms: {expected_terms}")
-    print(f"   Detected Terms: {detected_terms}")
-    
-    # Calculate accuracy metrics
-    correct_detections = sum(1 for term in expected_terms if any(term in detected for detected in detected_terms))
-    accuracy_percentage = (correct_detections / len(expected_terms)) * 100 if expected_terms else 0
-    
-    print(f"   Correct Detections: {correct_detections}/{len(expected_terms)}")
-    print(f"   Accuracy: {accuracy_percentage:.1f}%")
-    
-    # Specific accuracy checks
-    print(f"\n✅ SPECIFIC ACCURACY CHECKS:")
-    
-    # Team detection
-    team_detected = any(team in ' '.join(search_terms).lower() for team in ['minnesota', 'timberwolves'])
-    print(f"   • Team (Minnesota Timberwolves): {'✅' if team_detected else '❌'}")
-    
-    # Product type detection
-    shirt_detected = any('t-shirt' in term.lower() or 'shirt' in term.lower() for term in search_terms)
-    print(f"   • Product Type (T-Shirt): {'✅' if shirt_detected else '❌'}")
-    
-    # Color detection
-    color_detected = any(color in ' '.join(search_terms).lower() for color in ['white', 'light'])
-    print(f"   • Color (White): {'✅' if color_detected else '❌'}")
-    
-    # Event detection
-    event_detected = any(event in ' '.join(search_terms).lower() for event in ['playoffs', 'playoff'])
-    print(f"   • Event (Playoffs): {'✅' if event_detected else '❌'}")
-    
-    # Year detection
-    year_detected = any('2024' in term.lower() for term in search_terms)
-    print(f"   • Year (2024): {'✅' if year_detected else '❌'}")
-    
-    # Overall assessment
-    print(f"\n🎯 OVERALL ASSESSMENT:")
-    if accuracy_percentage >= 80:
-        print("   🟢 EXCELLENT: AI system is highly accurate")
-    elif accuracy_percentage >= 60:
-        print("   🟡 GOOD: AI system is performing well")
-    elif accuracy_percentage >= 40:
-        print("   🟠 FAIR: AI system needs improvement")
+    if len(ebay_results) > 0:
+        print(f"   ✅ SUCCESS: AI system found {len(ebay_results)} relevant eBay items")
     else:
-        print("   🔴 POOR: AI system needs significant improvement")
+        print(f"   ❌ NO RESULTS: AI system found no eBay items")
     
     print("="*80)
 
@@ -150,7 +139,7 @@ def main():
                 'image': image_file,
             }
             print("\n📤 Uploading image to AI system...")
-            response = requests.post(API_URL, headers=headers, files=files, timeout=30)
+            response = requests.post(API_URL, headers=headers, files=files, timeout=120)
             
             print(f'Status code: {response.status_code}')
             

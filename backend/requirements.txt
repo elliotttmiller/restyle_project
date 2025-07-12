@@ -17,3 +17,6 @@ torch
 open_clip_torch
 rapidfuzz
 psutil
+boto3
+google-generativeai
+google-cloud-aiplatform
