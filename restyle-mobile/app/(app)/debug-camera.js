@@ -83,10 +83,10 @@ export default function DebugCamera() {
       formData.append('image', file);
       formData.append('image_type', 'image/jpeg');
       
-      addDebugInfo(`Sending to: ${api.defaults.baseURL}/core/ai/image-search/`, 'info');
+      addDebugInfo(`Sending to: ${api.defaults.baseURL}/core/ai/advanced-search/`, 'info');
       addDebugInfo(`File object: ${JSON.stringify(file)}`, 'info');
       
-      const response = await api.post('core/ai/image-search/', formData, {
+      const response = await api.post('core/ai/advanced-search/', formData, {
         headers: {
           // Let axios set Content-Type
         },

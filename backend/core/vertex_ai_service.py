@@ -20,6 +20,8 @@ class VertexAIService:
     """
     
     def __init__(self):
+        logger = logging.getLogger(__name__)
+        logger.info('TEST LOG LINE: VertexAIService initialized')
         self.project_id = "silent-polygon-465403-h9"  # From your service account
         self.location = "us-central1"  # Vertex AI region
         self.vertex_ai_available = False
@@ -34,7 +36,7 @@ class VertexAIService:
             self.vertex_ai_available = True
             logger.info("Vertex AI initialized successfully using existing Google Cloud credentials")
         except Exception as e:
-            logger.warning(f"Vertex AI initialization failed: {e}")
+            logger.error("Vertex AI initialization failed", exc_info=True)
         
         # Initialize Gemini API using existing Google Cloud credentials
         try:
@@ -53,7 +55,7 @@ class VertexAIService:
             self.gemini_available = True
             logger.info("Gemini API initialized successfully using existing Google Cloud credentials")
         except Exception as e:
-            logger.warning(f"Gemini API initialization failed: {e}")
+            logger.error("Gemini API initialization failed", exc_info=True)
     
     def synthesize_expert_opinions(self, expert_outputs: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -73,27 +75,17 @@ class VertexAIService:
         Use Vertex AI for advanced synthesis with custom model capabilities.
         """
         try:
-            # For now, we'll use Vertex AI's text generation endpoint
-            # In the future, you could deploy custom models here
-            
-            # Create a prompt for Vertex AI
             prompt = self._build_vertex_ai_prompt(expert_outputs)
-            
-            # Use Vertex AI's text generation
-            # Note: This is a simplified implementation
-            # In production, you'd deploy a custom model for this task
-            
-            # For now, fall back to Gemini API if available
+            logger.info(f"Vertex AI Prompt: {prompt}")
+            # Use Vertex AI's text generation (not implemented, fallback to Gemini)
             if self.gemini_available:
                 logger.info("Using Gemini API for synthesis (Vertex AI custom model not deployed)")
                 return self._synthesize_with_gemini(expert_outputs)
             else:
                 logger.warning("Vertex AI custom model not available, using fallback")
                 return self._fallback_synthesis(expert_outputs)
-                
         except Exception as e:
             logger.error(f"Vertex AI synthesis failed: {e}")
-            # Fall back to Gemini API
             if self.gemini_available:
                 return self._synthesize_with_gemini(expert_outputs)
             else:
@@ -105,7 +97,9 @@ class VertexAIService:
         """
         try:
             prompt = self._build_gemini_prompt(expert_outputs)
+            logger.info(f"Gemini Prompt: {prompt}")
             response = self.gemini_model.generate_content(prompt)
+            logger.info(f"Gemini Raw Response: {response.text}")
             synthesized_attributes = json.loads(response.text)
             logger.info(f"Gemini synthesis successful: {synthesized_attributes}")
             return synthesized_attributes
@@ -119,7 +113,6 @@ class VertexAIService:
         """
         google_data = expert_outputs.get('google_vision', {})
         aws_data = expert_outputs.get('aws_rekognition', {})
-        
         prompt = f"""
 You are an advanced AI expert for fashion resale and product identification, powered by Google Cloud Vertex AI. Your task is to analyze the following raw JSON data from multiple AI vision services and synthesize all available information into a single, high-confidence set of attributes for the item.
 
@@ -129,12 +122,11 @@ You are an advanced AI expert for fashion resale and product identification, pow
 3. **Attribute Hierarchy**: Prioritize specific, branded information over generic labels
 4. **Cross-Validation**: Verify information across multiple AI services
 5. **Market Context**: Consider current fashion trends and market dynamics
-6. **Output Format**: Return ONLY a single, valid JSON object with the specified schema
+6. **eBay Search Optimization**: Generate a concise, highly relevant search query string for eBay, using the most specific and distinguishing attributes. Avoid generic or ambiguous terms. Output this as a separate field: 'ebay_search_query'.
+7. **Output Format**: Return ONLY a single, valid JSON object with the specified schema
 
 **AI Data Sources:**
-```json
-{json.dumps(expert_outputs, indent=2)}
-```
+```json\n{json.dumps(expert_outputs, indent=2)}\n```
 
 **Required JSON Output Schema:**
 {{
@@ -155,7 +147,8 @@ You are an advanced AI expert for fashion resale and product identification, pow
     "trending": "Boolean",
     "seasonality": "String | null",
     "price_category": "String | null"
-  }}
+  }},
+  "ebay_search_query": "String (concise, eBay-optimized search query)"
 }}
 
 **Advanced Analysis Guidelines:**
@@ -165,7 +158,6 @@ You are an advanced AI expert for fashion resale and product identification, pow
 - Leverage cross-modal information fusion for higher accuracy
 - Implement uncertainty quantification for robust decision making
 """
-        
         return prompt
     
     def _build_gemini_prompt(self, expert_outputs: Dict[str, Any]) -> str:
@@ -174,7 +166,6 @@ You are an advanced AI expert for fashion resale and product identification, pow
         """
         google_data = expert_outputs.get('google_vision', {})
         aws_data = expert_outputs.get('aws_rekognition', {})
-        
         prompt = f"""
 You are a world-class AI expert for fashion resale. Your task is to analyze the following raw JSON data from two separate AI vision services (Google Vision and AWS Rekognition) and synthesize all available information into a single, high-confidence set of attributes for the item.
 
@@ -184,12 +175,11 @@ You are a world-class AI expert for fashion resale. Your task is to analyze the 
 3. **Analyze text from both services**: Extract brand names, model numbers, and other specific details from OCR results.
 4. **Infer secondary attributes**: Based on all data, infer attributes like `style`, `sport`, `material`, `era`, etc.
 5. **Calculate confidence scores**: Provide confidence scores based on agreement between services and data quality.
-6. **Output Format**: You must return ONLY a single, valid JSON object with the specified schema and nothing else.
+6. **eBay Search Optimization**: Generate a concise, highly relevant search query string for eBay, using the most specific and distinguishing attributes. Avoid generic or ambiguous terms. Output this as a separate field: 'ebay_search_query'.
+7. **Output Format**: You must return ONLY a single, valid JSON object with the specified schema and nothing else.
 
 **AI Data:**
-```json
-{json.dumps(expert_outputs, indent=2)}
-```
+```json\n{json.dumps(expert_outputs, indent=2)}\n```
 
 **Your Required JSON Output Schema:**
 {{
@@ -205,7 +195,13 @@ You are a world-class AI expert for fashion resale. Your task is to analyze the 
     "google_vision_confidence": "Float (0.0-1.0)",
     "aws_rekognition_confidence": "Float (0.0-1.0)",
     "overall_agreement": "Float (0.0-1.0)"
-  }}
+  }},
+  "market_insights": {{
+    "trending": "Boolean",
+    "seasonality": "String | null",
+    "price_category": "String | null"
+  }},
+  "ebay_search_query": "String (concise, eBay-optimized search query)"
 }}
 
 **Analysis Guidelines:**
@@ -217,7 +213,6 @@ You are a world-class AI expert for fashion resale. Your task is to analyze the 
 - If services disagree significantly, lower the confidence score
 - Always prioritize specific, branded information over generic labels
 """
-        
         return prompt
     
     def _fallback_synthesis(self, expert_outputs: Dict[str, Any]) -> Dict[str, Any]:

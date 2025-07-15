@@ -132,9 +132,9 @@ export default function CameraSearch() {
         formData.append('object_index', selectedObjectIndex);
       }
       // Use the ai-image-search endpoint for robust integration
-      console.log('Posting to endpoint:', api.defaults.baseURL + '/core/ai/image-search/');
+      console.log('Posting to endpoint:', api.defaults.baseURL + '/core/ai/advanced-search/');
       console.log('Auth token:', token);
-      const searchResponse = await api.post('core/ai/image-search/', formData, {
+      const searchResponse = await api.post('core/ai/advanced-search/', formData, {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
           // Let axios set Content-Type
