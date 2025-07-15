@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, Image, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../shared/api';
 import { useRouter } from 'expo-router';
@@ -84,8 +84,13 @@ export default function AlgorithmEbaySearchBar() {
   }, [query]);
 
   const handleCameraSearch = useCallback(() => {
-    // Navigate to camera search screen
-    router.push('/camera-search');
+    try {
+      // Use relative route for Expo Router (v2+)
+      router.push('camera-search');
+    } catch (err) {
+      console.error('Navigation to camera-search failed:', err);
+      Alert.alert('Navigation Error', 'Could not open camera search.');
+    }
   }, [router]);
 
   const renderItem = ({ item, index }) => (

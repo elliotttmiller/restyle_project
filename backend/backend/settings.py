@@ -169,7 +169,6 @@ AUTH_USER_MODEL = 'users.CustomUser'
 # At the very bottom of settings.py
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
 }
@@ -193,7 +192,9 @@ CORS_ALLOWED_ORIGINS = ["http://localhost:3000", # The address of our React fron
     "http://localhost:8081", # Expo development server
     "http://127.0.0.1:8081", # Expo development server
     "exp://localhost:8081", # Expo development server
-    "exp://127.0.0.1:8081"] # Expo development server
+    "exp://127.0.0.1:8081",
+    "http://192.168.0.33:8081",  # Added for Expo Metro
+]
 
 # Allow all headers and methods for mobile app
 CORS_ALLOW_ALL_HEADERS = True

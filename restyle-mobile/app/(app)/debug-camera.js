@@ -83,10 +83,10 @@ export default function DebugCamera() {
       formData.append('image', file);
       formData.append('image_type', 'image/jpeg');
       
-      addDebugInfo(`Sending to: ${api.defaults.baseURL}/core/ai/advanced-search/`, 'info');
+      addDebugInfo(`Sending to: ${api.defaults.baseURL}/core/ai/image-search/`, 'info');
       addDebugInfo(`File object: ${JSON.stringify(file)}`, 'info');
       
-      const response = await api.post('/core/ai/advanced-search/', formData, {
+      const response = await api.post('core/ai/image-search/', formData, {
         headers: {
           // Let axios set Content-Type
         },
@@ -196,136 +196,3 @@ export default function DebugCamera() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
-  },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    color: '#a259f7',
-    fontSize: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  clearButton: {
-    padding: 8,
-  },
-  clearButtonText: {
-    color: '#ff6b6b',
-    fontSize: 16,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  buttonContainer: {
-    marginBottom: 20,
-  },
-  button: {
-    backgroundColor: '#a259f7',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#444',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  imageContainer: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  imageTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  previewImage: {
-    width: 200,
-    height: 150,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  imageInfo: {
-    color: '#888',
-    fontSize: 12,
-  },
-  debugContainer: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
-  },
-  debugTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  debugItem: {
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 8,
-  },
-  debugInfo: {
-    backgroundColor: '#1a1a2e',
-    borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
-  },
-  debugSuccess: {
-    backgroundColor: '#1a2e1a',
-    borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
-  },
-  debugWarning: {
-    backgroundColor: '#2e2e1a',
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-  },
-  debugError: {
-    backgroundColor: '#2e1a1a',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F44336',
-  },
-  debugText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  debugTextInfo: {
-    color: '#2196F3',
-  },
-  debugTextSuccess: {
-    color: '#4CAF50',
-  },
-  debugTextWarning: {
-    color: '#FF9800',
-  },
-  debugTextError: {
-    color: '#F44336',
-  },
-  timestamp: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-}); 

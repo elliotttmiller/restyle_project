@@ -55,9 +55,9 @@ export default function SimpleImageTest() {
       console.log('FormData created with file:', file);
 
       // Test upload
-      console.log('Sending to:', api.defaults.baseURL + '/core/ai/advanced-search/');
+      console.log('Sending to:', api.defaults.baseURL + '/core/ai/image-search/');
       
-      const response = await api.post('/core/ai/advanced-search/', formData, {
+      const response = await api.post('core/ai/image-search/', formData, {
         headers: {
           // Let axios set the Content-Type
         },

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../../shared/api';
+import { useAuthStore } from '../../shared/authStore';
 
 export default function CameraSearch() {
   const router = useRouter();
@@ -37,6 +38,8 @@ export default function CameraSearch() {
     gemini: false,
     vertex: false
   });
+
+  const token = useAuthStore((state) => state.token);
 
   React.useEffect(() => {
     if (params.mode === 'camera') {
@@ -114,26 +117,13 @@ export default function CameraSearch() {
     }
     setSearching(true);
     try {
-      console.log('Selected image URI:', selectedImage.uri);
-      console.log('Selected image type:', selectedImage.type);
-      console.log('Selected image size:', selectedImage.fileSize);
-      console.log('Selected image width:', selectedImage.width);
-      console.log('Selected image height:', selectedImage.height);
-      
-      // Create FormData with proper file object
       const formData = new FormData();
-      
-      // Create a proper file object for React Native
       const file = {
         uri: selectedImage.uri,
         type: selectedImage.type || 'image/jpeg',
         name: 'image.jpg',
       };
-      
-      console.log('Creating FormData with file:', file);
       formData.append('image', file);
-      formData.append('image_type', 'image/jpeg');
-      
       const queryToSend = queryOverride !== null ? queryOverride : textQuery;
       if (queryToSend) {
         formData.append('query', queryToSend);
@@ -141,27 +131,19 @@ export default function CameraSearch() {
       if (selectedObjectIndex !== null) {
         formData.append('object_index', selectedObjectIndex);
       }
-      
-      console.log('Sending image to advanced AI backend...');
-      console.log('FormData contents:', formData);
-      console.log('API base URL:', api.defaults.baseURL);
-      console.log('File object:', file);
-      
-      // Use the new advanced AI endpoint
-      const searchResponse = await api.post('/core/ai/advanced-search/', formData, {
+      // Use the ai-image-search endpoint for robust integration
+      console.log('Posting to endpoint:', api.defaults.baseURL + '/core/ai/image-search/');
+      console.log('Auth token:', token);
+      const searchResponse = await api.post('core/ai/image-search/', formData, {
         headers: {
-          // Don't set Content-Type - let axios set it with boundary
+          Authorization: token ? `Bearer ${token}` : undefined,
+          // Let axios set Content-Type
         },
       });
-      
-      console.log('Search response received:', searchResponse.data);
-      
-      // Handle advanced AI response
       const responseData = searchResponse.data;
-      
-      // Set basic results
-      setSearchResults(responseData.results || []);
-      setAnalysis(responseData.analysis || null);
+      // Always use 'results' key for eBay items
+      setSearchResults(responseData.analysis_results?.visually_ranked_comps || responseData.results || []);
+      setAnalysis(responseData.analysis_results || responseData.analysis || null);
       
       // Set advanced AI analysis
       setAdvancedAnalysis(responseData.analysis);
@@ -182,23 +164,13 @@ export default function CameraSearch() {
       setBestGuess(responseData.queries?.primary || '');
       setSuggestedQueries(responseData.queries?.variants?.map(v => v.query) || []);
       
-      if (responseData.results && responseData.results.length > 0) {
-        Alert.alert(
-          'Advanced AI Search Complete', 
-          `Found ${responseData.results.length} items with ${responseData.summary?.analysis_quality || 'medium'} quality analysis!`
-        );
+      if ((responseData.analysis_results?.visually_ranked_comps || responseData.results || []).length > 0) {
+        Alert.alert('Image Search Complete', `Found ${responseData.analysis_results?.visually_ranked_comps?.length || responseData.results?.length || 0} items!`);
       } else {
         Alert.alert('No Results', 'No items found for this image. Try a different photo.');
       }
     } catch (error) {
-      console.error('Advanced AI search failed:', error);
-      console.error('Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: error.config
-      });
+      console.error('Image search failed:', error);
       Alert.alert('Search Failed', error.response?.data?.error || 'Failed to search by image.');
     } finally {
       setSearching(false);
