@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Restyle AI",
+    "slug": "restyle-ai-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "restyleai",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ai.restyle.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Restyle AI needs access to your camera to take photos of items for AI-powered market analysis.",
+        "NSPhotoLibraryUsageDescription": "Restyle AI needs access to your photo library to select images of items for AI-powered market analysis.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.restyleai.mobile",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you select images for AI-powered item search.",
+          "cameraPermission": "The app accesses your camera to let you take photos for AI-powered item search."
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "727c2b73-2ffc-4d34-b681-c6ca195b1992"
+      }
+    },
+    "sdkVersion": "53.0.0"
+  }
+}

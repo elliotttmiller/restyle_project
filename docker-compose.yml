@@ -1,0 +1,139 @@
+# File: restyle_project/docker-compose.yml
+
+services:
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=restyle_db
+      - POSTGRES_USER=restyle_user
+      - POSTGRES_PASSWORD=restyle_password
+    healthcheck:
+      # This test command checks if the database is ready to accept connections
+      test: ["CMD-SHELL", "pg_isready -U restyle_user -d restyle_db"]
+      
+      # --- THE FIX IS HERE ---
+      interval: 10s       # Check every 10 seconds (was 5s)
+      timeout: 5s
+      retries: 5
+      start_period: 30s # Wait 30 seconds before the first check
+      # --- END OF FIX ---
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: >
+      sh -c "python manage.py migrate && 
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./backend/***REMOVED***:/app/***REMOVED***:ro
+      - ./***REMOVED***:/app/***REMOVED***:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/***REMOVED***
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-***REMOVED***}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-***REMOVED***}
+      - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-silent-polygon-465403-h9}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A backend worker -l info -Q default,ebay_tokens
+    volumes:
+      - ./backend:/app
+      - ./backend/***REMOVED***:/app/***REMOVED***:ro
+      - ./***REMOVED***:/app/***REMOVED***:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/***REMOVED***
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-silent-polygon-465403-h9}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A backend beat -l info
+    volumes:
+      - ./backend:/app
+      - ./backend/***REMOVED***:/app/***REMOVED***:ro
+      - ./***REMOVED***:/app/***REMOVED***:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/***REMOVED***
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-silent-polygon-465403-h9}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+
+  celery_monitor:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A backend flower -l info --port=5555
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./backend:/app
+      - ./backend/***REMOVED***:/app/***REMOVED***:ro
+      - ./***REMOVED***:/app/***REMOVED***:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/***REMOVED***
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-silent-polygon-465403-h9}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+
+volumes:
+  postgres_data:

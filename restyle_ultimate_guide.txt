@@ -1,0 +1,377 @@
+This document represents the blueprint for a truly cutting-edge, purely AI-driven market analysis engine. It moves beyond simple API calls to a sophisticated, multi-expert system synthesized by a powerful Large Language Model (LLM). It is designed to be robust, accurate, and extensible.
+Here is the complete guide in the requested .txt file format.
+--- START OF FILE restyle_ai_ultimate_guide.txt ---
+RESTYLE AI - THE ULTIMATE INTEGRATION GUIDE
+Building a Multi-Expert, LLM-Synthesized Market Analysis Engine
+1.0 Executive Summary & Architectural Vision
+This guide outlines the implementation of a state-of-the-art AI pipeline for your reseller assistant application. Our goal is to move beyond a single-source, rule-based system to a purely AI-driven engine that provides superior accuracy and sophistication in identifying secondhand goods.
+The architecture is modeled on a "panel of experts":
+The Market Researcher (Google Vision API): The world's best tool for identifying specific, branded products using its WEB_DETECTION feature.
+The Object Specialist (Amazon Rekognition): A reliable "second opinion" for general object and category classification.
+The Chief Synthesizer (Google Gemini Pro): A powerful Large Language Model (LLM) that acts as the "brain," analyzing the outputs from all experts to deduce a single, high-confidence set of attributes.
+The Visual Arbiter (Self-Hosted CLIP Model): Your "secret sauce" that visually re-ranks market comps to ensure they truly look like the user's item, defeating inaccurate online listings.
+This document provides a complete, step-by-step plan to build and integrate this system into your Django backend.
+2.0 Prerequisites & Environment Setup
+Before writing any code, ensure your environment is correctly configured.
+2.1 Required Python Packages
+Add the following to your requirements.txt file and run pip install -r requirements.txt:
+Generated code
+# requirements.txt
+# ... (django, djangorestframework, etc.)
+google-cloud-vision
+boto3
+google-generativeai
+open_clip_torch
+torch
+faiss-cpu # Or faiss-gpu if you have a CUDA-enabled GPU
+Use code with caution.
+2.2 API Key and Credential Acquisition
+Google Cloud (Vision & Gemini):
+Vision Service Account: You should already have your silent-polygon-....json file.
+Gemini API Key: Go to Google AI Studio, create a new project, and click "Get API key". Copy this key.
+Amazon Web Services (AWS for Rekognition):
+Sign up for an AWS account if you do not have one.
+In the AWS Console, navigate to the IAM service.
+Create a new IAM User.
+Attach the built-in policy named AmazonRekognitionReadOnlyAccess.
+On the final screen, save the Access Key ID and Secret Access Key.
+2.3 Secure Environment Configuration
+Update your docker-compose.yml to securely provide these credentials to your backend service. Never hardcode keys in your Python files.
+File: docker-compose.yml
+Generated yaml
+services:
+  backend:
+    # ... your existing build, command, ports, etc. ...
+    volumes:
+      - .:/app
+      # Mount your Google service account key into the container
+      - ./***REMOVED***:/app/gcp_credentials.json
+    environment:
+      # --- Google Cloud ---
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
+      - GEMINI_API_KEY=YOUR_GEMINI_API_KEY_GOES_HERE
+
+      # --- AWS Rekognition ---
+      - AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID_GOES_HERE
+      - AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY_GOES_HERE
+      - AWS_REGION_NAME=us-east-1 # Or your preferred region
+Use code with caution.
+Yaml
+Create a backend/backend/local_settings.py file (and add it to .gitignore) to load these variables.
+File: backend/backend/local_settings.py
+Generated python
+import os
+
+# This file is for loading secrets from the environment.
+# It should be imported at the bottom of your main settings.py
+
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+Use code with caution.
+Python
+Ensure your main settings.py has a try/except block at the bottom to import this file.
+3.0 The AI Core: Service Implementation
+We will create three core services: EncoderService for visual understanding, AggregatorService for multi-expert synthesis, and MarketAnalysisService for post-identification tasks.
+3.1 The Visual Brain: EncoderService
+This service is responsible for converting images into vector embeddings using CLIP. It uses a singleton pattern to ensure the large model is loaded only once.
+File: backend/core/encoder_service.py
+Generated python
+import logging
+import torch
+import open_clip
+from PIL import Image
+import io
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+class EncoderService:
+    _instance = None
+
+    def __new__(cls):
+        # Singleton pattern ensures the model is loaded into memory only once.
+        if cls._instance is None:
+            logger.info("Creating new EncoderService instance...")
+            cls._instance = super(EncoderService, cls).__new__(cls)
+            cls._instance.device = "cuda" if torch.cuda.is_available() else "cpu"
+            logger.info(f"[EncoderService] Using device: {cls._instance.device}")
+            try:
+                # Use a large, powerful model for maximum accuracy.
+                model_name = 'ViT-L-14'
+                pretrained = 'laion2b_s32b_b82k'
+                cls._instance.model, _, cls._instance.preprocess = open_clip.create_model_and_transforms(
+                    model_name, pretrained=pretrained, device=cls._instance.device
+                )
+                cls._instance.tokenizer = open_clip.get_tokenizer(model_name)
+                logger.info(f"[EncoderService] Successfully loaded CLIP model '{model_name}'.")
+            except Exception as e:
+                logger.error(f"[EncoderService] CRITICAL: Failed to load CLIP model. Visual re-ranking will be disabled. Error: {e}")
+                cls._instance.model = None
+        return cls._instance
+
+    def encode_image(self, image_data: bytes) -> np.ndarray | None:
+        """Encodes image bytes into a normalized embedding vector."""
+        if not self.model: return None
+        try:
+            image = Image.open(io.BytesIO(image_data)).convert("RGB")
+            image_input = self.preprocess(image).unsqueeze(0).to(self.device)
+            with torch.no_grad(), torch.cuda.amp.autocast():
+                image_features = self.model.encode_image(image_input)
+            return image_features.cpu().numpy()[0] / np.linalg.norm(image_features.cpu().numpy()[0])
+        except Exception as e:
+            logger.error(f"[EncoderService] Failed to encode image: {e}")
+            return None
+
+def get_encoder_service():
+    """Global getter for easy, safe access to the service instance."""
+    return EncoderService()
+Use code with caution.
+Python
+3.2 The Chief Synthesizer: AggregatorService
+This is the new heart of your identification system. It calls the "panel of experts" and uses Gemini to synthesize their findings.
+File: backend/core/aggregator_service.py
+Generated python
+import logging
+import boto3
+import json
+from threading import Thread
+from google.cloud import vision
+import google.generativeai as genai
+from django.conf import settings
+
+logger = logging.getLogger(__name__)
+
+class AggregatorService:
+    _instance = None
+    
+    def __new__(cls):
+        # Singleton pattern for this service as well.
+        if cls._instance is None:
+            cls._instance = super(AggregatorService, cls).__new__(cls)
+            try:
+                cls._instance.google_vision_client = vision.ImageAnnotatorClient()
+                cls._instance.aws_rekognition_client = boto3.client('rekognition')
+                genai.configure(***REMOVED***=settings.GEMINI_API_KEY)
+                generation_config = genai.types.GenerationConfig(response_mime_type="application/json")
+                cls._instance.gemini_model = genai.GenerativeModel(
+                    'gemini-1.5-pro-latest',
+                    generation_config=generation_config
+                )
+                logger.info("AggregatorService initialized with all AI clients.")
+            except Exception as e:
+                logger.error(f"CRITICAL: Failed to initialize AggregatorService clients. Error: {e}")
+                raise
+        return cls._instance
+
+    def run_full_analysis(self, image_data: bytes) -> dict:
+        """Runs the full Fan-Out -> Synthesize pipeline."""
+        expert_outputs = {}
+        threads = [
+            Thread(target=self._call_google_vision, args=(image_data, expert_outputs)),
+            Thread(target=self._call_aws_rekognition, args=(image_data, expert_outputs)),
+        ]
+        for t in threads: t.start()
+        for t in threads: t.join()
+
+        return self._synthesize_with_gemini(expert_outputs)
+
+    def _call_google_vision(self, image_data: bytes, output: dict):
+        """Calls Google Vision API for its expert opinion."""
+        try:
+            image = vision.Image(content=image_data)
+            response = self.google_vision_client.annotate_image({
+                'image': image,
+                'features': [
+                    {'type_': vision.Feature.Type.WEB_DETECTION},
+                    {'type_': vision.Feature.Type.OBJECT_LOCALIZATION},
+                ],
+            })
+            output['google_vision'] = {
+                "web_entities": [entity.description for entity in response.web_detection.web_entities[:5]],
+                "objects": [obj.name for obj in response.localized_object_annotations[:3]],
+            }
+        except Exception as e:
+            output['google_vision'] = {"error": str(e)}
+
+    def _call_aws_rekognition(self, image_data: bytes, output: dict):
+        """Calls AWS Rekognition for its expert opinion."""
+        try:
+            response = self.aws_rekognition_client.detect_labels(Image={'Bytes': image_data}, MaxLabels=10)
+            output['aws_rekognition'] = {
+                "labels": [label['Name'] for label in response['Labels']]
+            }
+        except Exception as e:
+            output['aws_rekognition'] = {"error": str(e)}
+
+    def _synthesize_with_gemini(self, expert_outputs: dict) -> dict:
+        """Uses Google Gemini to reason over expert outputs."""
+        prompt = f"""
+        You are a world-class AI expert for fashion resale. Your task is to analyze the following raw JSON data from two separate AI vision services (Google Vision and AWS Rekognition) and synthesize all available information into a single, high-confidence set of attributes for the item.
+
+        **Instructions:**
+        1.  **Prioritize Google's `web_entities`**: This is your most reliable signal for the specific `product_name` and `brand`.
+        2.  **Use AWS `labels` and Google `objects`**: These confirm the general `category` (e.g., "Sneakers", "Hoodie").
+        3.  **Infer Attributes**: Based on all data, infer secondary attributes like `style` or `sport`.
+        4.  **Confidence Score**: Provide a confidence score from 0.0 to 1.0 based on how much the two services agree. High agreement means high confidence.
+        5.  **Output Format**: You must return ONLY a single, valid JSON object with the specified schema and nothing else.
+
+        **AI Data:**
+        ```json
+        {json.dumps(expert_outputs, indent=2)}
+        ```
+
+        **Your Required JSON Output Schema:**
+        {{
+          "product_name": "String | Null",
+          "brand": "String | Null",
+          "category": "String | Null",
+          "attributes": ["String", ...],
+          "confidence_score": "Float (0.0-1.0)",
+          "ai_summary": "A brief, one-sentence summary for the user."
+        }}
+        """
+
+        try:
+            response = self.gemini_model.generate_content(prompt)
+            # The response.text is a clean JSON string thanks to the generation_config
+            synthesized_attributes = json.loads(response.text)
+            logger.info(f"Gemini synthesized attributes: {synthesized_attributes}")
+            return synthesized_attributes
+        except Exception as e:
+            logger.error(f"Gemini synthesis failed: {e}. Raw response: {getattr(response, 'text', 'N/A')}")
+            return {"error": "Failed to synthesize AI results with the LLM."}
+Use code with caution.
+Python
+3.3 The Post-Identification Engine: MarketAnalysisService
+This service's role is now simplified. It takes the clean attributes from the AggregatorService and handles the marketplace interaction and visual re-ranking.
+File: backend/core/market_analysis_service.py
+Generated python
+import logging
+import requests
+import numpy as np
+from .encoder_service import get_encoder_service
+
+logger = logging.getLogger(__name__)
+
+class MarketAnalysisService:
+    def __init__(self):
+        self.encoder = get_encoder_service()
+
+    def find_and_rank_comps(self, user_image_data: bytes, attributes: dict, marketplace_api_func) -> dict:
+        """
+        Builds a query from attributes, finds comps, and visually re-ranks them.
+        """
+        # --- Stage 3: Build Market Query ---
+        market_query = self._build_market_query(attributes)
+        logger.info(f"[Market Analysis] Built market query: '{market_query}'")
+        initial_comps = marketplace_api_func(market_query)
+
+        if not initial_comps:
+            return {
+                "market_query_used": market_query,
+                "visually_ranked_comps": []
+            }
+
+        # --- Stage 4: Visual Re-ranking Engine ---
+        logger.info(f"Visually re-ranking {len(initial_comps)} initial comps...")
+        ranked_comps = self._find_visual_comps(user_image_data, initial_comps)
+        
+        return {
+            "market_query_used": market_query,
+            "visually_ranked_comps": ranked_comps
+        }
+
+    def _build_market_query(self, attributes: dict) -> str:
+        """Builds a high-quality text query from synthesized attributes."""
+        # Use the most specific and high-confidence attributes for the query
+        return f"{attributes.get('brand', '')} {attributes.get('product_name', '')}".strip()
+
+    def _find_visual_comps(self, user_image_data: bytes, initial_comps: list) -> list:
+        """Re-ranks text-based search results by true visual similarity."""
+        user_image_vector = self.encoder.encode_image(user_image_data)
+        if user_image_vector is None:
+            logger.warning("Could not encode user image; returning comps without visual ranking.")
+            return initial_comps
+
+        ranked_results = []
+        for comp in initial_comps:
+            try:
+                image_url = comp.get('image', {}).get('imageUrl')
+                if not image_url: continue
+                
+                response = requests.get(image_url, timeout=5)
+                comp_image_vector = self.encoder.encode_image(response.content)
+
+                if comp_image_vector is not None:
+                    similarity = np.dot(user_image_vector, comp_image_vector)
+                    comp['visual_similarity_score'] = round(float(similarity), 4)
+                    ranked_results.append(comp)
+
+            except Exception as e:
+                logger.warning(f"Could not process comp image for item {comp.get('itemId')}: {e}")
+        
+        return sorted(ranked_results, key=lambda x: x.get('visual_similarity_score', 0), reverse=True)
+Use code with caution.
+Python
+4.0 Final Integration: The View Layer
+Your view now becomes a clean orchestrator, calling the appropriate services in sequence.
+File: backend/core/views.py
+Generated python
+# ... (standard Django/DRF imports) ...
+from .aggregator_service import AggregatorService
+from .market_analysis_service import MarketAnalysisService
+
+# Instantiate services once (they will act as singletons)
+aggregator = AggregatorService()
+market_analyzer = MarketAnalysisService()
+
+@method_decorator(csrf_exempt, name='dispatch')
+class AIImageSearchView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        print("--- RUNNING MULTI-EXPERT AI ANALYSIS PIPELINE ---")
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response({'error': 'No image file provided'}, status=400)
+        
+        try:
+            image_data = image_file.read()
+
+            # STAGE 1 & 2: Get high-confidence attributes from the Aggregator
+            identified_attributes = aggregator.run_full_analysis(image_data)
+            if "error" in identified_attributes:
+                return Response(identified_attributes, status=500)
+
+            # STAGE 3 & 4: Find and rank comps using the synthesized attributes
+            def ebay_api_func(query):
+                # This decouples the AI logic from the eBay logic
+                from .services import EbayService
+                return EbayService().search_items(query=query)
+            
+            market_results = market_analyzer.find_and_rank_comps(
+                user_image_data=image_data,
+                attributes=identified_attributes,
+                marketplace_api_func=ebay_api_func
+            )
+            
+            # Combine all results for the final, comprehensive response
+            final_response = {
+                "identified_attributes": identified_attributes,
+                **market_results
+            }
+            
+            return Response(final_response, status=200)
+
+        except Exception as e:
+            logger.error(f"Error in main AIImageSearchView: {e}", exc_info=True)
+            return Response({'error': 'A top-level server error occurred.'}, status=500)
+Use code with caution.
+Python
+5.0 Conclusion: Your New Competitive Edge
+By implementing this guide, your system is now:
+More Accurate: It mitigates the weaknesses of any single AI by cross-referencing multiple expert opinions.
+More Intelligent: It uses a powerful LLM (Gemini) to perform human-like reasoning and synthesis, a task that is extremely difficult to achieve with traditional code.
+More Defensible: The final visual re-ranking step with your own CLIP model is a unique "secret sauce" that ensures your results are not just technically correct but visually relevant to your users, creating a superior user experience.
+More Extensible: The aggregator architecture is designed for the future. As new AI services emerge, you can easily plug them into the AggregatorService to make your system even smarter over time.
+You now possess the blueprint for a truly cutting-edge and sophisticated AI platform for resellers.
+--- END OF FILE restyle_ai_ultimate_guide.txt ---
