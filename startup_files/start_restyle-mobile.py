@@ -7,6 +7,15 @@ import re
 import psutil
 import time
 
+# Load .env for secure credential management
+try:
+    from dotenv import load_dotenv
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    load_dotenv(os.path.join(PROJECT_ROOT, '.env'))
+    print('✅ Loaded environment variables from .env')
+except ImportError:
+    print('⚠️  python-dotenv not installed. Environment variables from .env will not be loaded automatically.')
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 MOBILE_DIR = os.path.join(PROJECT_ROOT, 'restyle-mobile')
 NODE_MODULES = os.path.join(MOBILE_DIR, 'node_modules')
@@ -213,15 +222,15 @@ def ensure_dependencies():
         sys.exit(1)
 
 def start_expo():
-    print('Starting Expo development server (with cache clear, development build mode)...')
+    print('Starting Expo development server (with cache clear, Expo Go mode)...')
     if not sys.stdout.isatty():
         print('⚠️  Warning: Not running in an interactive terminal. The Expo QR code may not be displayed.')
         print('   Please run this script from a terminal window for the best experience.')
     try:
         # Ensure we are in the restyle-mobile directory
         os.chdir(MOBILE_DIR)
-        # Start Expo in development build mode (dev client)
-        subprocess.call('npx expo start -c', shell=True, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, cwd=MOBILE_DIR)
+        # Start Expo in classic mode for Expo Go compatibility
+        subprocess.call('npx expo start -c --go', shell=True, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, cwd=MOBILE_DIR)
     except Exception as e:
         print(f'❌ Failed to start Expo CLI: {e}')
         sys.exit(1)

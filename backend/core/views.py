@@ -499,6 +499,14 @@ class AIImageSearchView(APIView):
             return []
     
     def post(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"AIImageSearchView POST called. Method: {request.method}")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"FILES: {request.FILES}")
+        logger.info(f"User: {getattr(request, 'user', None)}")
+        logger.info(f"Auth: {getattr(request, 'auth', None)}")
+        logger.info(f"REMOTE_ADDR: {request.META.get('REMOTE_ADDR')}")
         print("--- MULTI-EXPERT AI MARKET ANALYSIS PIPELINE ---")
         print(f"[DEBUG] Request method: {request.method}")
         print(f"[DEBUG] Request content type: {request.content_type}")
@@ -541,18 +549,22 @@ class AIImageSearchView(APIView):
             print(f"[MEMORY] Peak: {psutil.virtual_memory().used / (1024 * 1024):.2f} MB used system-wide")
             
             # Return the comprehensive analysis results
-            return Response({
+            response = Response({
                 'message': 'Multi-expert AI analysis completed successfully.',
                 'analysis_results': analysis_results,
+                'results': analysis_results.get('visually_ranked_comps', []),
                 'system_info': {
                     'memory_usage_mb': round(mem_end - mem_start, 2),
                     'total_memory_peak_mb': round(psutil.virtual_memory().used / (1024 * 1024), 2)
                 }
             }, status=status.HTTP_200_OK)
-            
+            return response
         except Exception as e:
             logger.error(f"Error in Multi-Expert AI search view: {e}")
-            return Response({'error': 'An unexpected error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            response = Response({'error': 'An unexpected error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return response
+        finally:
+            logger.info(f"AIImageSearchView POST response status: {getattr(response, 'status_code', None)}")
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PriceAnalysisView(APIView):

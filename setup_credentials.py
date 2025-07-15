@@ -58,14 +58,16 @@ def check_gitignore():
         print("❌ .gitignore not found")
         return False
     
-    with open(gitignore, 'r') as f:
-        content = f.read()
+    with open(gitignore, 'r', encoding='utf-8') as f:
+        lines = [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
     
-    required_patterns = ['.env', '*.json', '*.csv', '__pycache__/']
+    required_patterns = [
+        '.env', '*.json', '*.csv', '__pycache__/', '*credentials*', '*secret*', 'backend/backend/local_settings.py'
+    ]
     missing = []
     
     for pattern in required_patterns:
-        if pattern not in content:
+        if pattern not in lines:
             missing.append(pattern)
     
     if missing:

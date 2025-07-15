@@ -168,6 +168,7 @@ export default function Dashboard() {
   const logout = useAuthStore(useCallback(state => state.logout, []));
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const isInitialized = useAuthStore(state => state.isInitialized);
+  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
@@ -256,6 +257,7 @@ export default function Dashboard() {
   };
 
   const takePhoto = async () => {
+    console.log('takePhoto called');
     Alert.alert('Debug', 'takePhoto called');
     const hasPermission = await requestPermissions();
     if (!hasPermission) {
@@ -265,17 +267,17 @@ export default function Dashboard() {
     Alert.alert('Permission Granted', 'Camera and library permissions granted.');
     console.log('Launching camera...');
     console.log('ImagePicker available:', !!ImagePicker);
-    
     try {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images', 'videos'],
         allowsEditing: false,
         quality: 0.8,
       });
-
       console.log('Camera result:', result);
+      Alert.alert('Debug', 'Camera result: ' + JSON.stringify(result));
       if (!result.canceled && result.assets && result.assets[0]) {
         console.log('Photo taken successfully:', result.assets[0]);
+        Alert.alert('Debug', 'Photo taken successfully: ' + JSON.stringify(result.assets[0]));
         setSelectedImage(result.assets[0]);
         setSearchResults([]);
         setImageAnalysis(null);
@@ -283,16 +285,18 @@ export default function Dashboard() {
         setHasSearched(true);
       } else {
         console.log('Camera was canceled or no image selected');
+        Alert.alert('Debug', 'Camera was canceled or no image selected');
         console.log('Result canceled:', result.canceled);
         console.log('Result assets:', result.assets);
       }
     } catch (error) {
       console.error('Error taking photo:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+      Alert.alert('Error', 'Failed to take photo: ' + error.message);
     }
   };
 
   const pickImage = async () => {
+    console.log('pickImage called');
     Alert.alert('Debug', 'pickImage called');
     const hasPermission = await requestPermissions();
     if (!hasPermission) {
@@ -302,17 +306,17 @@ export default function Dashboard() {
     Alert.alert('Permission Granted', 'Camera and library permissions granted.');
     console.log('Launching image library...');
     console.log('ImagePicker available:', !!ImagePicker);
-    
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
         allowsEditing: false,
         quality: 0.8,
       });
-
       console.log('Gallery result:', result);
+      Alert.alert('Debug', 'Gallery result: ' + JSON.stringify(result));
       if (!result.canceled && result.assets && result.assets[0]) {
         console.log('Image picked successfully:', result.assets[0]);
+        Alert.alert('Debug', 'Image picked successfully: ' + JSON.stringify(result.assets[0]));
         setSelectedImage(result.assets[0]);
         setSearchResults([]);
         setImageAnalysis(null);
@@ -320,12 +324,13 @@ export default function Dashboard() {
         setHasSearched(true);
       } else {
         console.log('Gallery was canceled or no image selected');
+        Alert.alert('Debug', 'Gallery was canceled or no image selected');
         console.log('Result canceled:', result.canceled);
         console.log('Result assets:', result.assets);
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      Alert.alert('Error', 'Failed to pick image: ' + error.message);
     }
   };
 
@@ -358,24 +363,23 @@ export default function Dashboard() {
       
       console.log('Sending image to advanced AI backend...');
       
-              const searchResponse = await api.post('/core/ai/advanced-search/', formData, {
+      // Update the endpoint to the correct backend path
+      const fullUrl = api.defaults.baseURL + '/core/ai/image-search/';
+      console.log('Full image search URL:', fullUrl);
+      console.log('Auth token:', token);
+      const searchResponse = await api.post('core/ai/image-search/', formData, {
         headers: {
-          // Don't set Content-Type - let the browser set it with boundary
+          Authorization: token ? `Bearer ${token}` : undefined,
+          // Let axios set Content-Type
         },
       });
-      
       const responseData = searchResponse.data;
-      
-      setSearchResults(responseData.results || []);
-      setImageAnalysis(responseData.analysis || null);
+      setSearchResults(responseData.analysis_results?.visually_ranked_comps || responseData.results || []);
+      setImageAnalysis(responseData.analysis_results || responseData.analysis || null);
       setQueryVariants(responseData.queries?.variants || []);
       setSelectedQueryVariant(responseData.queries?.primary || '');
-      
-      if (responseData.results && responseData.results.length > 0) {
-        Alert.alert(
-          'AI Search Complete', 
-          `Found ${responseData.results.length} items!`
-        );
+      if ((responseData.analysis_results?.visually_ranked_comps || responseData.results || []).length > 0) {
+        Alert.alert('AI Search Complete', `Found ${(responseData.analysis_results?.visually_ranked_comps?.length || responseData.results?.length || 0)} items!`);
       }
 
     } catch (error) {
@@ -387,18 +391,18 @@ export default function Dashboard() {
   };
 
   const handleCameraOption = (option) => {
-    console.log('Camera option selected:', option);
+    console.log('handleCameraOption called with:', option);
     setShowCameraOptions(false);
-    switch (option) {
-      case 'camera':
-        console.log('Taking photo...');
+    setTimeout(() => {
+      console.log('handleCameraOption timeout fired for:', option);
+      if (option === 'camera') {
+        Alert.alert('Debug', 'takePhoto() will be called');
         takePhoto();
-        break;
-      case 'gallery':
-        console.log('Picking from gallery...');
+      } else if (option === 'gallery') {
+        Alert.alert('Debug', 'pickImage() will be called');
         pickImage();
-        break;
-    }
+      }
+    }, 800); // Increased delay for iOS modal closing
   };
 
   const clearSearch = () => {
@@ -575,7 +579,8 @@ export default function Dashboard() {
         <View style={styles.resultsSection}>
           <View style={styles.resultsHeader}>
             <Text style={styles.resultsTitle}>
-              {searchLoading || imageSearchLoading ? 'Searching...' : `Results (${searchResults.length})`}
+              {selectedImage ? 'Image Search Results' : 'Text Search Results'}
+              {searchLoading || imageSearchLoading ? ' (Searching...)' : ` (${searchResults.length})`}
             </Text>
             {hasSearched && (
               <TouchableOpacity style={styles.clearButton} onPress={clearSearch}>
