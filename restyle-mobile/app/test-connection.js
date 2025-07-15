@@ -50,7 +50,7 @@ export default function TestConnection() {
       // Test 3: AI endpoint without image
       try {
         addResult('Testing AI endpoint...', true);
-        const aiResponse = await api.post('core/ai/image-search/', {});
+        const aiResponse = await api.post('core/ai/advanced-search/', {});
         addResult('✅ AI endpoint accessible', true);
       } catch (error) {
         console.error('AI endpoint test (expected error):', error.response?.data);
