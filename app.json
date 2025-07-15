@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "restyle-mobile",
+    "slug": "restyle-mobile",
+    "version": "1.0.0",
+    "scheme": "restyle-mobile",
+    "platforms": ["ios", "android", "web"],
+    "sdkVersion": "53.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to camera to take photos for AI-powered item search.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select images for AI-powered item search."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you select images for AI-powered item search.",
+          "cameraPermission": "The app accesses your camera to let you take photos for AI-powered item search."
+        }
+      ]
+    ]
+  }
+} 

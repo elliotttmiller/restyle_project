@@ -1,0 +1,13 @@
+# Exclude non-mobile directories
+frontend/
+backend/
+test_files/
+startup_files/
+readme_files/
+*.py
+*.pyc
+*.md
+*.txt
+.env
+.git/
+node_modules/ 
