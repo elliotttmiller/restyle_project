@@ -1,0 +1,17 @@
+name: EAS Update
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  eas-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: npm install -g eas-cli
+      - run: npm ci
+      - run: eas update --branch production --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }} 
