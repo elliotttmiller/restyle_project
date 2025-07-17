@@ -222,6 +222,9 @@ GOOGLE_CLOUD_PROJECT_ID = 'silent-polygon-465403'  # Your Google Cloud Project I
 GOOGLE_VISION_LOCATION = 'us-central1'  # Default location for Vision API
 GOOGLE_PRODUCT_SET_ID = 'apparel-products'  # Your Product Set ID (create this in Google Cloud Console)
 
+# Google Cloud Vision Credentials
+GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '/etc/secrets/gcp.json')
+
 try:
     from .local_settings import *
 except ImportError:
