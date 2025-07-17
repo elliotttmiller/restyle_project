@@ -29,56 +29,82 @@ from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
-# --- Module-level AI/ML client initialization ---
+# --- Lazy AI/ML client initialization ---
 import os
 import logging
 
-# Google Vision
-try:
-    from google.cloud import vision
-    vision_client = vision.ImageAnnotatorClient()
-except Exception as e:
-    vision_client = None
-    logging.error(f"Failed to initialize Google Vision client: {e}")
+# Global client instances (lazy initialization)
+_vision_client = None
+_rekognition_client = None
+_gemini_model = None
+_vertex_endpoint = None
 
-# AWS Rekognition
-try:
-    import boto3
-    rekognition_client = boto3.client(
-        'rekognition',
-        aws_***REMOVED***=os.environ.get('AWS_ACCESS_KEY_ID'),
-        aws_***REMOVED***=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-        region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
-    )
-except Exception as e:
-    rekognition_client = None
-    logging.error(f"Failed to initialize AWS Rekognition client: {e}")
+def get_vision_client():
+    """Lazy initialization of Google Vision client"""
+    global _vision_client
+    if _vision_client is None:
+        try:
+            from google.cloud import vision
+            _vision_client = vision.ImageAnnotatorClient()
+            logging.info("Google Vision client initialized successfully")
+        except Exception as e:
+            _vision_client = None
+            logging.error(f"Failed to initialize Google Vision client: {e}")
+    return _vision_client
 
-# Google Gemini
-try:
-    import google.generativeai as genai
-    genai.configure(
-        ***REMOVED***=os.environ.get("GOOGLE_API_KEY"),
-        transport="rest"
-    )
-    gemini_model = genai.GenerativeModel('gemini-1.5-pro-latest')
-except Exception as e:
-    gemini_model = None
-    logging.error(f"Failed to initialize Google Gemini model: {e}")
+def get_rekognition_client():
+    """Lazy initialization of AWS Rekognition client"""
+    global _rekognition_client
+    if _rekognition_client is None:
+        try:
+            import boto3
+            _rekognition_client = boto3.client(
+                'rekognition',
+                aws_***REMOVED***=os.environ.get('AWS_ACCESS_KEY_ID'),
+                aws_***REMOVED***=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+                region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
+            )
+            logging.info("AWS Rekognition client initialized successfully")
+        except Exception as e:
+            _rekognition_client = None
+            logging.error(f"Failed to initialize AWS Rekognition client: {e}")
+    return _rekognition_client
 
-# Google Vertex AI
-try:
-    from google.cloud import aiplatform
-    aiplatform.init(
-        project=os.environ.get('GOOGLE_CLOUD_PROJECT'),
-        location=os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1')
-    )
-    vertex_endpoint = aiplatform.Endpoint(
-        endpoint_name="projects/silent-polygon-465403/locations/us-central1/endpoints/1234567890123456789"
-    )
-except Exception as e:
-    vertex_endpoint = None
-    logging.error(f"Failed to initialize Vertex AI endpoint: {e}")
+def get_gemini_model():
+    """Lazy initialization of Google Gemini model"""
+    global _gemini_model
+    if _gemini_model is None:
+        try:
+            import google.generativeai as genai
+            genai.configure(
+                ***REMOVED***=os.environ.get("GOOGLE_API_KEY"),
+                transport="rest"
+            )
+            _gemini_model = genai.GenerativeModel('gemini-1.5-pro-latest')
+            logging.info("Google Gemini model initialized successfully")
+        except Exception as e:
+            _gemini_model = None
+            logging.error(f"Failed to initialize Google Gemini model: {e}")
+    return _gemini_model
+
+def get_vertex_endpoint():
+    """Lazy initialization of Google Vertex AI endpoint"""
+    global _vertex_endpoint
+    if _vertex_endpoint is None:
+        try:
+            from google.cloud import aiplatform
+            aiplatform.init(
+                project=os.environ.get('GOOGLE_CLOUD_PROJECT'),
+                location=os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1')
+            )
+            _vertex_endpoint = aiplatform.Endpoint(
+                endpoint_name="projects/silent-polygon-465403/locations/us-central1/endpoints/1234567890123456789"
+            )
+            logging.info("Google Vertex AI endpoint initialized successfully")
+        except Exception as e:
+            _vertex_endpoint = None
+            logging.error(f"Failed to initialize Vertex AI endpoint: {e}")
+    return _vertex_endpoint
 
 # --- eBay Token Monitoring Views ---
 class EbayTokenHealthView(APIView):
