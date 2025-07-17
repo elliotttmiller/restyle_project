@@ -6,7 +6,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('core.urls')),  # Add this line to include core.urls at the root
+    # path('', include('core.urls')),  # Commented out root-level include
     
     # CORRECTED: All user-related routes (register) now point to the 'users.urls'.
     path('api/users/', include('users.urls')), 
@@ -16,5 +16,5 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # All core business logic routes (items, analysis, etc.) point to 'core.urls'.
-    path('api/core/', include('core.urls')),
+    path('api/core/', include('core.urls')),  # Mount core app under /api/core/
 ]

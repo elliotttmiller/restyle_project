@@ -16,7 +16,7 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      const response = await api.post('/token/', { username, password });
+      const response = await api.post('/api/token/', { username, password });
       setTokens(response.data.access, response.data.refresh);
       // No navigation here! Root layout will handle redirect.
     } catch (error) {

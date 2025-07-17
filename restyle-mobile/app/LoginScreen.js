@@ -30,7 +30,7 @@ export default function LoginScreen() {
     console.log('LoginScreen: setLoading(true)');
     try {
       console.log('Attempting login to:', api.defaults.baseURL);
-      const response = await api.post('/token/', { username, password });
+      const response = await api.post('/api/token/', { username, password });
       console.log('Login successful:', response.data);
       
       // Store both access and refresh tokens

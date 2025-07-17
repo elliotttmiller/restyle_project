@@ -266,11 +266,21 @@ if __name__ == '__main__':
         match = re.search(allowed_hosts_pattern, settings_content, re.DOTALL)
         if match:
             allowed_hosts_str = match.group(1)
-            if f"'{current_ip}'" not in allowed_hosts_str:
-                new_hosts = allowed_hosts_str.strip() + f", '{current_ip}'"
-                settings_content = re.sub(allowed_hosts_pattern,
-                    f"ALLOWED_HOSTS = [{new_hosts}]", settings_content, flags=re.DOTALL)
-                changed = True
+            # Split, strip, and deduplicate hosts
+            hosts = [h.strip() for h in allowed_hosts_str.split(",") if h.strip()]
+            if f"'{current_ip}'" not in hosts:
+                hosts.append(f"'{current_ip}'")
+            # Remove duplicates while preserving order
+            seen = set()
+            deduped_hosts = []
+            for h in hosts:
+                if h not in seen:
+                    deduped_hosts.append(h)
+                    seen.add(h)
+            new_hosts = ", ".join(deduped_hosts)
+            settings_content = re.sub(allowed_hosts_pattern,
+                f"ALLOWED_HOSTS = [{new_hosts}]", settings_content, flags=re.DOTALL)
+            changed = True
         cors_pattern = r"CORS_ALLOWED_ORIGINS\s*=\s*\[(.*?)\]"
         match = re.search(cors_pattern, settings_content, re.DOTALL)
         cors_url = f'"http://{current_ip}:8000"'
