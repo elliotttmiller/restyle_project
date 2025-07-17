@@ -37,6 +37,7 @@ ALLOWED_HOSTS = ['localhost',
     'ead6946c7030.ngrok-free.app',
     '192.168.0.22', '192.168.0.24', '192.168.0.25', '192.168.0.33', '192.168.0.43',
     '45cb58a6e1e4.ngrok-free.app',  # Added for current ngrok tunnel
+    'restyle-backend.onrender.com',  # Added for Render deployment
 ]
 
 # restyle_project/backend/backend/settings.py
