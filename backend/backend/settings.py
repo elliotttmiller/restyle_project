@@ -26,7 +26,17 @@ SECRET_KEY = 'django-insecure-_)b^sb+*n_na(vlnlln5w6_jm37)3txt4s68boll_5$dry-we#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'restyle-backend.onrender.com', '78de5d736ad9.ngrok-free.app', '192.168.0.48', '2b668a86e215.ngrok-free.app', 'restyleproject-production.up.railway.app', '*']
+# Add this to ensure Django recognizes HTTPS behind Railway's proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Ensure ALLOWED_HOSTS includes the Railway domain and wildcard for testing
+ALLOWED_HOSTS = [
+    'localhost', '127.0.0.1', '0.0.0.0',
+    'restyle-backend.onrender.com', '78de5d736ad9.ngrok-free.app',
+    '192.168.0.48', '2b668a86e215.ngrok-free.app',
+    'restyleproject-production.up.railway.app',
+    '*',  # For testing; remove in production for security
+]
 
 # restyle_project/backend/backend/settings.py
 
