@@ -67,7 +67,7 @@ class AIService:
         """Initialize Google Cloud Vision client"""
         import traceback
         # Use environment variable for credentials path
-        creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "/etc/secrets/gcp.json")
         logger.info(f"GOOGLE_APPLICATION_CREDENTIALS at init: {creds_path}")
         
         if creds_path and os.path.exists(creds_path):
@@ -77,6 +77,7 @@ class AIService:
             logger.error(f"Credentials file not found at {creds_path}")
             # Try alternative paths
             alt_paths = [
+                '/etc/secrets/gcp.json',
                 '/app/silent-polygon-465403-h9-3a57d36afc97.json',
                 './silent-polygon-465403-h9-3a57d36afc97.json',
                 '../silent-polygon-465403-h9-3a57d36afc97.json',
