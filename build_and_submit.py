@@ -3,16 +3,30 @@ import subprocess
 import requests
 import time
 import json
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 # Load environment variables from .env
-load_dotenv()
+env_path = find_dotenv()
+if env_path:
+    print(f"Loading environment variables from {env_path}")
+    load_dotenv(env_path)
+else:
+    print("No .env file found. Using system environment variables.")
 
-EXPO_TOKEN = os.environ["EXPO_TOKEN"]
-APPLE_ID = os.environ["APPLE_ID"]
-APPLE_APP_SPECIFIC_PASSWORD = os.environ["APPLE_APP_SPECIFIC_PASSWORD"]
+# Helper to get env vars with error if missing
+def get_env_var(key):
+    value = os.environ.get(key)
+    if not value:
+        print(f"❌ Missing required environment variable: {key}")
+        exit(1)
+    return value
 
-EAS_PATH = r"C:\Users\AMD\AppData\Roaming\npm\eas.cmd"
+EXPO_TOKEN = get_env_var("EXPO_TOKEN")
+APPLE_ID = get_env_var("APPLE_ID")
+APPLE_APP_SPECIFIC_PASSWORD = get_env_var("APPLE_APP_SPECIFIC_PASSWORD")
+
+# Allow EAS_PATH to be set in .env, fallback to default
+EAS_PATH = os.environ.get("EAS_PATH", r"C:\Users\AMD\AppData\Roaming\npm\eas.cmd")
 
 # 1. Start EAS build for iOS production
 print("\n=== Starting EAS Build (iOS, production) ===")

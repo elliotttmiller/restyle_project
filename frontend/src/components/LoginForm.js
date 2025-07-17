@@ -19,7 +19,7 @@ const LoginForm = () => {
     setError('');
     setLoading(true);
     try {
-      const response = await api.post('/token/', { username, password });
+      const response = await api.post('/api/token/', { username, password });
       login(response.data);
       navigate('/'); // Redirect to dashboard on successful login
     } catch (err) {

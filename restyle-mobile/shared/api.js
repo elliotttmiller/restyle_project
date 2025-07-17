@@ -60,7 +60,7 @@ function scheduleProactiveRefresh(token, refreshToken, setTokens, logout) {
     if (refreshIn > 0) {
       refreshTimeout = setTimeout(async () => {
         try {
-          const response = await axios.post(`${API_BASE_URL}/token/refresh/`, { refresh: refreshToken });
+          const response = await axios.post(`${API_BASE_URL}/api/token/refresh/`, { refresh: refreshToken });
           const { access: newAccessToken } = response.data;
           setTokens(newAccessToken, refreshToken);
           scheduleProactiveRefresh(newAccessToken, refreshToken, setTokens, logout);
@@ -120,7 +120,7 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
       try {
-        const response = await axios.post(`${API_BASE_URL}/token/refresh/`, { refresh: refreshToken });
+        const response = await axios.post(`${API_BASE_URL}/api/token/refresh/`, { refresh: refreshToken });
         const { access: newAccessToken } = response.data;
         setTokens(newAccessToken, refreshToken);
         originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
