@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', include('core.urls')),  # Add this line to include core.urls at the root
     
     # CORRECTED: All user-related routes (register) now point to the 'users.urls'.
     path('api/users/', include('users.urls')), 

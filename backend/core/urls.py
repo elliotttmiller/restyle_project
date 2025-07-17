@@ -24,12 +24,14 @@ from .views import (
     AdvancedMultiExpertAISearchView,
     PrivacyPolicyView,
     CropPreviewView,
+    root_view,  # Add this import
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 urlpatterns = [
+    path('', root_view, name='root'),  # Add this line for the root endpoint
     # Health check endpoint
     path('health/', health_check, name='health-check'),
     
