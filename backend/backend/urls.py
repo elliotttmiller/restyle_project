@@ -1,5 +1,6 @@
 # File: backend/backend/urls.py
 
+import os
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -10,7 +11,9 @@ def project_root(request):
     return JsonResponse({
         "status": "healthy",
         "message": "Welcome to the Restyle API! The backend is running.",
-        "timestamp": timezone.now().isoformat()
+        "timestamp": timezone.now().isoformat(),
+        "debug": os.environ.get('DEBUG', 'False'),
+        "port": os.environ.get('PORT', '8000')
     })
 
 def health_check(request):
@@ -20,9 +23,14 @@ def health_check(request):
         "timestamp": timezone.now().isoformat()
     })
 
+def simple_health(request):
+    """Ultra-simple health check for Railway"""
+    return JsonResponse({"ok": True})
+
 urlpatterns = [
     path('', project_root),
     path('health/', health_check),
+    path('health', simple_health),  # Simple health check without trailing slash
     path('admin/', admin.site.urls),
     # path('', include('core.urls')),  # Commented out root-level include
     

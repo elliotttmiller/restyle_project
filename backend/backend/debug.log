@@ -3781,3 +3781,4 @@ botocore.exceptions.EndpointConnectionError: Could not connect to the endpoint U
 [DEBUG] 2025-07-17 12:42:20,035 django.utils.autoreload File C:\Users\AMD\restyle_project\backend\backend\settings.py previous mtime: 1752773945.2566464, current mtime: 1752774139.120728
 [DEBUG] 2025-07-17 12:42:20,035 django.utils.autoreload C:\Users\AMD\restyle_project\backend\backend\settings.py notified as changed. Signal results: [(<function template_changed at 0x000001F464480680>, None), (<function translation_file_changed at 0x000001F465A51300>, None)].
 [INFO] 2025-07-17 12:42:20,035 django.utils.autoreload C:\Users\AMD\restyle_project\backend\backend\settings.py changed, reloading.
+[DEBUG] 2025-07-17 18:38:19,580 urllib3.connectionpool Starting new HTTP connection (1): localhost:8001
