@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+python manage.py test
 python manage.py migrate
-python backend/create_cloud_superuser.py
+python create_cloud_superuser.py
 gunicorn backend.wsgi 
