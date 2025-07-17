@@ -93,8 +93,8 @@ def validate_django_settings():
 
 def validate_ai_services():
     print('Validating AI service configurations...')
-    google_creds_path = os.path.join(PROJECT_ROOT, 'backend', '***REMOVED***')
-    if os.path.exists(google_creds_path):
+    google_creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if google_creds_path and os.path.exists(google_creds_path):
         print("✅ Google Cloud credentials found")
     else:
         print("⚠️  Google Cloud credentials not found - Vision API and Gemini API may not work")

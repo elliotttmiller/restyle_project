@@ -39,9 +39,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
-      - ./backend/***REMOVED***:/app/***REMOVED***:ro
-      - ./***REMOVED***:/app/***REMOVED***:ro
+      # Mount your local secrets into the container
+      - D:/AMD/secrets/***REMOVED***:/app/gcp_credentials.json:ro
+      - D:/AMD/secrets/***REMOVED***:/app/***REMOVED***:ro
     depends_on:
       db:
         condition: service_healthy
@@ -51,7 +51,8 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/***REMOVED***
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
+      - AWS_ACCESS_KEY_FILE=/app/***REMOVED***
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-***REMOVED***}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-***REMOVED***}
       - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
@@ -64,9 +65,9 @@ services:
       dockerfile: Dockerfile
     command: celery -A backend worker -l info -Q default,ebay_tokens
     volumes:
-      - ./backend:/app
-      - ./backend/***REMOVED***:/app/***REMOVED***:ro
-      - ./***REMOVED***:/app/***REMOVED***:ro
+      # Mount your local secrets into the container
+      - D:/AMD/secrets/***REMOVED***:/app/gcp_credentials.json:ro
+      - D:/AMD/secrets/***REMOVED***:/app/***REMOVED***:ro
     depends_on:
       db:
         condition: service_healthy
@@ -76,7 +77,8 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/***REMOVED***
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
+      - AWS_ACCESS_KEY_FILE=/app/***REMOVED***
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
@@ -89,9 +91,9 @@ services:
       dockerfile: Dockerfile
     command: celery -A backend beat -l info
     volumes:
-      - ./backend:/app
-      - ./backend/***REMOVED***:/app/***REMOVED***:ro
-      - ./***REMOVED***:/app/***REMOVED***:ro
+      # Mount your local secrets into the container
+      - D:/AMD/secrets/***REMOVED***:/app/gcp_credentials.json:ro
+      - D:/AMD/secrets/***REMOVED***:/app/***REMOVED***:ro
     depends_on:
       db:
         condition: service_healthy
@@ -101,7 +103,8 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/***REMOVED***
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
+      - AWS_ACCESS_KEY_FILE=/app/***REMOVED***
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
@@ -116,9 +119,9 @@ services:
     ports:
       - "5555:5555"
     volumes:
-      - ./backend:/app
-      - ./backend/***REMOVED***:/app/***REMOVED***:ro
-      - ./***REMOVED***:/app/***REMOVED***:ro
+      # Mount your local secrets into the container
+      - D:/AMD/secrets/***REMOVED***:/app/gcp_credentials.json:ro
+      - D:/AMD/secrets/***REMOVED***:/app/***REMOVED***:ro
     depends_on:
       db:
         condition: service_healthy
@@ -128,7 +131,8 @@ services:
       - DJANGO_SETTINGS_MODULE=backend.settings
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/***REMOVED***
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
+      - AWS_ACCESS_KEY_FILE=/app/***REMOVED***
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}

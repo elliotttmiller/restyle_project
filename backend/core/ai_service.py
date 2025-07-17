@@ -67,14 +67,14 @@ class AIService:
         """Initialize Google Cloud Vision client"""
         import traceback
         # Use environment variable for credentials path
-        credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-        logger.info(f"GOOGLE_APPLICATION_CREDENTIALS at init: {credentials_path}")
+        creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        logger.info(f"GOOGLE_APPLICATION_CREDENTIALS at init: {creds_path}")
         
-        if credentials_path and os.path.exists(credentials_path):
-            logger.info(f"Credentials file found at {credentials_path}")
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
+        if creds_path and os.path.exists(creds_path):
+            logger.info(f"Credentials file found at {creds_path}")
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_path
         else:
-            logger.error(f"Credentials file not found at {credentials_path}")
+            logger.error(f"Credentials file not found at {creds_path}")
             # Try alternative paths
             alt_paths = [
                 '/app/***REMOVED***',
@@ -87,7 +87,7 @@ class AIService:
                 if os.path.exists(alt_path):
                     logger.info(f"Found credentials at alternative path: {alt_path}")
                     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = alt_path
-                    credentials_path = alt_path
+                    creds_path = alt_path
                     break
             else:
                 logger.error("No Google Cloud credentials found. Using fallback mode.")

@@ -59,8 +59,8 @@ def test_google_vision():
         from google.cloud import vision
         
         # Set up credentials
-        credentials_path = os.path.join(os.path.dirname(__file__), '..', 'backend', '***REMOVED***')
-        if os.path.exists(credentials_path):
+        credentials_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        if credentials_path and os.path.exists(credentials_path):
             os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
             print("✅ Google Cloud credentials found")
         else:
