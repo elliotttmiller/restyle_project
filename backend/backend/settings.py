@@ -35,7 +35,9 @@ ALLOWED_HOSTS = ['localhost',
     '6012dc93ed69.ngrok-free.app',
     '0b4bbb13fe08.ngrok-free.app',
     'ead6946c7030.ngrok-free.app',
-    '192.168.0.22', '192.168.0.24', '192.168.0.25', '192.168.0.33']
+    '192.168.0.22', '192.168.0.24', '192.168.0.25', '192.168.0.33', '192.168.0.43',
+    '45cb58a6e1e4.ngrok-free.app',  # Added for current ngrok tunnel
+]
 
 # restyle_project/backend/backend/settings.py
 
@@ -182,7 +184,8 @@ EBAY_PRODUCTION_REFRESH_TOKEN = os.environ.get('EBAY_PRODUCTION_REFRESH_TOKEN', 
 EBAY_PRODUCTION_USER_TOKEN = os.environ.get('EBAY_PRODUCTION_USER_TOKEN', 'v^1.1#i^1#f^0#p^3#I^3#r^0#t^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')  # Fallback token if needed 
 
 # CORS CONFIGURATION
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000", # The address of our React front-end
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000", # The address of our React front-end
     "http://127.0.0.1:3000",
     "http://192.168.0.204:3000",
     "http://192.168.0.204:8000",
@@ -194,6 +197,7 @@ CORS_ALLOWED_ORIGINS = ["http://localhost:3000", # The address of our React fron
     "exp://localhost:8081", # Expo development server
     "exp://127.0.0.1:8081",
     "http://192.168.0.33:8081",  # Added for Expo Metro
+    "http://192.168.0.43:8000"
 ]
 
 # Allow all headers and methods for mobile app
@@ -267,6 +271,11 @@ LOGGING = {
             'propagate': False,
         },
         'core.vertex_ai_service': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'core.crop_preview': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,

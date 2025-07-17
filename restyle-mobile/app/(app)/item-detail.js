@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, ActivityIndicator, FlatList, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, Image, StyleSheet, ActivityIndicator, FlatList, TouchableOpacity, Linking, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 import api from '../../shared/api';
@@ -9,47 +9,41 @@ export default function ItemDetailScreen() {
   const router = useRouter();
   const [analysis, setAnalysis] = useState(null);
   const [comps, setComps] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, page_size: 10, has_more: false });
+  const [compsToShow, setCompsToShow] = useState(20);
   const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const { width } = useWindowDimensions();
+  const isTablet = width > 600;
 
-  // Fetch analysis and comps (paginated)
-  const fetchAnalysis = useCallback(async (page = 1) => {
+  // Fetch analysis and all comps at once
+  const fetchAnalysis = useCallback(async () => {
     if (!itemId) return;
     try {
-      if (page === 1) setLoading(true);
-      else setLoadingMore(true);
+      setLoading(true);
       const res = await axios.get(`http://192.168.0.22:8000/api/core/analysis/${itemId}/status/`, {
-        params: { page, page_size: 10 },
         withCredentials: true,
       });
       const data = res.data;
       setAnalysis(data);
-      if (page === 1) {
-        setComps(data.comps || []);
-      } else {
-        setComps(prev => [...prev, ...(data.comps || [])]);
-      }
-      setPagination(data.pagination || { page, page_size: 10, has_more: false });
+      setComps(data.comps || []);
       setError('');
     } catch (err) {
       setError('Failed to load analysis data.');
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   }, [itemId]);
 
   useEffect(() => {
-    fetchAnalysis(1);
+    fetchAnalysis();
   }, [fetchAnalysis]);
 
-  // Load more comps when user scrolls to bottom
+  // Infinite scroll: load more comps on scroll
   const onLoadMore = useCallback(() => {
-    if (loadingMore || !pagination.has_more) return;
-    fetchAnalysis(pagination.page + 1);
-  }, [loadingMore, pagination, fetchAnalysis]);
+    if (compsToShow < comps.length) {
+      setCompsToShow(prev => Math.min(prev + 20, comps.length));
+    }
+  }, [compsToShow, comps.length]);
 
   // Render header with all non-listing content
   const renderHeader = useCallback(() => (
@@ -57,7 +51,6 @@ export default function ItemDetailScreen() {
       <>
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Listing Details</Text>
-          {/* Add your item details here, e.g. image, title, etc. */}
           <View style={styles.row}>
             <Text style={styles.analysisLabel}>Suggested Price:</Text>
             <Text style={styles.analysisValue}>${analysis.suggested_price?.toFixed(2)}</Text>
@@ -72,48 +65,55 @@ export default function ItemDetailScreen() {
           </View>
           <View style={[styles.row, { alignItems: 'flex-end', flexWrap: 'wrap' }]}> 
             <Text style={[styles.analysisLabel, { marginTop: 16 }]}>Comparable Listings:</Text>
-            {analysis.confidence_score && analysis.confidence_score.match(/\((\d+) comparable listings\)/) && (
-              <Text style={styles.compsCount}>
-                {analysis.confidence_score.match(/\((\d+) comparable listings\)/)[0]}
-              </Text>
+            {analysis.comps && (
+              <Text style={styles.compsCount}>{analysis.comps.length} found</Text>
             )}
           </View>
         </View>
+        <Text style={styles.compsHeader}>Comparable Listings</Text>
       </>
     )
   ), [analysis]);
 
-  // Render each comparable listing
+  // Render each comparable listing as a modern card
   const renderComp = useCallback(({ item: comp }) => (
-    <View style={styles.compRow}>
+    <View style={[styles.compCard, isTablet ? styles.compCardTablet : null]}> 
       {comp.image_url ? (
-        <Image source={{ uri: comp.image_url }} style={styles.compImage} />
+        <Image source={{ uri: comp.image_url }} style={styles.compImageModern} />
       ) : (
-        <View style={[styles.compImage, { backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }]}> 
-          <Text style={{ color: '#a259f7', fontSize: 10 }}>No Image</Text>
+        <View style={[styles.compImageModern, { backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }]}> 
+          <Text style={{ color: '#a259f7', fontSize: 12 }}>No Image</Text>
         </View>
       )}
-      <View style={{ flex: 1 }}>
-        <Text style={styles.compTitle} numberOfLines={1}>{comp.title}</Text>
-        <Text style={styles.compPrice}>${comp.sold_price?.toFixed(2)}</Text>
+      <View style={styles.compCardContent}>
+        <Text style={styles.compCardTitle} numberOfLines={2}>{comp.title}</Text>
+        <Text style={styles.compCardPrice}>${comp.sold_price?.toFixed(2)}</Text>
+        {comp.source_url ? (
+          <TouchableOpacity style={styles.compCardButton} onPress={() => Linking.openURL(comp.source_url)}>
+            <Text style={styles.compCardButtonText}>View on eBay</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
-      {comp.source_url ? (
-        <TouchableOpacity style={styles.compButton} onPress={() => Linking.openURL(comp.source_url)}>
-          <Text style={styles.compButtonText}>View</Text>
-        </TouchableOpacity>
-      ) : null}
     </View>
-  ), []);
+  ), [isTablet]);
 
   // Render footer for loading more
   const renderFooter = useCallback(() => (
-    loadingMore ? (
+    compsToShow < comps.length ? (
       <View style={{ paddingVertical: 20, alignItems: 'center' }}>
         <ActivityIndicator size="small" color="#a259f7" />
         <Text style={{ color: '#888', marginTop: 8 }}>Loading more listings...</Text>
       </View>
     ) : null
-  ), [loadingMore]);
+  ), [compsToShow, comps.length]);
+
+  // Empty state
+  const renderEmpty = () => (
+    <View style={{ alignItems: 'center', marginTop: 48 }}>
+      <Text style={{ color: '#888', fontSize: 18, marginBottom: 8 }}>No comparable listings found.</Text>
+      <Text style={{ color: '#a259f7', fontSize: 15 }}>Try analyzing a different item or check back later.</Text>
+    </View>
+  );
 
   if (loading && comps.length === 0) {
     return (
@@ -132,6 +132,13 @@ export default function ItemDetailScreen() {
     );
   }
 
+  // Grid layout for comps
+  const numColumns = isTablet ? 2 : 1;
+  const compsData = [];
+  for (let i = 0; i < compsToShow; i += numColumns) {
+    compsData.push(comps.slice(i, i + numColumns));
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <TouchableOpacity 
@@ -141,11 +148,18 @@ export default function ItemDetailScreen() {
         <Text style={styles.backButtonText}>← Back</Text>
       </TouchableOpacity>
       <FlatList
-        data={comps}
-        keyExtractor={(comp, idx) => comp.id ? String(comp.id) : String(idx)}
-        renderItem={renderComp}
+        data={compsData}
+        keyExtractor={(_, idx) => String(idx)}
+        renderItem={({ item: row }) => (
+          <View style={[styles.compsRow, isTablet ? styles.compsRowTablet : null]}>
+            {row.map((comp, idx) => (
+              <React.Fragment key={comp.id || idx}>{renderComp({ item: comp })}</React.Fragment>
+            ))}
+          </View>
+        )}
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmpty}
         onEndReached={onLoadMore}
         onEndReachedThreshold={0.2}
         style={{ flex: 1 }}
@@ -195,19 +209,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignSelf: 'flex-start',
   },
-  image: {
-    width: '100%',
-    height: 220,
-    borderRadius: 12,
-    marginBottom: 18,
-    backgroundColor: '#222',
-  },
-  title: {
+  compsHeader: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'left',
+    fontWeight: '700',
     color: '#fff',
+    marginBottom: 18,
+    marginTop: 8,
     alignSelf: 'flex-start',
   },
   row: {
@@ -215,45 +222,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
     flexWrap: 'wrap',
-  },
-  label: {
-    fontWeight: '600',
-    color: '#a259f7',
-    marginRight: 8,
-    fontSize: 15,
-  },
-  value: {
-    color: '#fff',
-    fontSize: 15,
-    flexShrink: 1,
-  },
-  button: {
-    backgroundColor: '#a259f7',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    marginTop: 18,
-    alignSelf: 'flex-start',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  analysisCard: {
-    marginTop: 0,
-    width: '100%',
-    backgroundColor: '#111',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#a259f7',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 3,
-    alignItems: 'flex-start',
-    marginBottom: 32,
   },
   analysisLabel: {
     color: '#a259f7',
@@ -273,44 +241,68 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginBottom: 2,
   },
-  compRow: {
+  compsRow: {
+    flexDirection: 'column',
+    marginBottom: 18,
+  },
+  compsRowTablet: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  compCard: {
+    backgroundColor: '#18181b',
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#222',
-    borderRadius: 8,
-    padding: 8,
-    marginRight: 12,
-    minWidth: 180,
-    maxWidth: 220,
+    padding: 14,
+    marginBottom: 12,
+    marginRight: 0,
+    flex: 1,
+    minWidth: 0,
+    maxWidth: '100%',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  compImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 6,
-    marginRight: 10,
+  compCardTablet: {
+    marginRight: 18,
+    maxWidth: '48%',
+  },
+  compImageModern: {
+    width: 70,
+    height: 70,
+    borderRadius: 10,
+    marginRight: 18,
     backgroundColor: '#222',
   },
-  compTitle: {
+  compCardContent: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+  },
+  compCardTitle: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 2,
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  compPrice: {
+  compCardPrice: {
     color: '#a259f7',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 6,
   },
-  compButton: {
+  compCardButton: {
     backgroundColor: '#a259f7',
-    borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    marginLeft: 8,
+    borderRadius: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 18,
+    alignSelf: 'flex-start',
   },
-  compButtonText: {
+  compCardButtonText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   error: {

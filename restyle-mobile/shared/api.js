@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from './authStore';
 
-const API_BASE_URL = "http://192.168.0.33:8000/api";
+const API_BASE_URL = "https://45cb58a6e1e4.ngrok-free.app/api"; // <-- Use your real public backend URL
 
 const api = axios.create({
   baseURL: API_BASE_URL,

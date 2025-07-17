@@ -258,13 +258,11 @@ export default function Dashboard() {
 
   const takePhoto = async () => {
     console.log('takePhoto called');
-    Alert.alert('Debug', 'takePhoto called');
     const hasPermission = await requestPermissions();
     if (!hasPermission) {
       Alert.alert('Permission Denied', 'Camera or library permission not granted.');
       return;
     }
-    Alert.alert('Permission Granted', 'Camera and library permissions granted.');
     console.log('Launching camera...');
     console.log('ImagePicker available:', !!ImagePicker);
     try {
@@ -274,10 +272,8 @@ export default function Dashboard() {
         quality: 0.8,
       });
       console.log('Camera result:', result);
-      Alert.alert('Debug', 'Camera result: ' + JSON.stringify(result));
       if (!result.canceled && result.assets && result.assets[0]) {
         console.log('Photo taken successfully:', result.assets[0]);
-        Alert.alert('Debug', 'Photo taken successfully: ' + JSON.stringify(result.assets[0]));
         setSelectedImage(result.assets[0]);
         setSearchResults([]);
         setImageAnalysis(null);
@@ -285,7 +281,6 @@ export default function Dashboard() {
         setHasSearched(true);
       } else {
         console.log('Camera was canceled or no image selected');
-        Alert.alert('Debug', 'Camera was canceled or no image selected');
         console.log('Result canceled:', result.canceled);
         console.log('Result assets:', result.assets);
       }
@@ -297,13 +292,11 @@ export default function Dashboard() {
 
   const pickImage = async () => {
     console.log('pickImage called');
-    Alert.alert('Debug', 'pickImage called');
     const hasPermission = await requestPermissions();
     if (!hasPermission) {
       Alert.alert('Permission Denied', 'Camera or library permission not granted.');
       return;
     }
-    Alert.alert('Permission Granted', 'Camera and library permissions granted.');
     console.log('Launching image library...');
     console.log('ImagePicker available:', !!ImagePicker);
     try {
@@ -313,10 +306,8 @@ export default function Dashboard() {
         quality: 0.8,
       });
       console.log('Gallery result:', result);
-      Alert.alert('Debug', 'Gallery result: ' + JSON.stringify(result));
       if (!result.canceled && result.assets && result.assets[0]) {
         console.log('Image picked successfully:', result.assets[0]);
-        Alert.alert('Debug', 'Image picked successfully: ' + JSON.stringify(result.assets[0]));
         setSelectedImage(result.assets[0]);
         setSearchResults([]);
         setImageAnalysis(null);
@@ -324,7 +315,6 @@ export default function Dashboard() {
         setHasSearched(true);
       } else {
         console.log('Gallery was canceled or no image selected');
-        Alert.alert('Debug', 'Gallery was canceled or no image selected');
         console.log('Result canceled:', result.canceled);
         console.log('Result assets:', result.assets);
       }
@@ -378,9 +368,10 @@ export default function Dashboard() {
       setImageAnalysis(responseData.analysis_results || responseData.analysis || null);
       setQueryVariants(responseData.queries?.variants || []);
       setSelectedQueryVariant(responseData.queries?.primary || '');
-      if ((responseData.analysis_results?.visually_ranked_comps || responseData.results || []).length > 0) {
-        Alert.alert('AI Search Complete', `Found ${(responseData.analysis_results?.visually_ranked_comps?.length || responseData.results?.length || 0)} items!`);
-      }
+      // Removed pop-up: Alert for 'AI Search Complete' with number of items found
+      // if ((responseData.analysis_results?.visually_ranked_comps || responseData.results || []).length > 0) {
+      //   Alert.alert('AI Search Complete', `Found ${(responseData.analysis_results?.visually_ranked_comps?.length || responseData.results?.length || 0)} items!`);
+      // }
 
     } catch (error) {
       console.error('Image search failed:', error);
@@ -396,10 +387,10 @@ export default function Dashboard() {
     setTimeout(() => {
       console.log('handleCameraOption timeout fired for:', option);
       if (option === 'camera') {
-        Alert.alert('Debug', 'takePhoto() will be called');
+        console.log('takePhoto() will be called');
         takePhoto();
       } else if (option === 'gallery') {
-        Alert.alert('Debug', 'pickImage() will be called');
+        console.log('pickImage() will be called');
         pickImage();
       }
     }, 800); // Increased delay for iOS modal closing
@@ -498,9 +489,6 @@ export default function Dashboard() {
         <View style={styles.headerLeft} />
         <Text style={styles.headerTitle}>Restyle</Text>
         <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.debugButton} onPress={() => router.push('/debug-camera')}>
-            <Ionicons name="bug" size={20} color="#FF9800" />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.aiDashboardButton} onPress={() => router.push('/ai-dashboard')}>
             <Ionicons name="analytics" size={20} color="#a259f7" />
           </TouchableOpacity>
