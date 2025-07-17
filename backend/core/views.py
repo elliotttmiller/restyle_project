@@ -1020,5 +1020,7 @@ class CropPreviewView(APIView):
             self.logger.error(f"Exception in crop-preview: {e}\n{traceback.format_exc()}")
             return Response({'error': str(e)}, status=500)
 
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def root_view(request):
-    return JsonResponse({"status": "ok", "message": "Restyle API is running."})
+    return Response({"message": "Welcome to the Restyle API! The backend is running."})
