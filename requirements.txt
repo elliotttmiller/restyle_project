@@ -1,0 +1,22 @@
+# restyle_project/backend/requirements.txt
+Django==4.2.13
+psycopg2-binary==2.9.9
+celery[redis]==5.3.6
+djangorestframework==3.15.1
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.3.1
+requests==2.31.0
+ebaysdk==2.2.0
+numpy
+flower==2.0.1
+redis==5.0.1
+google-cloud-vision==3.10.2
+pillow
+faiss-cpu
+torch
+open_clip_torch
+rapidfuzz
+psutil
+boto3
+google-generativeai
+google-cloud-aiplatform
