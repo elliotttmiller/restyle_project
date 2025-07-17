@@ -29,6 +29,57 @@ from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
+# --- Module-level AI/ML client initialization ---
+import os
+import logging
+
+# Google Vision
+try:
+    from google.cloud import vision
+    vision_client = vision.ImageAnnotatorClient()
+except Exception as e:
+    vision_client = None
+    logging.error(f"Failed to initialize Google Vision client: {e}")
+
+# AWS Rekognition
+try:
+    import boto3
+    rekognition_client = boto3.client(
+        'rekognition',
+        aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
+    )
+except Exception as e:
+    rekognition_client = None
+    logging.error(f"Failed to initialize AWS Rekognition client: {e}")
+
+# Google Gemini
+try:
+    import google.generativeai as genai
+    genai.configure(
+        api_key=os.environ.get("GOOGLE_API_KEY"),
+        transport="rest"
+    )
+    gemini_model = genai.GenerativeModel('gemini-1.5-pro-latest')
+except Exception as e:
+    gemini_model = None
+    logging.error(f"Failed to initialize Google Gemini model: {e}")
+
+# Google Vertex AI
+try:
+    from google.cloud import aiplatform
+    aiplatform.init(
+        project=os.environ.get('GOOGLE_CLOUD_PROJECT'),
+        location=os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1')
+    )
+    vertex_endpoint = aiplatform.Endpoint(
+        endpoint_name="projects/silent-polygon-465403/locations/us-central1/endpoints/1234567890123456789"
+    )
+except Exception as e:
+    vertex_endpoint = None
+    logging.error(f"Failed to initialize Vertex AI endpoint: {e}")
+
 # --- eBay Token Monitoring Views ---
 class EbayTokenHealthView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -649,7 +700,6 @@ class PriceAnalysisView(APIView):
             logger.error(f"PriceAnalysisView error: {e}")
             return Response({'error': str(e)}, status=503)
 
-@method_decorator(csrf_exempt, name='dispatch')
 class AdvancedMultiExpertAISearchView(APIView):
     """
     Advanced multi-expert AI system with optional intelligent cropping.
@@ -829,106 +879,73 @@ class AdvancedMultiExpertAISearchView(APIView):
             
             # 1. Google Vision API Analysis
             try:
-                from google.cloud import vision
-                client = vision.ImageAnnotatorClient()
-                image = vision.Image(content=image_data)
-                
-                response = client.annotate_image({
-                    'image': image,
-                    'features': [
-                        {'type_': vision.Feature.Type.LABEL_DETECTION},
-                        {'type_': vision.Feature.Type.TEXT_DETECTION},
-                        {'type_': vision.Feature.Type.OBJECT_LOCALIZATION},
-                        {'type_': vision.Feature.Type.IMAGE_PROPERTIES}
-                    ]
-                })
-                
-                analysis_results['vision'] = {
-                    'labels': [label.description for label in response.label_annotations],
-                    'texts': [text.description for text in response.text_annotations[1:]],
-                    'objects': [obj.name for obj in response.localized_object_annotations],
-                    'colors': [f'{c.color.red},{c.color.green},{c.color.blue}' for c in response.image_properties_annotation.dominant_colors.colors[:5]]
-                }
-                logger.info("✅ Google Vision API analysis completed")
+                if vision_client:
+                    image = vision.Image(content=image_data)
+                    response = vision_client.annotate_image({
+                        'image': image,
+                        'features': [
+                            {'type_': vision.Feature.Type.LABEL_DETECTION},
+                            {'type_': vision.Feature.Type.TEXT_DETECTION},
+                            {'type_': vision.Feature.Type.OBJECT_LOCALIZATION},
+                            {'type_': vision.Feature.Type.IMAGE_PROPERTIES}
+                        ]
+                    })
+                    analysis_results['vision'] = {
+                        'labels': [label.description for label in response.label_annotations],
+                        'texts': [text.description for text in response.text_annotations[1:]],
+                        'objects': [obj.name for obj in response.localized_object_annotations],
+                        'colors': [f'{c.color.red},{c.color.green},{c.color.blue}' for c in response.image_properties_annotation.dominant_colors.colors[:5]]
+                    }
+                    logger.info("✅ Google Vision API analysis completed")
             except Exception as e:
                 logger.error(f"❌ Google Vision API error: {e}")
             
             # 2. AWS Rekognition Analysis
             try:
-                import boto3
-                rekognition = boto3.client(
-                    'rekognition',
-                    aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-                    aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-                    region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
-                )
-                
-                response = rekognition.detect_labels(
-                    Image={'Bytes': image_data},
-                    MaxLabels=10,
-                    MinConfidence=70
-                )
-                
-                # Text detection
-                text_response = rekognition.detect_text(
-                    Image={'Bytes': image_data}
-                )
-                
-                analysis_results['rekognition'] = {
-                    'labels': [label['Name'] for label in response['Labels']],
-                    'texts': [text['DetectedText'] for text in text_response.get('TextDetections', []) if text['Type'] == 'LINE'],
-                    'faces': len([label for label in response['Labels'] if label['Name'] == 'Person'])
-                }
-                logger.info("✅ AWS Rekognition analysis completed")
+                if rekognition_client:
+                    response = rekognition_client.detect_labels(
+                        Image={'Bytes': image_data},
+                        MaxLabels=10,
+                        MinConfidence=70
+                    )
+                    # Text detection
+                    text_response = rekognition_client.detect_text(
+                        Image={'Bytes': image_data}
+                    )
+                    analysis_results['rekognition'] = {
+                        'labels': [label['Name'] for label in response['Labels']],
+                        'texts': [text['DetectedText'] for text in text_response.get('TextDetections', []) if text['Type'] == 'LINE'],
+                        'faces': len([label for label in response['Labels'] if label['Name'] == 'Person'])
+                    }
+                    logger.info("✅ AWS Rekognition analysis completed")
             except Exception as e:
                 logger.error(f"❌ AWS Rekognition error: {e}")
             
             # 3. Google Gemini API Analysis
             try:
-                import google.generativeai as genai
-                # Use service account credentials instead of API key
-                genai.configure(
-                    api_key=None,  # Will use service account credentials
-                    transport="rest"
-                )
-                model = genai.GenerativeModel('gemini-1.5-pro-latest')
-                
-                # Convert image data to PIL Image
-                from PIL import Image
-                import io
-                pil_image = Image.open(io.BytesIO(image_data))
-                
-                # Generate description
-                response = model.generate_content([
-                    "Analyze this clothing item and generate a detailed eBay search query. Focus on brand names, product type, color, style, and specific features. Return only the search query, nothing else.",
-                    pil_image
-                ])
-                
-                analysis_results['gemini_query'] = response.text.strip()
-                logger.info("✅ Google Gemini API analysis completed")
+                if gemini_model:
+                    from PIL import Image
+                    import io
+                    pil_image = Image.open(io.BytesIO(image_data))
+                    response = gemini_model.generate_content([
+                        "Analyze this clothing item and generate a detailed eBay search query. Focus on brand names, product type, color, style, and specific features. Return only the search query, nothing else.",
+                        pil_image
+                    ])
+                    analysis_results['gemini_query'] = response.text.strip()
+                    logger.info("✅ Google Gemini API analysis completed")
             except Exception as e:
                 logger.error(f"❌ Google Gemini API error: {e}")
             
             # 4. Google Vertex AI Analysis (if available)
             try:
-                from google.cloud import aiplatform
-                aiplatform.init(
-                    project=os.environ.get('GOOGLE_CLOUD_PROJECT'),
-                    location=os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1')
-                )
-                
-                # Use Vertex AI for advanced analysis
-                endpoint = aiplatform.Endpoint(
-                    endpoint_name="projects/silent-polygon-465403/locations/us-central1/endpoints/1234567890123456789"
-                )
-                
-                # For now, we'll use a placeholder analysis
-                analysis_results['vertex_analysis'] = {
-                    'product_type': 'clothing',
-                    'confidence': 0.85,
-                    'features': ['casual', 'cotton', 'comfortable']
-                }
-                logger.info("✅ Google Vertex AI analysis completed")
+                if vertex_endpoint:
+                    # Placeholder analysis for now
+                    analysis_results['vertex_analysis'] = {
+                        'product_type': 'clothing',
+                        'confidence': 0.85,
+                        'features': ['casual', 'cotton', 'comfortable']
+                    }
+                    logger.info("✅ Google Vertex AI analysis completed")
             except Exception as e:
                 logger.error(f"❌ Google Vertex AI error: {e}")
             

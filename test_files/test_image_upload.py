@@ -10,10 +10,10 @@ from datetime import datetime
 # Test the image upload to the backend
 def test_image_upload():
     # URL of the backend
-    url = "http://192.168.0.33:8000/api/core/ai/advanced-search/"
+    url = "https://restyle-backend.onrender.com/api/core/ai/advanced-search/"
     
     # Test image path
-    image_path = "example2.JPG"
+    image_path = "test_files/example2.jpg"
     
     if not os.path.exists(image_path):
         print(f"❌ Test image not found: {image_path}")
