@@ -37,7 +37,7 @@ export default function TestConnection() {
       // Test 2: Token endpoint
       try {
         addResult('Testing token endpoint...', true);
-        const tokenResponse = await api.post('/token/', {
+        const tokenResponse = await api.post('/api/token/', {
           username: 'test',
           password: 'test'
         });

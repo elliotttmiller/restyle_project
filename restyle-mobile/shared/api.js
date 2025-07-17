@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from './authStore';
 
-export const API_BASE_URL = "https://restyle-backend.onrender.com";
+export const API_BASE_URL = "https://restyleproject-production.up.railway.app";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

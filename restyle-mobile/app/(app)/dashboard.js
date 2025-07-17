@@ -354,7 +354,7 @@ export default function Dashboard() {
       console.log('Sending image to advanced AI backend...');
       
       // Update the endpoint to the correct backend path
-      const fullUrl = api.defaults.baseURL + '/core/ai/advanced-search/';
+      const fullUrl = api.defaults.baseURL + '/api/core/ai/advanced-search/';
       console.log('Full image search URL:', fullUrl);
       console.log('Auth token:', token);
       const searchResponse = await api.post('core/ai/advanced-search/', formData, {

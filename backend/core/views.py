@@ -702,17 +702,19 @@ class PriceAnalysisView(APIView):
 
 class AdvancedMultiExpertAISearchView(APIView):
     """
-    Advanced multi-expert AI system with optional intelligent cropping.
+    Advanced multi-expert AI search endpoint with detailed debug logging.
     Accepts 'intelligent_crop' boolean flag (default: True).
     """
     permission_classes = [AllowAny]
     
     def __init__(self):
         super().__init__()
+        import logging
+        self.logger = logging.getLogger("advanced_ai_search_debug")
         self.ai_service = get_ai_service()
         self.ebay_service = EbayService()
         self.market_analyzer = get_market_analysis_service()
-    
+
     def calculate_confidence_score(self, analysis_results):
         """Calculate confidence scores for different AI services."""
         confidence_scores = {}
@@ -838,171 +840,50 @@ class AdvancedMultiExpertAISearchView(APIView):
         return optimized_query
     
     def post(self, request):
-        """Advanced multi-expert AI image search with sophisticated analysis."""
-        print("--- ADVANCED MULTI-EXPERT AI SEARCH ---")
-        print(f"[DEBUG] Request method: {request.method}")
-        print(f"[DEBUG] Request content type: {request.content_type}")
-        print(f"[DEBUG] Request FILES keys: {list(request.FILES.keys())}")
-        print(f"[DEBUG] Request DATA keys: {list(request.data.keys())}")
-        
+        self.logger.debug("--- AdvancedMultiExpertAISearchView POST called ---")
+        self.logger.debug(f"Request method: {request.method}")
+        self.logger.debug(f"Headers: {dict(request.headers)}")
+        self.logger.debug(f"FILES: {request.FILES}")
+        self.logger.debug(f"DATA: {request.data}")
+        self.logger.debug(f"User: {getattr(request, 'user', None)}")
+        self.logger.debug(f"Auth: {getattr(request, 'auth', None)}")
+        self.logger.debug(f"REMOTE_ADDR: {request.META.get('REMOTE_ADDR')}")
         try:
-            # Get image from request
             image_file = request.FILES.get('image')
             if not image_file:
-                print(f"[DEBUG] No image file found in request.FILES")
-                print(f"[DEBUG] Available files: {list(request.FILES.keys())}")
-                return Response(
-                    {'error': 'No image provided'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Read image data
+                self.logger.error("No image file found in request.FILES")
+                return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
             image_data = image_file.read()
-            
-            # --- Intelligent Cropping ---
             intelligent_crop = request.data.get('intelligent_crop', 'true')
             if isinstance(intelligent_crop, str):
                 intelligent_crop = intelligent_crop.lower() in ['1', 'true', 'yes']
             crop_info = {'service': 'none', 'bounding_box': None}
             if intelligent_crop:
                 image_data, crop_info = self.ai_service.intelligent_crop(image_data)
-                logger.info(f"[CROP] Crop info: {crop_info}")
-            
-            # Initialize analysis results
-            analysis_results = {
-                'vision': None,
-                'rekognition': None,
-                'gemini_query': None,
-                'vertex_analysis': None,
-                'clip_analysis': None
-            }
-            
-            # 1. Google Vision API Analysis
-            try:
-                if vision_client:
-                    image = vision.Image(content=image_data)
-                    response = vision_client.annotate_image({
-                        'image': image,
-                        'features': [
-                            {'type_': vision.Feature.Type.LABEL_DETECTION},
-                            {'type_': vision.Feature.Type.TEXT_DETECTION},
-                            {'type_': vision.Feature.Type.OBJECT_LOCALIZATION},
-                            {'type_': vision.Feature.Type.IMAGE_PROPERTIES}
-                        ]
-                    })
-                    analysis_results['vision'] = {
-                        'labels': [label.description for label in response.label_annotations],
-                        'texts': [text.description for text in response.text_annotations[1:]],
-                        'objects': [obj.name for obj in response.localized_object_annotations],
-                        'colors': [f'{c.color.red},{c.color.green},{c.color.blue}' for c in response.image_properties_annotation.dominant_colors.colors[:5]]
-                    }
-                    logger.info("✅ Google Vision API analysis completed")
-            except Exception as e:
-                logger.error(f"❌ Google Vision API error: {e}")
-            
-            # 2. AWS Rekognition Analysis
-            try:
-                if rekognition_client:
-                    response = rekognition_client.detect_labels(
-                        Image={'Bytes': image_data},
-                        MaxLabels=10,
-                        MinConfidence=70
-                    )
-                    # Text detection
-                    text_response = rekognition_client.detect_text(
-                        Image={'Bytes': image_data}
-                    )
-                    analysis_results['rekognition'] = {
-                        'labels': [label['Name'] for label in response['Labels']],
-                        'texts': [text['DetectedText'] for text in text_response.get('TextDetections', []) if text['Type'] == 'LINE'],
-                        'faces': len([label for label in response['Labels'] if label['Name'] == 'Person'])
-                    }
-                    logger.info("✅ AWS Rekognition analysis completed")
-            except Exception as e:
-                logger.error(f"❌ AWS Rekognition error: {e}")
-            
-            # 3. Google Gemini API Analysis
-            try:
-                if gemini_model:
-                    from PIL import Image
-                    import io
-                    pil_image = Image.open(io.BytesIO(image_data))
-                    response = gemini_model.generate_content([
-                        "Analyze this clothing item and generate a detailed eBay search query. Focus on brand names, product type, color, style, and specific features. Return only the search query, nothing else.",
-                        pil_image
-                    ])
-                    analysis_results['gemini_query'] = response.text.strip()
-                    logger.info("✅ Google Gemini API analysis completed")
-            except Exception as e:
-                logger.error(f"❌ Google Gemini API error: {e}")
-            
-            # 4. Google Vertex AI Analysis (if available)
-            try:
-                if vertex_endpoint:
-                    # Placeholder analysis for now
-                    analysis_results['vertex_analysis'] = {
-                        'product_type': 'clothing',
-                        'confidence': 0.85,
-                        'features': ['casual', 'cotton', 'comfortable']
-                    }
-                    logger.info("✅ Google Vertex AI analysis completed")
-            except Exception as e:
-                logger.error(f"❌ Google Vertex AI error: {e}")
-            
-            # 5. Calculate confidence scores
-            confidence_scores = self.calculate_confidence_score(analysis_results)
-            
-            # 6. Generate multiple query variants
-            query_variants = self.generate_multiple_query_variants(analysis_results)
-            
-            # 7. Optimize the best query
-            best_query = query_variants[0]['query'] if query_variants else "clothing"
-            optimized_query = self.optimize_search_query(best_query, analysis_results)
-            
-            # 8. Perform eBay search with the optimized query
-            try:
-                ebay_results = self.ebay_service.search_items(
-                    query=optimized_query,
-                    limit=20
-                )
-            except Exception as e:
-                logger.error(f"eBay search error: {e}")
-                ebay_results = []
-
-            # 9. Price analysis
-            price_analysis = self.market_analyzer.analyze_price_trends(ebay_results)
-
-            # 10. Compile comprehensive response
-            response_data = {
-                'analysis': {
-                    'vision': analysis_results['vision'],
-                    'rekognition': analysis_results['rekognition'],
-                    'gemini': bool(analysis_results.get('gemini_query')),
-                    'vertex': analysis_results['vertex_analysis'],
-                    'confidence_scores': confidence_scores
-                },
-                'queries': {
-                    'primary': optimized_query,
-                    'variants': query_variants,
-                    'confidence': max(confidence_scores.values()) if confidence_scores else 0
-                },
-                'results': ebay_results,
-                'price_analysis': price_analysis,
-                'crop_info': crop_info,
-                'summary': {
-                    'total_results': len(ebay_results),
-                    'best_match': ebay_results[0] if ebay_results else None,
-                    'analysis_quality': 'high' if max(confidence_scores.values()) > 80 else 'medium'
-                }
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
-            
-        except Exception as e:
-            logger.error(f"Advanced AI search error: {e}")
-            return Response(
-                {'error': 'Advanced AI search failed'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                self.logger.info(f"[CROP] Crop info: {crop_info}")
+            def ebay_api_func(query):
+                return self.ebay_service.search_items(query=query, limit=20)
+            self.logger.info("Running Multi-Expert AI Analysis...")
+            analysis_results = self.market_analyzer.run_complete_analysis(
+                image_data=image_data,
+                marketplace_api_func=ebay_api_func
             )
+            if analysis_results.get('visually_ranked_comps'):
+                price_analysis = self.market_analyzer.analyze_price_trends(
+                    analysis_results['visually_ranked_comps']
+                )
+                analysis_results['price_analysis'] = price_analysis
+            response = Response({
+                'message': 'Multi-expert AI analysis completed successfully.',
+                'analysis_results': analysis_results,
+                'results': analysis_results.get('visually_ranked_comps', []),
+                'crop_info': crop_info
+            }, status=status.HTTP_200_OK)
+            self.logger.debug(f"Response status: {response.status_code}")
+            return response
+        except Exception as e:
+            self.logger.error(f"Error in AdvancedMultiExpertAISearchView: {e}", exc_info=True)
+            return Response({'error': 'An unexpected error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class PrivacyPolicyView(APIView):

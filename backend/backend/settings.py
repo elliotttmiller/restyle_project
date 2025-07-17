@@ -26,19 +26,7 @@ SECRET_KEY = 'django-insecure-_)b^sb+*n_na(vlnlln5w6_jm37)3txt4s68boll_5$dry-we#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost',
-    '127.0.0.1',
-    '192.168.0.204',
-    '192.168.0.13',
-    '0.0.0.0',
-    '192.168.0.18',
-    '6012dc93ed69.ngrok-free.app',
-    '0b4bbb13fe08.ngrok-free.app',
-    'ead6946c7030.ngrok-free.app',
-    '192.168.0.22', '192.168.0.24', '192.168.0.25', '192.168.0.33', '192.168.0.43',
-    '45cb58a6e1e4.ngrok-free.app',  # Added for current ngrok tunnel
-    'restyle-backend.onrender.com',  # Added for Render deployment
-]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'restyle-backend.onrender.com', '78de5d736ad9.ngrok-free.app', '192.168.0.48', '2b668a86e215.ngrok-free.app', 'restyleproject-production.up.railway.app']
 
 # restyle_project/backend/backend/settings.py
 
@@ -181,8 +169,7 @@ EBAY_PRODUCTION_REFRESH_TOKEN = os.environ.get('EBAY_PRODUCTION_REFRESH_TOKEN')
 EBAY_PRODUCTION_USER_TOKEN = os.environ.get('EBAY_PRODUCTION_USER_TOKEN')
 
 # CORS CONFIGURATION
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", # The address of our React front-end
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000", # The address of our React front-end
     "http://127.0.0.1:3000",
     "http://192.168.0.204:3000",
     "http://192.168.0.204:8000",
@@ -194,8 +181,7 @@ CORS_ALLOWED_ORIGINS = [
     "exp://localhost:8081", # Expo development server
     "exp://127.0.0.1:8081",
     "http://192.168.0.33:8081",  # Added for Expo Metro
-    "http://192.168.0.43:8000"
-]
+    "http://192.168.0.43:8000", "http://192.168.0.48:8000"]
 
 # Allow all headers and methods for mobile app
 CORS_ALLOW_ALL_HEADERS = True

@@ -194,7 +194,7 @@ export default function CameraSearch() {
         formData.append('object_index', selectedObjectIndex);
       }
       // Use the ai-image-search endpoint for robust integration
-      // console.log('Posting to endpoint:', api.defaults.baseURL + '/core/ai/advanced-search/');
+      // console.log('Posting to endpoint:', api.defaults.baseURL + '/api/core/ai/advanced-search/');
       // console.log('Auth token:', token);
       const searchResponse = await api.post('core/ai/advanced-search/', formData, {
         headers: {
