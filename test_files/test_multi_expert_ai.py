@@ -18,8 +18,8 @@ os.environ['AWS_SECRET_ACCESS_KEY'] = '3LAsYxgRHS0msvNQLdAf7Nnab89j//0oFp2JfEja'
 os.environ['AWS_REGION_NAME'] = 'us-east-1'
 
 # Set up Google Cloud credentials path
-credentials_path = os.path.join(os.path.dirname(__file__), '..', 'backend', 'silent-polygon-465403-h9-3a57d36afc97.json')
-if os.path.exists(credentials_path):
+credentials_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+if credentials_path and os.path.exists(credentials_path):
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
     print(f"✅ Google Cloud credentials found at: {credentials_path}")
 else:
