@@ -116,3 +116,4 @@ gunicorn==23.0.0
 pinecone>=3.0.0
 dj-database-url
 psycopg2-binary
+whitenoise
