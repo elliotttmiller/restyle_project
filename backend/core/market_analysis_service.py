@@ -27,11 +27,23 @@ class MarketAnalysisService:
     """
     
     def __init__(self):
-        self.aggregator = get_aggregator_service()
-        if ENCODER_AVAILABLE:
-            self.encoder = get_encoder_service()
-        else:
-            self.encoder = None
+        # Lazy initialization - don't initialize services until needed
+        self._aggregator = None
+        self._encoder = None
+    
+    @property
+    def aggregator(self):
+        """Lazy initialization of aggregator service"""
+        if self._aggregator is None:
+            self._aggregator = get_aggregator_service()
+        return self._aggregator
+    
+    @property
+    def encoder(self):
+        """Lazy initialization of encoder service"""
+        if self._encoder is None and ENCODER_AVAILABLE:
+            self._encoder = get_encoder_service()
+        return self._encoder
         
     def run_complete_analysis(self, image_data: bytes, marketplace_api_func) -> Dict[str, Any]:
         """

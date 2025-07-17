@@ -27,38 +27,72 @@ class AggregatorService:
         # Singleton pattern for this service
         if cls._instance is None:
             cls._instance = super(AggregatorService, cls).__new__(cls)
-            try:
-                # Initialize Google Vision client
-                cls._instance.google_vision_client = vision.ImageAnnotatorClient()
-                
-                # Initialize AWS Rekognition client
-                cls._instance.aws_rekognition_client = boto3.client(
-                    'rekognition',
-                    aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-                    aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-                    region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
-                )
-                
-                # Initialize Google Gemini
-                gemini_api_key = os.environ.get('GEMINI_API_KEY')
-                if gemini_api_key:
-                    genai.configure(api_key=gemini_api_key)
-                    generation_config = genai.types.GenerationConfig(
-                        response_mime_type="application/json"
-                    )
-                    cls._instance.gemini_model = genai.GenerativeModel(
-                        'gemini-1.5-pro-latest',
-                        generation_config=generation_config
-                    )
-                    logger.info("AggregatorService initialized with all AI clients.")
-                else:
-                    logger.warning("GEMINI_API_KEY not found. Gemini synthesis will be disabled.")
-                    cls._instance.gemini_model = None
-                    
-            except Exception as e:
-                logger.error(f"CRITICAL: Failed to initialize AggregatorService clients. Error: {e}")
-                raise
+            # Lazy initialization - don't initialize clients until needed
+            cls._instance._google_vision_client = None
+            cls._instance._aws_rekognition_client = None
+            cls._instance._gemini_model = None
+            cls._instance._initialized = False
         return cls._instance
+    
+    def _initialize_clients(self):
+        """Lazy initialization of AI clients"""
+        if self._initialized:
+            return
+        
+        try:
+            # Initialize Google Vision client
+            self._google_vision_client = vision.ImageAnnotatorClient()
+            
+            # Initialize AWS Rekognition client
+            self._aws_rekognition_client = boto3.client(
+                'rekognition',
+                aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+                region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
+            )
+            
+            # Initialize Google Gemini
+            gemini_api_key = os.environ.get('GEMINI_API_KEY')
+            if gemini_api_key:
+                genai.configure(api_key=gemini_api_key)
+                generation_config = genai.types.GenerationConfig(
+                    response_mime_type="application/json"
+                )
+                self._gemini_model = genai.GenerativeModel(
+                    'gemini-1.5-pro-latest',
+                    generation_config=generation_config
+                )
+                logger.info("AggregatorService initialized with all AI clients.")
+            else:
+                logger.warning("GEMINI_API_KEY not found. Gemini synthesis will be disabled.")
+                self._gemini_model = None
+                
+            self._initialized = True
+                
+        except Exception as e:
+            logger.error(f"CRITICAL: Failed to initialize AggregatorService clients. Error: {e}")
+            raise
+    
+    @property
+    def google_vision_client(self):
+        """Lazy initialization of Google Vision client"""
+        if not self._initialized:
+            self._initialize_clients()
+        return self._google_vision_client
+    
+    @property
+    def aws_rekognition_client(self):
+        """Lazy initialization of AWS Rekognition client"""
+        if not self._initialized:
+            self._initialize_clients()
+        return self._aws_rekognition_client
+    
+    @property
+    def gemini_model(self):
+        """Lazy initialization of Google Gemini model"""
+        if not self._initialized:
+            self._initialize_clients()
+        return self._gemini_model
 
     def run_full_analysis(self, image_data: bytes) -> Dict[str, Any]:
         """
