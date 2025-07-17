@@ -1,6 +1,6 @@
 // File: frontend/src/pages/AnalysisPage.js
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import './AnalysisPage.css'; // Import our new stylesheet
@@ -11,6 +11,8 @@ const AnalysisPage = () => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [compsToShow, setCompsToShow] = useState(20);
+  const compsGridRef = useRef(null);
 
   useEffect(() => {
     const fetchAnalysisData = async () => {
@@ -32,6 +34,29 @@ const AnalysisPage = () => {
 
     fetchAnalysisData();
   }, [itemId]);
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!compsGridRef.current) return;
+      const { scrollTop, scrollHeight, clientHeight } = compsGridRef.current;
+      if (scrollTop + clientHeight >= scrollHeight - 10) {
+        // User is near the bottom
+        if (analysis && analysis.comps && compsToShow < analysis.comps.length) {
+          setCompsToShow(prev => Math.min(prev + 20, analysis.comps.length));
+        }
+      }
+    };
+    const grid = compsGridRef.current;
+    if (grid) {
+      grid.addEventListener('scroll', handleScroll);
+    }
+    return () => {
+      if (grid) {
+        grid.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [analysis, compsToShow]);
 
   const getStatusClass = (status) => {
     if (status === 'COMPLETE') return 'status-complete';
@@ -84,9 +109,13 @@ const AnalysisPage = () => {
       </div>
       
       <h3>Comparable Listings ({analysis?.comps?.length || 0})</h3>
-      {analysis && analysis.comps.length > 0 ? (
-        <div className="comps-grid">
-          {analysis.comps.map(comp => (
+      {analysis && analysis.comps && analysis.comps.length > 0 ? (
+        <div
+          className="comps-grid"
+          ref={compsGridRef}
+          style={{ maxHeight: '600px', overflowY: 'auto' }}
+        >
+          {analysis.comps.slice(0, compsToShow).map(comp => (
             <div key={comp.id} className="comp-card">
               <img src={comp.image_url} alt={comp.title} />
               <div className="comp-card-content">
@@ -99,6 +128,9 @@ const AnalysisPage = () => {
               </div>
             </div>
           ))}
+          {compsToShow < (analysis.comps?.length || 0) && (
+            <div style={{ textAlign: 'center', padding: '1rem', color: '#888' }}>Loading more...</div>
+          )}
         </div>
       ) : (
         <p>No comparable listings found or analysis has not completed.</p>

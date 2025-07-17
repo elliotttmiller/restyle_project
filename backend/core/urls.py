@@ -23,6 +23,7 @@ from .views import (
     AIImageSearchView,
     AdvancedMultiExpertAISearchView,
     PrivacyPolicyView,
+    CropPreviewView,
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
@@ -72,6 +73,8 @@ urlpatterns = [
     path('ai/advanced-search/', AdvancedMultiExpertAISearchView.as_view(), name='advanced-ai-search'),
 
     path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy-policy'),
+
+    path('ai/crop-preview/', CropPreviewView.as_view(), name='ai-crop-preview'),
 ]
 
 # Authenticated health check endpoint

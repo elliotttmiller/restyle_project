@@ -23,6 +23,8 @@ import base64
 import psutil
 import os
 from .services import EbayService
+import traceback
+from .market_analysis_service import get_market_analysis_service
 
 logger = logging.getLogger(__name__)
 
@@ -482,6 +484,7 @@ class AIImageSearchView(APIView):
         # Import the new services
         from .market_analysis_service import get_market_analysis_service
         self.market_analyzer = get_market_analysis_service()
+        self.ai_service = get_ai_service()
     
     def search_ebay_with_queries(self, query):
         """
@@ -499,6 +502,10 @@ class AIImageSearchView(APIView):
             return []
     
     def post(self, request):
+        """
+        Multi-expert AI image search with optional intelligent cropping.
+        Accepts 'intelligent_crop' boolean flag (default: True).
+        """
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"AIImageSearchView POST called. Method: {request.method}")
@@ -525,6 +532,15 @@ class AIImageSearchView(APIView):
         
         try:
             image_data = image_file.read()
+            
+            # --- Intelligent Cropping ---
+            intelligent_crop = request.data.get('intelligent_crop', 'true')
+            if isinstance(intelligent_crop, str):
+                intelligent_crop = intelligent_crop.lower() in ['1', 'true', 'yes']
+            crop_info = {'service': 'none', 'bounding_box': None}
+            if intelligent_crop:
+                image_data, crop_info = self.ai_service.intelligent_crop(image_data)
+                logger.info(f"[CROP] Crop info: {crop_info}")
             
             # Define the marketplace API function
             def ebay_api_func(query):
@@ -553,6 +569,7 @@ class AIImageSearchView(APIView):
                 'message': 'Multi-expert AI analysis completed successfully.',
                 'analysis_results': analysis_results,
                 'results': analysis_results.get('visually_ranked_comps', []),
+                'crop_info': crop_info,
                 'system_info': {
                     'memory_usage_mb': round(mem_end - mem_start, 2),
                     'total_memory_peak_mb': round(psutil.virtual_memory().used / (1024 * 1024), 2)
@@ -583,67 +600,50 @@ class PriceAnalysisView(APIView):
         query = f"{brand or ''} {title or ''} {size or ''} {color or ''} {condition or ''}".strip()
         try:
             ebay_service = EbayService()
-            items = ebay_service.search_items(query=query, category_ids=category if category and category != 'Unknown' else None, limit=20)
-            comps = []
-            prices = []
-            offset = (page - 1) * page_size
-            paginated_items = items[offset:offset + page_size]
-            total_items = len(items)
-            has_more = (offset + page_size) < total_items
-            for idx, item in enumerate(paginated_items):
-                price = item.get('price', {}).get('value')
+            items = ebay_service.search_items(query=query, category_ids=category if category and category != 'Unknown' else None, limit=100);
+            comps = [];
+            prices = [];
+            for idx, item in enumerate(items):
+                price = item.get('price', {}).get('value');
                 if price:
-                    prices.append(float(price))
+                    prices.append(float(price));
                 comps.append({
-                    'id': offset + idx + 1,
+                    'id': idx + 1,
                     'title': item.get('title', ''),
                     'sold_price': float(price) if price else 0.0,
                     'platform': 'EBAY',
                     'image_url': item.get('image', {}).get('imageUrl', ''),
                     'source_url': item.get('itemWebUrl', ''),
-                })
+                });
             if prices and len(prices) >= 3:
-                price_range_low = min(prices)
-                price_range_high = max(prices)
-                suggested_price = sum(prices) / len(prices)
+                price_range_low = min(prices);
+                price_range_high = max(prices);
+                suggested_price = sum(prices) / len(prices);
                 analysis_result = {
                     'price_range_low': price_range_low,
                     'price_range_high': price_range_high,
                     'suggested_price': suggested_price,
                     'status': 'COMPLETE',
                     'confidence_score': f'Medium ({len(prices)} comparable listings)',
-                    'comps': comps,
-                    'pagination': {
-                        'page': page,
-                        'page_size': page_size,
-                        'total_items': total_items,
-                        'has_more': has_more,
-                        'offset': offset
-                    }
+                    'comps': comps
                 }
+                logger.info(f"[DEBUG] Returning {len(comps)} comps. First 3: {comps[:3]}")
             else:
                 if prices:
-                    price_range_low = min(prices)
-                    price_range_high = max(prices)
-                    suggested_price = sum(prices) / len(prices)
+                    price_range_low = min(prices);
+                    price_range_high = max(prices);
+                    suggested_price = sum(prices) / len(prices);
                 else:
-                    price_range_low = price_range_high = suggested_price = 0.0
+                    price_range_low = price_range_high = suggested_price = 0.0;
                 analysis_result = {
                     'price_range_low': price_range_low,
                     'price_range_high': price_range_high,
                     'suggested_price': suggested_price,
                     'status': 'COMPLETE',
                     'confidence_score': f'Low (only {len(prices)} comparable listings found)',
-                    'comps': comps,
-                    'pagination': {
-                        'page': page,
-                        'page_size': page_size,
-                        'total_items': total_items,
-                        'has_more': has_more,
-                        'offset': offset
-                    }
-                }
-            return Response(analysis_result, status=200)
+                    'comps': comps
+                };
+            return Response(analysis_result, status=200);
         except Exception as e:
             logger.error(f"PriceAnalysisView error: {e}")
             return Response({'error': str(e)}, status=503)
@@ -651,12 +651,8 @@ class PriceAnalysisView(APIView):
 @method_decorator(csrf_exempt, name='dispatch')
 class AdvancedMultiExpertAISearchView(APIView):
     """
-    Advanced multi-expert AI system that combines:
-    - Google Vision API
-    - AWS Rekognition
-    - Google Gemini API
-    - Google Vertex AI
-    - CLIP model (if available)
+    Advanced multi-expert AI system with optional intelligent cropping.
+    Accepts 'intelligent_crop' boolean flag (default: True).
     """
     permission_classes = [AllowAny]
     
@@ -664,6 +660,7 @@ class AdvancedMultiExpertAISearchView(APIView):
         super().__init__()
         self.ai_service = get_ai_service()
         self.ebay_service = EbayService()
+        self.market_analyzer = get_market_analysis_service()
     
     def calculate_confidence_score(self, analysis_results):
         """Calculate confidence scores for different AI services."""
@@ -811,6 +808,15 @@ class AdvancedMultiExpertAISearchView(APIView):
             # Read image data
             image_data = image_file.read()
             
+            # --- Intelligent Cropping ---
+            intelligent_crop = request.data.get('intelligent_crop', 'true')
+            if isinstance(intelligent_crop, str):
+                intelligent_crop = intelligent_crop.lower() in ['1', 'true', 'yes']
+            crop_info = {'service': 'none', 'bounding_box': None}
+            if intelligent_crop:
+                image_data, crop_info = self.ai_service.intelligent_crop(image_data)
+                logger.info(f"[CROP] Crop info: {crop_info}")
+            
             # Initialize analysis results
             analysis_results = {
                 'vision': None,
@@ -944,13 +950,16 @@ class AdvancedMultiExpertAISearchView(APIView):
             except Exception as e:
                 logger.error(f"eBay search error: {e}")
                 ebay_results = []
-            
-            # 9. Compile comprehensive response
+
+            # 9. Price analysis
+            price_analysis = self.market_analyzer.analyze_price_trends(ebay_results)
+
+            # 10. Compile comprehensive response
             response_data = {
                 'analysis': {
                     'vision': analysis_results['vision'],
                     'rekognition': analysis_results['rekognition'],
-                    'gemini': bool(analysis_results.get('gemini_query')),  # True if Gemini query exists
+                    'gemini': bool(analysis_results.get('gemini_query')),
                     'vertex': analysis_results['vertex_analysis'],
                     'confidence_scores': confidence_scores
                 },
@@ -960,13 +969,14 @@ class AdvancedMultiExpertAISearchView(APIView):
                     'confidence': max(confidence_scores.values()) if confidence_scores else 0
                 },
                 'results': ebay_results,
+                'price_analysis': price_analysis,
+                'crop_info': crop_info,
                 'summary': {
                     'total_results': len(ebay_results),
                     'best_match': ebay_results[0] if ebay_results else None,
                     'analysis_quality': 'high' if max(confidence_scores.values()) > 80 else 'medium'
                 }
             }
-            
             return Response(response_data, status=status.HTTP_200_OK)
             
         except Exception as e:
@@ -1070,3 +1080,43 @@ class EbayOAuthView(APIView):
 
 ItemDoesNotExist = Item.DoesNotExist
 MarketAnalysisDoesNotExist = MarketAnalysis.DoesNotExist
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CropPreviewView(APIView):
+    """
+    Endpoint for intelligent crop preview.
+    POST an image, get a cropped preview (base64), crop info, and optionally the original image (base64).
+    No AI search is performed.
+    """
+    permission_classes = [AllowAny]
+
+    def __init__(self):
+        super().__init__()
+        self.ai_service = get_ai_service()
+        self.logger = logging.getLogger("core.crop_preview")
+
+    def post(self, request, *args, **kwargs):
+        self.logger.info("Received crop-preview request.")
+        try:
+            image_file = request.FILES.get('image')
+            if not image_file:
+                self.logger.error("No image file provided in request.")
+                return Response({'error': 'No image file provided.'}, status=400)
+            image_data = image_file.read()
+            crop_result = self.ai_service.intelligent_crop(image_data)
+            if crop_result['cropped_image']:
+                self.logger.info(f"Cropping successful. Service: {crop_result['service']}, Box: {crop_result['bounding_box']}")
+            else:
+                self.logger.warning("Cropping failed or no bounding box found. Returning original image.")
+            response = {
+                'cropped_image_base64': crop_result['cropped_image'],
+                'crop_info': {
+                    'service': crop_result['service'],
+                    'bounding_box': crop_result['bounding_box']
+                },
+                'original_image_base64': base64.b64encode(image_data).decode('utf-8'),
+            }
+            return Response(response)
+        except Exception as e:
+            self.logger.error(f"Exception in crop-preview: {e}\n{traceback.format_exc()}")
+            return Response({'error': str(e)}, status=500)

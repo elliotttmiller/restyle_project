@@ -15,6 +15,7 @@ export default function AlgorithmEbaySearchBar() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [priceAnalysis, setPriceAnalysis] = useState(null);
   const router = useRouter();
 
   const searchItems = async (searchQuery, searchOffset = 0, append = false) => {
@@ -62,12 +63,22 @@ export default function AlgorithmEbaySearchBar() {
     }
   };
 
+  const fetchPriceAnalysis = async (searchQuery) => {
+    try {
+      const response = await api.post('/core/price-analysis/', { title: searchQuery });
+      setPriceAnalysis(response.data);
+    } catch (err) {
+      setPriceAnalysis({ error: 'Price analysis failed.' });
+    }
+  };
+
   const handleSearch = useCallback(() => {
     if (!query.trim()) return;
     
     setOffset(0);
     setHasMore(true);
     searchItems(query, 0, false);
+    fetchPriceAnalysis(query);
   }, [query]);
 
   const handleLoadMore = useCallback(() => {
@@ -282,6 +293,24 @@ export default function AlgorithmEbaySearchBar() {
             {error}
           </Text>
         ) : null}
+        {priceAnalysis && (
+          <View style={{marginHorizontal: 20, marginBottom: 16, padding: 16, backgroundColor: '#fff', borderRadius: 8, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2}}>
+            <Text style={{fontWeight: 'bold', fontSize: 18, marginBottom: 8, color: '#333'}}>Price Analysis</Text>
+            {priceAnalysis.error ? (
+              <Text style={{color: '#F44336'}}>{priceAnalysis.error}</Text>
+            ) : (
+              <>
+                <Text style={{fontSize: 16, color: '#4CAF50'}}>Suggested Price: ${priceAnalysis.suggested_price?.toFixed(2)}</Text>
+                {priceAnalysis.price_range_low !== undefined && priceAnalysis.price_range_high !== undefined && (
+                  <Text style={{fontSize: 15, color: '#333', marginTop: 2}}>
+                    Price Range: ${priceAnalysis.price_range_low?.toFixed(2)} - ${priceAnalysis.price_range_high?.toFixed(2)}
+                  </Text>
+                )}
+                <Text style={{fontSize: 14, color: '#888', marginTop: 2}}>Confidence: {priceAnalysis.confidence_score}</Text>
+              </>
+            )}
+          </View>
+        )}
       </View>
 
       {loading && results.length === 0 ? (

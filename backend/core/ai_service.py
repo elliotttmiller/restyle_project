@@ -25,6 +25,7 @@ import math
 import hashlib
 import pickle
 from datetime import datetime, timedelta
+import boto3
 
 logger = logging.getLogger(__name__)
 
@@ -3002,6 +3003,83 @@ class AIService:
     def _compute_object_vector(self, obj):
         """Compute object vector representation"""
         return {'object': obj['name'], 'confidence': obj.get('score', 0.0)}
+
+    def detect_objects_rekognition(self, image_data: bytes) -> list:
+        """
+        Use AWS Rekognition to detect objects and their bounding boxes in the image.
+        Returns a list of dicts: {name, confidence, bounding_box: (x_min, y_min, x_max, y_max)}
+        """
+        try:
+            rekognition = boto3.client(
+                'rekognition',
+                aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+                region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
+            )
+            response = rekognition.detect_labels(
+                Image={'Bytes': image_data},
+                MaxLabels=10,
+                MinConfidence=70
+            )
+            objects = []
+            for label in response['Labels']:
+                for instance in label.get('Instances', []):
+                    box = instance.get('BoundingBox')
+                    if box:
+                        # Rekognition bounding box is in relative coordinates (0-1)
+                        x_min = box['Left']
+                        y_min = box['Top']
+                        x_max = x_min + box['Width']
+                        y_max = y_min + box['Height']
+                        objects.append({
+                            'name': label['Name'],
+                            'confidence': instance.get('Confidence', label.get('Confidence', 0)),
+                            'bounding_box': (x_min, y_min, x_max, y_max),
+                        })
+            logger.info(f"[CROP] Rekognition detected {len(objects)} objects")
+            return objects
+        except Exception as e:
+            logger.error(f"[CROP] Rekognition error: {e}")
+            return []
+
+    def get_best_bounding_box(self, objects: list) -> Optional[tuple]:
+        """
+        Select the most relevant bounding box (highest confidence, largest area, etc.)
+        """
+        if not objects:
+            return None
+        # Sort by confidence, then area
+        def area(box):
+            x_min, y_min, x_max, y_max = box
+            return (x_max - x_min) * (y_max - y_min)
+        objects = sorted(objects, key=lambda o: (o['confidence'], area(o['bounding_box'])), reverse=True)
+        return objects[0]['bounding_box']
+
+    def intelligent_crop(self, image_data: bytes, use_vision=True, use_rekognition=True) -> tuple:
+        """
+        Try to crop the image using Google Vision first, then AWS Rekognition.
+        Returns (cropped_image_bytes, crop_info_dict)
+        crop_info_dict: {service: 'vision'|'rekognition'|'none', bounding_box: tuple or None}
+        """
+        # Try Google Vision
+        if use_vision and self.client:
+            objects = self.detect_objects_and_regions(image_data)
+            bbox = self.get_best_bounding_box(objects)
+            if bbox:
+                logger.info(f"[CROP] Using Google Vision bounding box: {bbox}")
+                cropped = self.crop_to_region(image_data, bbox)
+                return cropped, {'service': 'vision', 'bounding_box': bbox}
+        # Try Rekognition
+        if use_rekognition:
+            objects = self.detect_objects_rekognition(image_data)
+            bbox = self.get_best_bounding_box(objects)
+            if bbox:
+                logger.info(f"[CROP] Using Rekognition bounding box: {bbox}")
+                cropped = self.crop_to_region(image_data, bbox)
+                return cropped, {'service': 'rekognition', 'bounding_box': bbox}
+        # Fallback: no crop
+        logger.info(f"[CROP] No bounding box found, using original image")
+        return image_data, {'service': 'none', 'bounding_box': None}
 
     # Global AI service instance (lazy initialization)
 _ai_service_instance = None

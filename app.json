@@ -4,7 +4,11 @@
     "slug": "restyle-mobile",
     "version": "1.0.0",
     "scheme": "restyle-mobile",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "sdkVersion": "53.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -25,7 +29,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -39,6 +44,12 @@
           "cameraPermission": "The app accesses your camera to let you take photos for AI-powered item search."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ccfe2aab-adc6-4216-8ec2-e05048cad76a"
+      }
+    },
+    "owner": "elliotttmiller"
   }
-} 
+}

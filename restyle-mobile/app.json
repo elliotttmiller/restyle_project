@@ -15,7 +15,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ai.restyle.app",
+      "bundleIdentifier": "ai.restyle.mobile",
       "infoPlist": {
         "NSCameraUsageDescription": "Restyle AI needs access to your camera to take photos of items for AI-powered market analysis.",
         "NSPhotoLibraryUsageDescription": "Restyle AI needs access to your photo library to select images of items for AI-powered market analysis.",

@@ -12,7 +12,6 @@ const DashboardPage = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const navigate = useNavigate();
   const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [hasMoreResults, setHasMoreResults] = useState(false);
   const [currentQuery, setCurrentQuery] = useState('');
@@ -47,7 +46,6 @@ const DashboardPage = () => {
   const handleShowMore = async () => {
     if (!currentQuery.trim()) return;
     
-    setIsSearching(true);
     try {
       // Calculate the next offset based on current results
       const nextOffset = searchResults.length;
@@ -64,7 +62,6 @@ const DashboardPage = () => {
     } catch (error) {
       console.error('Failed to load more results:', error);
     } finally {
-      setIsSearching(false);
     }
   };
 
@@ -142,14 +139,12 @@ const DashboardPage = () => {
         <h2 style={searchTitleStyle}>Search eBay for Items</h2>
         <SearchBar 
           onSearchResults={handleSearchResults}
-          onLoading={setIsSearching}
         />
         
         {showSearchResults && searchResults.length > 0 && (
           <SearchResults 
             results={searchResults}
             onAddToInventory={handleAddToInventory}
-            onLoading={setIsSearching}
             onShowMore={handleShowMore}
             hasMoreResults={hasMoreResults}
           />
