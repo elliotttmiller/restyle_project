@@ -16,9 +16,8 @@ COPY . .
 # Collect static files at build time
 RUN python manage.py collectstatic --noinput
 
-# Copy and set permissions for the start script
-COPY railway_start.sh /app/railway_start.sh
-RUN chmod +x /app/railway_start.sh
+# Copy the Python startup script
+COPY start.py /app/start.py
 
-# Use the start script as the entrypoint
-CMD ["/app/railway_start.sh"]
+# Use the Python startup script as the entrypoint
+CMD ["python", "/app/start.py"]
