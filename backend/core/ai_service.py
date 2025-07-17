@@ -34,8 +34,9 @@ class AIService:
     
     def __init__(self):
         logger.info("AIService __init__ called")
-        self.client = None
-        self._initialize_client()
+        # Lazy initialization - don't initialize clients until needed
+        self._client = None
+        self._client_initialized = False
         self.faiss_index = None
         self.faiss_id_to_item = {}
         
@@ -61,6 +62,13 @@ class AIService:
         self.learning_history = []
         self.pattern_memory = {}
         self._initialize_advanced_ai()
+    
+    @property
+    def client(self):
+        """Lazy initialization of Google Vision client"""
+        if not self._client_initialized:
+            self._initialize_client()
+        return self._client
     
     def _initialize_client(self):
         logger.info("_initialize_client called for AIService")
@@ -94,11 +102,13 @@ class AIService:
                 logger.error("No Google Cloud credentials found. Using fallback mode.")
         try:
             from google.cloud import vision
-            self.client = vision.ImageAnnotatorClient()
+            self._client = vision.ImageAnnotatorClient()
             logger.info("Google Cloud Vision client initialized successfully.")
         except Exception as e:
             logger.exception(f"Error initializing Google Cloud Vision client: {e}")
-            self.client = None
+            self._client = None
+        finally:
+            self._client_initialized = True
     
     def analyze_image(self, image_data: bytes) -> Dict[str, Any]:
         """
@@ -1882,7 +1892,11 @@ class AIService:
             from google.cloud import vision
             
             image = vision.Image(content=image_data)
-            client = vision.ImageAnnotatorClient()
+            # Use the lazy-initialized client instead of creating a new one
+            client = self.client
+            if not client:
+                logger.warning("No Google Vision client available for fallback visual search")
+                return []
             
             # Perform label detection
             response = client.label_detection(image=image)
