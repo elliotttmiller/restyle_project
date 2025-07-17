@@ -112,4 +112,5 @@ urllib3==2.5.0
 vine==5.1.0
 wcwidth==0.2.6
 websockets==15.0.1
-gunicorn==21.2.0
+gunicorn==23.0.0
+pinecone>=3.0.0
