@@ -99,17 +99,10 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Check if running in Docker or locally
 import os
-if os.environ.get('DOCKER_ENV'):
-    # Docker environment - use PostgreSQL
+if os.environ.get('DATABASE_URL'):
+    import dj_database_url
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'restyle_db',
-            'USER': 'restyle_user',
-            'PASSWORD': 'restyle_password',
-            'HOST': 'db',  # Use 'db' for Docker containers
-            'PORT': '5432',
-        }
+        'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
     }
 else:
     # Local development - use SQLite
