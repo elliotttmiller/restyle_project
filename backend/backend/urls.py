@@ -4,12 +4,25 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.http import JsonResponse
+from django.utils import timezone
 
 def project_root(request):
-    return JsonResponse({"message": "Welcome to the Restyle API! The backend is running."})
+    return JsonResponse({
+        "status": "healthy",
+        "message": "Welcome to the Restyle API! The backend is running.",
+        "timestamp": timezone.now().isoformat()
+    })
+
+def health_check(request):
+    return JsonResponse({
+        "status": "healthy",
+        "service": "restyle-backend",
+        "timestamp": timezone.now().isoformat()
+    })
 
 urlpatterns = [
     path('', project_root),
+    path('health/', health_check),
     path('admin/', admin.site.urls),
     # path('', include('core.urls')),  # Commented out root-level include
     
