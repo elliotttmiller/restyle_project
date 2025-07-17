@@ -25,6 +25,7 @@ import os
 from .services import EbayService
 import traceback
 from .market_analysis_service import get_market_analysis_service
+from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +347,7 @@ def ai_status(request):
         # Check if credentials are available
         try:
             import os
-            google_creds = os.path.exists('/app/***REMOVED***')
+            google_creds = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
             aws_creds = os.path.exists('/app/***REMOVED***')
             
             ai_services['vision'] = google_creds
@@ -1120,3 +1121,6 @@ class CropPreviewView(APIView):
         except Exception as e:
             self.logger.error(f"Exception in crop-preview: {e}\n{traceback.format_exc()}")
             return Response({'error': str(e)}, status=500)
+
+def root_view(request):
+    return JsonResponse({"status": "ok", "message": "Restyle API is running."})
