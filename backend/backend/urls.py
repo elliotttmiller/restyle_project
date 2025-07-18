@@ -32,10 +32,20 @@ def simple_health(request):
         "version": "1.0.0"
     })
 
+def test_endpoint(request):
+    """Simple test endpoint to verify basic functionality"""
+    return JsonResponse({
+        "message": "Test endpoint working",
+        "method": request.method,
+        "path": request.path,
+        "timestamp": timezone.now().isoformat()
+    })
+
 urlpatterns = [
     path('', project_root),
     path('health/', health_check),
     path('health', simple_health),  # Simple health check without trailing slash
+    path('test/', test_endpoint),  # Simple test endpoint
     path('admin/', admin.site.urls),
     # path('', include('core.urls')),  # Commented out root-level include
     
