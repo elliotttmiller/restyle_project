@@ -19,5 +19,5 @@ RUN python manage.py collectstatic --noinput
 # Copy the Python startup script
 COPY start.py /app/start.py
 
-# Use the Python startup script as the entrypoint
-CMD ["python", "/app/start.py"]
+# Use the simple startup script as the entrypoint
+CMD ["python", "/app/simple_start.py"]
