@@ -25,7 +25,12 @@ def health_check(request):
 
 def simple_health(request):
     """Ultra-simple health check for Railway"""
-    return JsonResponse({"ok": True})
+    return JsonResponse({
+        "status": "healthy",
+        "service": "restyle-backend",
+        "timestamp": timezone.now().isoformat(),
+        "version": "1.0.0"
+    })
 
 urlpatterns = [
     path('', project_root),

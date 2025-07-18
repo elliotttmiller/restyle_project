@@ -42,6 +42,11 @@ def main():
     
     # Start Gunicorn
     print("Starting Gunicorn server...")
+    print(f"Server will be available at: http://0.0.0.0:{port}")
+    print("Health check endpoints:")
+    print(f"  - http://0.0.0.0:{port}/health")
+    print(f"  - http://0.0.0.0:{port}/")
+    
     gunicorn_cmd = [
         "gunicorn",
         "backend.wsgi:application",
@@ -53,7 +58,8 @@ def main():
         "--max-requests-jitter", "100",
         "--access-logfile", "-",
         "--error-logfile", "-",
-        "--log-level", "info"
+        "--log-level", "info",
+        "--preload"  # Preload the application for better performance
     ]
     
     try:
