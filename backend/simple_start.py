@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 def main():
-    port = os.environ.get('PORT', '8080')
+    port = os.environ.get('PORT', '8000')
     print(f"Starting Django on port {port}")
     
     # Run migrations
