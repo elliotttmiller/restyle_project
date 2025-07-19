@@ -1,22 +1,61 @@
 import axios from 'axios';
 import { useAuthStore } from './authStore';
+import config from '../config.js';
 
-export const API_BASE_URL = "https://restyleproject-production.up.railway.app";
+export const API_BASE_URL = config.API_BASE_URL;
+
+console.log('🔧 API Configuration:', {
+  API_BASE_URL,
+  config: config
+});
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: config.API_TIMEOUT || 15000,
 });
 
-// Request interceptor: Adds the auth token to every outgoing request.
+// Add request logging
 api.interceptors.request.use(
   (config) => {
+    console.log('🚀 API Request:', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+      headers: config.headers
+    });
+    
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('❌ API Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response logging
+api.interceptors.response.use(
+  (response) => {
+    console.log('✅ API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data
+    });
+    return response;
+  },
+  (error) => {
+    console.error('❌ API Response Error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url
+    });
+    return Promise.reject(error);
+  }
 );
 
 // --- UPGRADED TOKEN REFRESH LOGIC ---
