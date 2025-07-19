@@ -13,11 +13,14 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy the application code into the container
 COPY . .
 
+# Make railway_start.sh executable
+RUN chmod +x /app/railway_start.sh
+
 # Collect static files at build time
 RUN python manage.py collectstatic --noinput
 
 # Copy the Python startup script
 COPY start.py /app/start.py
 
-# Use the simple startup script as the entrypoint
-CMD ["python", "/app/simple_start.py"]
+# Use railway_start.sh as the entrypoint
+CMD ["/app/railway_start.sh"]
