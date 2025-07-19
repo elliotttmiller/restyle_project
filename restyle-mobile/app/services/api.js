@@ -1,7 +1,9 @@
 import axios from 'axios';
+import config from '../../config.js';
 
 const api = axios.create({
-  baseURL: 'http://192.168.0.33:8000',
+  baseURL: config.API_BASE_URL,
+  timeout: config.API_TIMEOUT,
   // ... any other config ...
 });
 
