@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from core.ebay_auth import token_manager, validate_ebay_token
 import logging
+from django.contrib.auth import get_user_model
 
 logger = logging.getLogger(__name__)
 
@@ -133,3 +134,19 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.ERROR(f"❌ Error force refreshing token: {e}")
             ) 
+class SetUserStaffCommand(BaseCommand):
+    help = 'Set a user as staff (is_staff=True) by username.'
+
+    def add_arguments(self, parser):
+        parser.add_argument('username', type=str, help='Username to set as staff')
+
+    def handle(self, *args, **options):
+        username = options['username']
+        User = get_user_model()
+        try:
+            user = User.objects.get(username=username)
+            user.is_staff = True
+            user.save()
+            self.stdout.write(self.style.SUCCESS(f"User '{username}' set as staff (is_staff=True)."))
+        except User.DoesNotExist:
+            self.stdout.write(self.style.ERROR(f"User '{username}' does not exist.")) 
