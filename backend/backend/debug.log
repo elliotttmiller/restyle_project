@@ -3782,3 +3782,35 @@ botocore.exceptions.EndpointConnectionError: Could not connect to the endpoint U
 [DEBUG] 2025-07-17 12:42:20,035 django.utils.autoreload C:\Users\AMD\restyle_project\backend\backend\settings.py notified as changed. Signal results: [(<function template_changed at 0x000001F464480680>, None), (<function translation_file_changed at 0x000001F465A51300>, None)].
 [INFO] 2025-07-17 12:42:20,035 django.utils.autoreload C:\Users\AMD\restyle_project\backend\backend\settings.py changed, reloading.
 [DEBUG] 2025-07-17 18:38:19,580 urllib3.connectionpool Starting new HTTP connection (1): localhost:8001
+[DEBUG] 2025-07-19 12:45:48,574 faiss.loader Environment variable FAISS_OPT_LEVEL is not set, so let's pick the instruction set according to the current CPU
+[INFO] 2025-07-19 12:45:48,578 faiss.loader Loading faiss with AVX2 support.
+[INFO] 2025-07-19 12:45:48,851 faiss.loader Successfully loaded faiss with AVX2 support.
+[INFO] 2025-07-19 12:45:48,859 faiss Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+[INFO] 2025-07-19 12:45:49,294 core.ebay_auth Loaded eBay refresh token from file.
+[WARNING] 2025-07-19 12:45:50,552 core.market_analysis_service EncoderService not available - visual similarity ranking will be disabled
+[ERROR] 2025-07-19 12:45:50,552 core.views [DEBUG] EbaySearchView: class loaded
+[DEBUG] 2025-07-19 12:47:11,893 asyncio Using proactor: IocpProactor
+[DEBUG] 2025-07-19 12:47:12,056 asyncio Using proactor: IocpProactor
+[DEBUG] 2025-07-19 12:47:45,768 asyncio Using proactor: IocpProactor
+[DEBUG] 2025-07-19 12:47:45,920 asyncio Using proactor: IocpProactor
+[INFO] 2025-07-19 12:53:51,039 debug_middleware Request: GET / from 127.0.0.1
+[INFO] 2025-07-19 12:53:51,040 debug_middleware Headers: {'Cookie': ''}
+[DEBUG] 2025-07-19 12:53:51,641 faiss.loader Environment variable FAISS_OPT_LEVEL is not set, so let's pick the instruction set according to the current CPU
+[INFO] 2025-07-19 12:53:51,644 faiss.loader Loading faiss with AVX2 support.
+[INFO] 2025-07-19 12:53:51,666 faiss.loader Successfully loaded faiss with AVX2 support.
+[INFO] 2025-07-19 12:53:51,673 faiss Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+[INFO] 2025-07-19 12:53:51,819 core.ebay_auth Loaded eBay refresh token from file.
+[WARNING] 2025-07-19 12:53:52,898 core.market_analysis_service EncoderService not available - visual similarity ranking will be disabled
+[ERROR] 2025-07-19 12:53:52,898 core.views [DEBUG] EbaySearchView: class loaded
+[INFO] 2025-07-19 12:53:52,900 debug_middleware Response: 200 in 1.861s
+[INFO] 2025-07-19 12:53:52,902 debug_middleware Request: GET /health/ from 127.0.0.1
+[INFO] 2025-07-19 12:53:52,902 debug_middleware Headers: {'Cookie': ''}
+[INFO] 2025-07-19 12:53:52,902 debug_middleware Response: 200 in 0.001s
+[DEBUG] 2025-07-19 12:53:58,006 urllib3.connectionpool Starting new HTTP connection (1): localhost:8001
+[DEBUG] 2025-07-19 13:10:05,439 faiss.loader Environment variable FAISS_OPT_LEVEL is not set, so let's pick the instruction set according to the current CPU
+[INFO] 2025-07-19 13:10:05,444 faiss.loader Loading faiss with AVX2 support.
+[INFO] 2025-07-19 13:10:05,475 faiss.loader Successfully loaded faiss with AVX2 support.
+[INFO] 2025-07-19 13:10:05,485 faiss Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+[INFO] 2025-07-19 13:10:05,766 core.ebay_auth Loaded eBay refresh token from file.
+[WARNING] 2025-07-19 13:10:06,895 core.market_analysis_service EncoderService not available - visual similarity ranking will be disabled
+[ERROR] 2025-07-19 13:10:06,895 core.views [DEBUG] EbaySearchView: class loaded

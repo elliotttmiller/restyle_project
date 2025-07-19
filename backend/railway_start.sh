@@ -7,6 +7,10 @@ echo "Starting Django application..."
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
+# Create superuser if not exists
+echo "Ensuring production superuser exists..."
+python manage.py create_prod_superuser
+
 # Collect static files
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
