@@ -6,9 +6,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         User = get_user_model()
-        username = 'admin'
-        password = 'test123'
-        email = 'admin@example.com'
+        username = 'elliotttmiller'
+        password = 'elliott'
+        email = 'elliotttmiller@example.com'
         if not User.objects.filter(username=username).exists():
             User.objects.create_superuser(username=username, password=password, email=email)
             self.stdout.write(self.style.SUCCESS(f"Superuser '{username}' created."))
