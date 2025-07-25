@@ -3814,3 +3814,10 @@ botocore.exceptions.EndpointConnectionError: Could not connect to the endpoint U
 [INFO] 2025-07-19 13:10:05,766 core.ebay_auth Loaded eBay refresh token from file.
 [WARNING] 2025-07-19 13:10:06,895 core.market_analysis_service EncoderService not available - visual similarity ranking will be disabled
 [ERROR] 2025-07-19 13:10:06,895 core.views [DEBUG] EbaySearchView: class loaded
+[DEBUG] 2025-07-25 12:32:22,938 faiss.loader Environment variable FAISS_OPT_LEVEL is not set, so let's pick the instruction set according to the current CPU
+[INFO] 2025-07-25 12:32:22,942 faiss.loader Loading faiss with AVX2 support.
+[INFO] 2025-07-25 12:32:23,227 faiss.loader Successfully loaded faiss with AVX2 support.
+[INFO] 2025-07-25 12:32:23,235 faiss Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+[INFO] 2025-07-25 12:32:23,572 core.ebay_auth Loaded eBay refresh token from file.
+[WARNING] 2025-07-25 12:32:24,543 core.market_analysis_service EncoderService not available - visual similarity ranking will be disabled
+[ERROR] 2025-07-25 12:32:24,543 core.views [DEBUG] EbaySearchView: class loaded
