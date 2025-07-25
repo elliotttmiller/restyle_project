@@ -1,0 +1,39 @@
+# Ignore backend and server-side code
+../backend/
+../test_files/
+../readme_files/
+../startup_files/
+../db.sqlite3
+../*.py
+
+# Ignore logs and debug files
+*.log
+*.md
+*.txt
+*.bat
+*.sh
+*.exe
+.DS_Store
+.env
+
+# Ignore images and media not needed for build
+*.jpg
+*.jpeg
+*.png
+*.JPG
+
+# Ignore node_modules (EAS will install dependencies)
+node_modules/
+
+# Ignore local config and cache
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.cache/
+.idea/
+.vscode/
+
+# Ignore Expo/Metro/React Native cache
+.expo/
+.expo-shared/
+metro-cache/ 
