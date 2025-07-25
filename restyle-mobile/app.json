@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Restyle AI",
+    "name": "Restyle.ai",
     "slug": "restyle-ai-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,8 +15,8 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ai.restyle.mobile",
-      "buildNumber": "12",
+      "bundleIdentifier": "app.restyle.ai",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Restyle AI needs access to your camera to take photos of items for AI-powered market analysis.",
         "NSPhotoLibraryUsageDescription": "Restyle AI needs access to your photo library to select images of items for AI-powered market analysis.",
