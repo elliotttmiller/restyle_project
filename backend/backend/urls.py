@@ -37,6 +37,10 @@ def simple_health(request):
         "version": "1.0.0"
     })
 
+def health(request):
+    """Health check endpoint that returns exactly {"status": "ok"} for Railway"""
+    return JsonResponse({"status": "ok"})
+
 def test_endpoint(request):
     """Simple test endpoint to verify basic functionality"""
     return JsonResponse({
@@ -80,6 +84,7 @@ urlpatterns = [
     path('', project_root),
     path('health/', health_check),
     path('health', simple_health),  # Simple health check without trailing slash
+    path('health-ok/', health),  # Exact format health check for Railway
     path('test/', test_endpoint),  # Simple test endpoint
     path('admin/', admin.site.urls),
     
