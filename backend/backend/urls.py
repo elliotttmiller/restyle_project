@@ -3,9 +3,9 @@
 import os
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.http import JsonResponse
 from django.utils import timezone
+from .auth_views import token_obtain_pair, token_refresh, test_credentials
 
 def project_root(request):
     return JsonResponse({
@@ -47,15 +47,15 @@ urlpatterns = [
     path('health', simple_health),  # Simple health check without trailing slash
     path('test/', test_endpoint),  # Simple test endpoint
     path('admin/', admin.site.urls),
-    # path('', include('core.urls')),  # Commented out root-level include
     
     # CORRECTED: All user-related routes (register) now point to the 'users.urls'.
     path('api/users/', include('users.urls')), 
     
-    # Token (login) routes remain here as they are from a third-party app.
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Custom authentication endpoints
+    path('api/token/', token_obtain_pair, name='token_obtain_pair'),
+    path('api/token/refresh/', token_refresh, name='token_refresh'),
+    path('api/test-credentials/', test_credentials, name='test_credentials'),
     
     # All core business logic routes (items, analysis, etc.) point to 'core.urls'.
-    path('api/core/', include('core.urls')),  # Mount core app under /api/core/
+    # path('api/core/', include('core.urls')),  # Mount core app under /api/core/
 ]
