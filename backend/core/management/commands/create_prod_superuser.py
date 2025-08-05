@@ -9,8 +9,35 @@ class Command(BaseCommand):
         username = 'elliotttmiller'
         password = 'elliott'
         email = 'elliotttmiller@example.com'
-        if not User.objects.filter(username=username).exists():
-            User.objects.create_superuser(username=username, password=password, email=email)
-            self.stdout.write(self.style.SUCCESS(f"Superuser '{username}' created."))
-        else:
-            self.stdout.write(self.style.WARNING(f"Superuser '{username}' already exists.")) 
+        
+        try:
+            user, created = User.objects.get_or_create(
+                username=username,
+                defaults={
+                    'email': email,
+                    'is_staff': True,
+                    'is_superuser': True,
+                    'is_active': True,
+                }
+            )
+            
+            # Always update password and permissions
+            user.set_password(password)
+            user.is_staff = True
+            user.is_superuser = True
+            user.is_active = True
+            user.save()
+            
+            if created:
+                self.stdout.write(
+                    self.style.SUCCESS(f"Superuser '{username}' created successfully.")
+                )
+            else:
+                self.stdout.write(
+                    self.style.SUCCESS(f"Superuser '{username}' updated successfully.")
+                )
+                
+        except Exception as e:
+            self.stdout.write(
+                self.style.ERROR(f"Error creating/updating superuser: {e}")
+            ) 

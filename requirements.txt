@@ -21,6 +21,7 @@ debugpy==1.6.6
 decorator==5.1.1
 Django==4.2.13
 django-cors-headers==4.3.1
+django-redis==5.4.0
 djangorestframework==3.15.1
 djangorestframework-simplejwt==5.3.1
 docstring_parser==0.16
@@ -116,3 +117,10 @@ gunicorn==23.0.0
 pinecone>=3.0.0
 dj-database-url
 psycopg2-binary
+whitenoise==6.7.0
+sentry-sdk[django]==2.19.0
+
+# Development dependencies
+black==24.10.0
+flake8==7.1.1
+isort==5.13.2
