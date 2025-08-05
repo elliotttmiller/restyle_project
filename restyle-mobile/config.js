@@ -3,12 +3,12 @@
  * Switch between development and production environments
  */
 
-// Force production for now to ensure Railway connection
-const ENV = 'production';
+// Temporarily use local development backend for testing
+const ENV = 'development';
 
 const config = {
   development: {
-    API_BASE_URL: 'http://192.168.0.33:8000',
+    API_BASE_URL: 'http://localhost:8000',
     API_TIMEOUT: 10000,
     DEBUG: true,
   },

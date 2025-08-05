@@ -3,9 +3,14 @@
 import os
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.http import JsonResponse
 from django.utils import timezone
+from .auth_views import token_obtain_pair, token_refresh, test_credentials
+
+from django.http import JsonResponse
+from django.utils import timezone
+from .auth_views import token_obtain_pair, token_refresh, test_credentials
+from .auth_middleware import require_auth
 
 def project_root(request):
     return JsonResponse({
@@ -41,21 +46,55 @@ def test_endpoint(request):
         "timestamp": timezone.now().isoformat()
     })
 
+@require_auth
+def protected_endpoint(request):
+    """Test protected endpoint that requires authentication"""
+    return JsonResponse({
+        "message": "You are authenticated!",
+        "user": {
+            "id": request.user.id,
+            "username": request.user.username,
+            "email": request.user.email
+        },
+        "timestamp": timezone.now().isoformat()
+    })
+
+@require_auth
+def user_profile(request):
+    """Get user profile information"""
+    return JsonResponse({
+        "profile": {
+            "id": request.user.id,
+            "username": request.user.username,
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "is_active": request.user.is_active,
+            "date_joined": request.user.date_joined.isoformat(),
+            "last_login": request.user.last_login.isoformat() if request.user.last_login else None
+        },
+        "timestamp": timezone.now().isoformat()
+    })
+
 urlpatterns = [
     path('', project_root),
     path('health/', health_check),
     path('health', simple_health),  # Simple health check without trailing slash
     path('test/', test_endpoint),  # Simple test endpoint
     path('admin/', admin.site.urls),
-    # path('', include('core.urls')),  # Commented out root-level include
     
     # CORRECTED: All user-related routes (register) now point to the 'users.urls'.
     path('api/users/', include('users.urls')), 
     
-    # Token (login) routes remain here as they are from a third-party app.
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Custom authentication endpoints
+    path('api/token/', token_obtain_pair, name='token_obtain_pair'),
+    path('api/token/refresh/', token_refresh, name='token_refresh'),
+    path('api/test-credentials/', test_credentials, name='test_credentials'),
+    
+    # Protected endpoints for testing
+    path('api/protected/', protected_endpoint, name='protected_endpoint'),
+    path('api/profile/', user_profile, name='user_profile'),
     
     # All core business logic routes (items, analysis, etc.) point to 'core.urls'.
-    path('api/core/', include('core.urls')),  # Mount core app under /api/core/
+    # path('api/core/', include('core.urls')),  # Mount core app under /api/core/
 ]
