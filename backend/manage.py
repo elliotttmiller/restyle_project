@@ -6,7 +6,19 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+    # Default to development settings, but respect DJANGO_SETTINGS_MODULE
+    settings_module = os.environ.get('DJANGO_SETTINGS_MODULE')
+    if not settings_module:
+        # Auto-detect environment based on common indicators
+        if os.environ.get('DATABASE_URL') and not os.environ.get('DEBUG'):
+            # Production environment detected
+            settings_module = 'backend.settings.prod'
+        else:
+            # Development environment
+            settings_module = 'backend.settings.dev'
+        
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_module)
+    
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

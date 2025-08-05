@@ -13,5 +13,13 @@
     },
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "DJANGO_SETTINGS_MODULE": "backend.settings.prod",
+        "DEBUG": "false"
+      }
+    }
   }
 } 

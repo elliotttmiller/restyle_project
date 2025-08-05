@@ -3,6 +3,9 @@ set -e
 
 echo "Starting Django application..."
 
+# Set production settings
+export DJANGO_SETTINGS_MODULE=backend.settings.prod
+
 # Run migrations
 echo "Running database migrations..."
 python manage.py migrate --noinput

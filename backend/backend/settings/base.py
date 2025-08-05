@@ -11,8 +11,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
+
+# Allow fallback for development, but warn in production
 if not SECRET_KEY:
-    raise ValueError("SECRET_KEY environment variable is required")
+    if os.environ.get('DEBUG', 'False').lower() == 'true':
+        SECRET_KEY = 'django-insecure-dev-key-only-for-local-development'
+        import warnings
+        warnings.warn("Using default SECRET_KEY for development. Set SECRET_KEY environment variable.")
+    else:
+        raise ValueError("SECRET_KEY environment variable is required for production")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -33,8 +40,14 @@ INSTALLED_APPS = [
     
     # Our Custom Apps
     'users.apps.UsersConfig',
-    'core.apps.CoreConfig',
 ]
+
+# Add core app if it exists (it might be temporarily disabled)
+try:
+    import core.apps
+    INSTALLED_APPS.append('core.apps.CoreConfig')
+except ImportError:
+    pass
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
