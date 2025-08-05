@@ -1,0 +1,13 @@
+# Django static files and database
+staticfiles/
+db.sqlite3
+backend/debug.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files
+.env
+local_settings.py

@@ -16,8 +16,7 @@ echo "Printing all users and their flags for debugging..."
 python manage.py shell -c "from django.contrib.auth import get_user_model; User = get_user_model(); print('All users:'); [print(u.username, u.is_staff, u.is_superuser, u.is_active) for u in User.objects.all()]"
 
 # Create superuser if not exists
-echo "Ensuring production superuser exists..."
-python manage.py create_prod_superuser
+echo "Superuser creation is now handled automatically by the users app"
 
 # Collect static files
 echo "Collecting static files..."
