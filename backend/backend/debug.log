@@ -21073,3 +21073,10 @@ botocore.exceptions.ConnectTimeoutError: Connect timeout on endpoint URL: "http:
 [WARNING] 2025-08-06 06:48:43,031 root AWS Rekognition client initialization failed: You must specify a region.
 [WARNING] 2025-08-06 06:48:43,031 root Gemini model initialization failed: No module named 'google'
 [INFO] 2025-08-06 06:48:43,032 django.server "GET /core/ai/status/ HTTP/1.1" 200 179
+[INFO] 2025-08-06 06:49:19,675 advanced_ai_search_debug === Advanced Multi-Expert AI Search ===
+[ERROR] 2025-08-06 06:49:19,675 django.request Service Unavailable: /core/ai/advanced-search/
+[ERROR] 2025-08-06 06:49:19,675 django.server "POST /core/ai/advanced-search/ HTTP/1.1" 503 128
+[WARNING] 2025-08-06 06:49:19,683 django.request Forbidden: /core/ebay-search/
+[WARNING] 2025-08-06 06:49:19,684 django.server "GET /core/ebay-search/?q=jordan+4+black+cat&limit=20&offset=0 HTTP/1.1" 403 58
+[INFO] 2025-08-06 06:49:19,691 django.server "GET /health HTTP/1.1" 200 120
+[INFO] 2025-08-06 06:49:19,699 django.server "GET /core/health/ HTTP/1.1" 200 83
