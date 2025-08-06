@@ -49,9 +49,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # 3rd Party Apps
-    # 'corsheaders',  # Disabled due to missing dependency 
+    'corsheaders',  # Re-enabled - now installed
     'rest_framework',
-    # 'rest_framework_simplejwt',  # Disabled due to missing dependency
+    # 'rest_framework_simplejwt',  # Still disabled - install via pip needed
     
     # Our Custom Apps
     'users.apps.UsersConfig',
@@ -60,9 +60,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # 'whitenoise.middleware.WhiteNoiseMiddleware',  # Disabled due to missing dependency
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Re-enabled - now installed
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # 'corsheaders.middleware.CorsMiddleware',  # Disabled due to missing dependency
+    'corsheaders.middleware.CorsMiddleware',  # Re-enabled - now installed
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -146,7 +146,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'  # Disabled due to missing dependency
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'  # Re-enabled
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
