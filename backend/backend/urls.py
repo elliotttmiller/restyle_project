@@ -101,5 +101,5 @@ urlpatterns = [
     path('api/profile/', user_profile, name='user_profile'),
     
     # All core business logic routes (items, analysis, etc.) point to 'core.urls'.
-    # path('api/core/', include('core.urls')),  # Mount core app under /api/core/
+    path('core/', include('core.urls')),  # Mount core app under /core/
 ]

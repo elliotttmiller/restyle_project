@@ -49,26 +49,25 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # 3rd Party Apps
-    # 'corsheaders', # Temporarily disabled due to dependency issues
+    'corsheaders',  # Re-enabled - now installed
     'rest_framework',
-    # 'rest_framework_simplejwt', # Temporarily disabled
+    # 'rest_framework_simplejwt',  # Still disabled - install via pip needed
     
     # Our Custom Apps
     'users.apps.UsersConfig',
-    # 'core.apps.CoreConfig', # Temporarily disabled
+    'core.apps.CoreConfig',  # Re-enabled core app
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # 'whitenoise.middleware.WhiteNoiseMiddleware', # Temporarily disabled
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Re-enabled - now installed
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # 'corsheaders.middleware.CorsMiddleware', # Temporarily disabled
+    'corsheaders.middleware.CorsMiddleware',  # Re-enabled - now installed
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'debug_middleware.DebugMiddleware',  # Add debug middleware
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -147,7 +146,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage' # Temporarily disabled
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'  # Re-enabled
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -169,7 +168,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
-        # 'rest_framework_simplejwt.authentication.JWTAuthentication', # Temporarily disabled
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',  # Disabled due to missing dependency
     ],
 }
 
