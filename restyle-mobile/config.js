@@ -3,8 +3,8 @@
  * Switch between development and production environments
  */
 
-// Temporarily use local development backend for testing
-const ENV = 'development';
+// Use production backend for builds
+const ENV = 'production';
 
 const config = {
   development: {
