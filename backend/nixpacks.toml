@@ -3,6 +3,8 @@ providers = []
 
 [variables]
 PIP_NO_CACHE_DIR = "1"
+LD_LIBRARY_PATH = "/nix/store/*/lib"
+PKG_CONFIG_PATH = "/nix/store/*/lib/pkgconfig"
 
 [phases.setup]
 nixPkgs = [
@@ -11,6 +13,7 @@ nixPkgs = [
   "python311Packages.virtualenv",
   "gcc",
   "zlib",
+  "zlib.dev",
   "postgresql",
   "openssl",
   "mesa",
@@ -25,6 +28,7 @@ nixPkgs = [
 
 [phases.install]
 cmds = [
+  "export LD_LIBRARY_PATH=/nix/store/*/lib:$LD_LIBRARY_PATH",
   "python -m venv venv",
   "source venv/bin/activate && pip install --upgrade pip",
   "source venv/bin/activate && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu",
