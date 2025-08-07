@@ -485,55 +485,64 @@ export default function Dashboard() {
     setQueryVariants([]);
   };
 
-  const renderSearchResult = ({ item, index }) => (
-    <View style={styles.searchResultItem}>
-      <TouchableOpacity
-        style={styles.searchResultContent}
-        onPress={() => {
-          console.log('Opening item detail modal for item:', item);
-          setSelectedItem(item);
-          setShowItemDetail(true);
-        }}
-      >
-        {item.image?.imageUrl ? (
-          <Image
-            source={{ uri: item.image.imageUrl }}
-            style={styles.searchResultImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.searchResultImagePlaceholder}>
-            <Text style={styles.searchResultImagePlaceholderText}>No Image</Text>
-          </View>
-        )}
-        <View style={styles.searchResultInfo}>
-          <Text style={styles.searchResultTitle} numberOfLines={2}>
-            {item.title || 'No title'}
-          </Text>
-          {item.price?.value && (
-            <Text style={styles.searchResultPrice}>
-              ${item.price.value}
-            </Text>
-          )}
-          {item.seller?.username && (
-            <Text style={styles.searchResultSeller}>
-              by {item.seller.username}
-      </Text>
-          )}
-    </View>
-      </TouchableOpacity>
-      {(item.itemAffiliateWebUrl || item.itemWebUrl) && (
+  const renderSearchResult = ({ item, index }) => {
+    // Log the image URL for debugging
+    if (item.image && item.image.imageUrl) {
+      console.log(`Rendering image for item ${item.itemId}: ${item.image.imageUrl}`);
+    } else {
+      console.log(`No image URL for item ${item.itemId}`);
+    }
+
+    return (
+      <View style={styles.searchResultItem}>
         <TouchableOpacity
+          style={styles.searchResultContent}
           onPress={() => {
-            Linking.openURL(item.itemAffiliateWebUrl || item.itemWebUrl);
+            console.log('Opening item detail modal for item:', item);
+            setSelectedItem(item);
+            setShowItemDetail(true);
           }}
-          style={styles.searchResultEbayButton}
         >
-          <Text style={styles.searchResultEbayButtonText}>eBay</Text>
+          {item.image?.imageUrl ? (
+            <Image
+              source={{ uri: item.image.imageUrl }}
+              style={styles.searchResultImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.searchResultImagePlaceholder}>
+              <Text style={styles.searchResultImagePlaceholderText}>No Image</Text>
+            </View>
+          )}
+          <View style={styles.searchResultInfo}>
+            <Text style={styles.searchResultTitle} numberOfLines={2}>
+              {item.title || 'No title'}
+            </Text>
+            {item.price?.value && (
+              <Text style={styles.searchResultPrice}>
+                ${item.price.value}
+              </Text>
+            )}
+            {item.seller?.username && (
+              <Text style={styles.searchResultSeller}>
+                by {item.seller.username}
+      </Text>
+            )}
+      </View>
         </TouchableOpacity>
-      )}
-    </View>
-  );
+        {(item.itemAffiliateWebUrl || item.itemWebUrl) && (
+          <TouchableOpacity
+            onPress={() => {
+              Linking.openURL(item.itemAffiliateWebUrl || item.itemWebUrl);
+            }}
+            style={styles.searchResultEbayButton}
+          >
+            <Text style={styles.searchResultEbayButtonText}>eBay</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   const renderQueryVariant = (variant, index) => (
     <TouchableOpacity
@@ -1276,4 +1285,4 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: '500',
   },
-}); 
+});
