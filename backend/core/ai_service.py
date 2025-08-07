@@ -141,10 +141,13 @@ class AIService:
             logger.error(f"Fallback credential loading failed: {e}")
             self._client = None
     
-    def analyze_image(self, image_data: bytes) -> Dict[str, Any]:
+    def analyze_image(self, image_data: bytes, **kwargs) -> Dict[str, Any]:
         """
         Analyze an image using Google Cloud Vision API and return a rich, precise response
         """
+        intelligent_crop = kwargs.get('intelligent_crop', False)
+        if intelligent_crop:
+            logger.info(f"analyze_image called with intelligent_crop={intelligent_crop}")
         if not self.client:
             logger.warning("No Google Vision client available, using fallback analysis")
             return self._fallback_analysis(image_data)
