@@ -4,6 +4,12 @@
     "slug": "restyle-ai-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "scheme": "restyleai",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
@@ -17,6 +23,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.restyle.ai",
       "buildNumber": "1",
+      "icon": "./assets/icon-1024.png",
       "infoPlist": {
         "NSCameraUsageDescription": "Restyle AI needs access to your camera to take photos of items for AI-powered market analysis.",
         "NSPhotoLibraryUsageDescription": "Restyle AI needs access to your photo library to select images of items for AI-powered market analysis.",
@@ -25,6 +32,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.restyleai.mobile",

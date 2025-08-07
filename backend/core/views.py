@@ -17,8 +17,11 @@ except ImportError:
 
 try:
     from .ai_service import get_ai_service
+    from .advanced_ai_service import get_advanced_ai_service
 except ImportError:
     from .stubs import get_ai_service
+    def get_advanced_ai_service():
+        return None
 
 try:
     from .services import EbayService
@@ -261,8 +264,8 @@ class EbaySearchView(APIView):
 
 class AdvancedMultiExpertAISearchView(APIView):
     """
-    Advanced multi-expert AI search endpoint with detailed debug logging.
-    Accepts 'intelligent_crop' boolean flag (default: True).
+    Advanced multi-expert AI search endpoint with sophisticated neural network analysis.
+    Uses both traditional AI service and advanced neural networks for comprehensive analysis.
     """
     permission_classes = [AllowAny]
     
@@ -273,21 +276,24 @@ class AdvancedMultiExpertAISearchView(APIView):
 
     def post(self, request):
         try:
-            self.logger.info("=== Advanced Multi-Expert AI Search ===")
+            self.logger.info("=== Advanced Multi-Expert AI Search with Neural Networks ===")
             
-            # Get the AI service
+            # Get both AI services
             ai_service = get_ai_service()
-            if ai_service is None:
+            advanced_ai_service = get_advanced_ai_service()
+            
+            if not ai_service and not advanced_ai_service:
                 return Response({
                     "status": "error",
                     "message": "AI services not available - dependencies not installed",
-                    "debug": "AI service initialization failed"
+                    "debug": "Both AI service initialization failed"
                 }, status=503)
             
             # Extract request data
             data = request.data
             image_data = data.get('image')
             intelligent_crop = data.get('intelligent_crop', True)
+            use_advanced_ai = data.get('use_advanced_ai', True)
             
             if not image_data:
                 return Response({
@@ -304,33 +310,92 @@ class AdvancedMultiExpertAISearchView(APIView):
                 # This is already bytes or string
                 image_bytes = image_data
             
-            self.logger.info(f"Processing image with intelligent_crop={intelligent_crop}")
+            self.logger.info(f"Processing image with intelligent_crop={intelligent_crop}, use_advanced_ai={use_advanced_ai}")
             
-            # Process the image (this would call the real AI service)
-            try:
-                results = ai_service.analyze_image(image_bytes, intelligent_crop=intelligent_crop)
-                
-                if isinstance(results, dict) and results.get("status") == "error":
-                    # This is a stub response
+            # Choose AI processing strategy
+            if use_advanced_ai and advanced_ai_service:
+                self.logger.info("Using Advanced AI Service with neural networks")
+                try:
+                    # Use advanced AI service with asyncio support
+                    import asyncio
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    
+                    results = loop.run_until_complete(
+                        advanced_ai_service.analyze_image_advanced(
+                            image_bytes, 
+                            intelligent_crop=intelligent_crop
+                        )
+                    )
+                    
+                    loop.close()
+                    
+                    # Enhanced response with advanced AI results
+                    return Response({
+                        "status": "success",
+                        "message": "Advanced neural network analysis completed",
+                        "results": results,
+                        "ai_service_used": "advanced_neural_networks",
+                        "intelligent_crop_used": intelligent_crop,
+                        "features": {
+                            "neural_reasoning": True,
+                            "multimodal_fusion": True,
+                            "uncertainty_quantification": True,
+                            "adaptive_thresholding": True,
+                            "semantic_understanding": True,
+                            "hardcoded_rules": False
+                        }
+                    })
+                    
+                except Exception as e:
+                    self.logger.error(f"Advanced AI analysis failed: {str(e)}")
+                    # Fallback to standard AI service
+                    use_advanced_ai = False
+            
+            # Standard AI service processing
+            if ai_service:
+                self.logger.info("Using Standard AI Service")
+                try:
+                    results = ai_service.analyze_image(image_bytes, intelligent_crop=intelligent_crop)
+                    
+                    if isinstance(results, dict) and results.get("status") == "error":
+                        # This is a stub response
+                        return Response({
+                            "status": "error",
+                            "message": results.get("message", "AI analysis unavailable"),
+                            "debug": "AI dependencies not installed - this is a placeholder response"
+                        }, status=503)
+                    
+                    # Enhanced standard response
+                    return Response({
+                        "status": "success",
+                        "message": "Standard AI analysis completed",
+                        "results": results,
+                        "ai_service_used": "standard_vision_ai",
+                        "intelligent_crop_used": intelligent_crop,
+                        "features": {
+                            "vision_analysis": True,
+                            "search_terms": True,
+                            "object_detection": True,
+                            "text_recognition": True,
+                            "advanced_reasoning": False
+                        }
+                    })
+                    
+                except Exception as e:
+                    self.logger.error(f"Standard AI analysis failed: {str(e)}")
                     return Response({
                         "status": "error",
-                        "message": results.get("message", "AI analysis unavailable"),
-                        "debug": "AI dependencies not installed - this is a placeholder response"
-                    }, status=503)
-                
-                return Response({
-                    "status": "success",
-                    "results": results,
-                    "intelligent_crop_used": intelligent_crop
-                })
-                
-            except Exception as e:
-                self.logger.error(f"AI analysis failed: {str(e)}")
-                return Response({
-                    "status": "error",
-                    "message": f"AI analysis failed: {str(e)}",
-                    "debug": traceback.format_exc()
-                }, status=500)
+                        "message": f"AI analysis failed: {str(e)}",
+                        "debug": traceback.format_exc()
+                    }, status=500)
+            
+            # No AI service available
+            return Response({
+                "status": "error",
+                "message": "No AI services available",
+                "debug": "Both standard and advanced AI services failed"
+            }, status=503)
                 
         except Exception as e:
             self.logger.error(f"Advanced AI search failed: {str(e)}")

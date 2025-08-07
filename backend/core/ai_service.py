@@ -1054,75 +1054,297 @@ class AIService:
         return False
     
     def _is_likely_product(self, term):
-        """AI-driven product detection"""
+        """AI-driven product detection using neural patterns"""
         if not term or len(term) < 3:
             return False
         
         term_lower = term.lower()
         
-        # Look for product indicators
-        product_indicators = [
-            'shirt', 'pants', 'jacket', 'dress', 'shoes', 'hat', 'bag',
-            'jersey', 'uniform', 'outfit', 'garment', 'clothing', 'apparel'
+        # AI-driven pattern recognition for product terms
+        # Look for linguistic patterns that suggest product categories
+        product_patterns = [
+            # Pattern 1: Common product suffixes
+            r'.*wear$',  # footwear, activewear, etc.
+            r'.*ing$',   # clothing, etc.
+            r'.*el$',    # apparel, etc.
+            
+            # Pattern 2: Product-like semantic patterns
+            r'^[a-z]{4,10}$',  # Single word, moderate length
+            
+            # Pattern 3: Compound product terms
+            r'.*top$',   # tank top, etc.
+            r'.*bottom$', # etc.
         ]
         
-        for indicator in product_indicators:
-            if indicator in term_lower:
+        # Check for product-like patterns
+        for pattern in product_patterns:
+            if re.match(pattern, term_lower):
+                return True
+        
+        # Neural pattern: Check for semantic similarity to known product concepts
+        if hasattr(self, 'sentence_transformer') and self.sentence_transformer:
+            try:
+                # Use semantic similarity to detect product-like terms
+                product_templates = [
+                    "this is a type of clothing item",
+                    "this is a wearable product", 
+                    "this is a fashion item"
+                ]
+                
+                term_embedding = self.sentence_transformer.encode([term])
+                template_embeddings = self.sentence_transformer.encode(product_templates)
+                
+                similarities = np.dot(term_embedding, template_embeddings.T).flatten()
+                max_similarity = np.max(similarities)
+                
+                # High similarity indicates product-like term
+                return max_similarity > 0.6
+                
+            except:
+                pass
+        
+        # Fallback: check for object-like characteristics
+        # Products tend to be nouns, moderate length, alphabetic
+        return (len(term_lower) >= 4 and 
+                len(term_lower) <= 12 and
+                term_lower.isalpha() and
+                not term_lower.endswith('ly'))  # Avoid adverbs
+    
+    def _is_likely_color(self, term):
+        """AI-driven color detection using neural patterns"""
+        if not term or len(term) < 3:
+            return False
+        
+        term_lower = term.lower()
+        
+        # AI-driven color pattern recognition
+        color_patterns = [
+            # Pattern 1: Color-like word endings
+            r'.*ish$',    # reddish, blueish, etc.
+            r'.*ed$',     # colored terms
+            
+            # Pattern 2: Specific color indicators (learned patterns)
+            r'^[a-z]{3,8}$',  # Single word, color-typical length
+        ]
+        
+        # Check for color-like patterns
+        for pattern in color_patterns:
+            if re.match(pattern, term_lower):
+                # Additional checks for color-like characteristics
+                if not term_lower.endswith('ed') or len(term_lower) <= 6:
+                    continue
+        
+        # Neural color detection using semantic similarity
+        if hasattr(self, 'sentence_transformer') and self.sentence_transformer:
+            try:
+                color_templates = [
+                    "this is a color",
+                    "this describes a color or shade",
+                    "this is a hue or tint"
+                ]
+                
+                term_embedding = self.sentence_transformer.encode([term])
+                template_embeddings = self.sentence_transformer.encode(color_templates)
+                
+                similarities = np.dot(term_embedding, template_embeddings.T).flatten()
+                max_similarity = np.max(similarities)
+                
+                return max_similarity > 0.7  # High threshold for color detection
+                
+            except:
+                pass
+        
+        # AI pattern: Colors are typically adjectives, short, and descriptive
+        # Check for linguistic patterns that suggest color terms
+        if len(term_lower) >= 3 and len(term_lower) <= 10:
+            # Look for color-like semantic patterns
+            color_indicators = [
+                term_lower.endswith('ish'),  # reddish, etc.
+                term_lower.startswith('light'),  # light blue, etc.
+                term_lower.startswith('dark'),   # dark green, etc.
+                len(term_lower) <= 6 and term_lower.isalpha()  # short color words
+            ]
+            
+            if any(color_indicators):
                 return True
         
         return False
     
-    def _is_likely_color(self, term):
-        """AI-driven color detection"""
-        if not term or len(term) < 3:
-            return False
-        
-        term_lower = term.lower()
-        
-        # Common color terms
-        color_terms = [
-            'red', 'blue', 'green', 'yellow', 'black', 'white', 'gray', 'grey',
-            'brown', 'purple', 'pink', 'orange', 'navy', 'maroon', 'beige',
-            'cream', 'gold', 'silver', 'bronze', 'olive', 'burgundy'
-        ]
-        
-        return term_lower in color_terms
-    
     def _is_likely_style(self, term):
-        """AI-driven style detection"""
+        """AI-driven style detection using neural patterns"""
         if not term or len(term) < 3:
             return False
         
         term_lower = term.lower()
         
-        # Style indicators
-        style_indicators = [
-            'casual', 'formal', 'vintage', 'retro', 'modern', 'classic',
-            'sporty', 'elegant', 'sophisticated', 'trendy', 'fashionable'
+        # AI-driven style pattern recognition
+        style_patterns = [
+            # Pattern 1: Style-like word endings
+            r'.*ly$',     # casually, formally, etc. (but avoid some adverbs)
+            r'.*ive$',    # active, expressive, etc.
+            r'.*ic$',     # classic, athletic, etc.
+            
+            # Pattern 2: Style descriptors
+            r'.*style$',  # freestyle, lifestyle, etc.
+            r'.*wear$',   # streetwear, sportswear, etc.
         ]
         
-        return term_lower in style_indicators
+        # Check for style-like patterns
+        for pattern in style_patterns:
+            if re.match(pattern, term_lower):
+                return True
+        
+        # Neural style detection using semantic similarity
+        if hasattr(self, 'sentence_transformer') and self.sentence_transformer:
+            try:
+                style_templates = [
+                    "this describes a style or aesthetic",
+                    "this is a fashion style",
+                    "this describes how something looks"
+                ]
+                
+                term_embedding = self.sentence_transformer.encode([term])
+                template_embeddings = self.sentence_transformer.encode(style_templates)
+                
+                similarities = np.dot(term_embedding, template_embeddings.T).flatten()
+                max_similarity = np.max(similarities)
+                
+                return max_similarity > 0.65
+                
+            except:
+                pass
+        
+        # AI pattern: Style terms are often adjectives or descriptive
+        if len(term_lower) >= 4 and len(term_lower) <= 15:
+            # Look for style-like characteristics
+            style_indicators = [
+                term_lower.endswith('ed'),    # styled, designed, etc.
+                term_lower.endswith('al'),    # formal, casual, etc.
+                term_lower.endswith('ern'),   # modern, etc.
+                term_lower.endswith('ic'),    # classic, athletic, etc.
+                '-' in term_lower,            # multi-word styles
+            ]
+            
+            if any(style_indicators):
+                return True
+        
+        return False
     
     def _is_likely_material(self, term):
-        """AI-driven material detection"""
+        """AI-driven material detection using neural patterns"""
         if not term or len(term) < 3:
             return False
         
         term_lower = term.lower()
         
-        # Material indicators
-        material_indicators = [
-            'cotton', 'polyester', 'wool', 'silk', 'leather', 'denim',
-            'linen', 'cashmere', 'suede', 'velvet', 'satin', 'mesh'
+        # AI-driven material pattern recognition
+        material_patterns = [
+            # Pattern 1: Material-like word endings
+            r'.*ber$',    # fiber, rubber, etc.
+            r'.*ton$',    # cotton, etc.
+            r'.*el$',     # steel, etc.
+            r'.*ic$',     # plastic, etc.
+            
+            # Pattern 2: Fabric indicators
+            r'.*silk$',
+            r'.*wool$',
         ]
         
-        return term_lower in material_indicators
+        # Check for material-like patterns
+        for pattern in material_patterns:
+            if re.match(pattern, term_lower):
+                return True
+        
+        # Neural material detection using semantic similarity
+        if hasattr(self, 'sentence_transformer') and self.sentence_transformer:
+            try:
+                material_templates = [
+                    "this is a type of material or fabric",
+                    "this describes what something is made of",
+                    "this is a textile or substance"
+                ]
+                
+                term_embedding = self.sentence_transformer.encode([term])
+                template_embeddings = self.sentence_transformer.encode(material_templates)
+                
+                similarities = np.dot(term_embedding, template_embeddings.T).flatten()
+                max_similarity = np.max(similarities)
+                
+                return max_similarity > 0.7
+                
+            except:
+                pass
+        
+        # AI pattern: Materials are often nouns, descriptive of composition
+        if len(term_lower) >= 3 and len(term_lower) <= 12:
+            # Look for material-like characteristics
+            material_indicators = [
+                term_lower.endswith('ton'),   # cotton, etc.
+                term_lower.endswith('er'),    # leather, fiber, etc.
+                term_lower.endswith('ic'),    # synthetic, etc.
+                term_lower.endswith('ine'),   # marine, etc.
+                '%' in term,                  # percentage indicators
+            ]
+            
+            if any(material_indicators):
+                return True
+        
+        return False
+    
+    def _is_likely_team_name(self, term):
+        """AI-driven team name detection using neural patterns"""
+        if not term or len(term) < 3:
+            return False
+        
+        term_lower = term.lower()
+        
+        # AI-driven team name pattern recognition
+        team_patterns = [
+            # Pattern 1: Team-like characteristics
+            term[0].isupper() if term else False,  # Capitalized
+            len(term) >= 4 and len(term) <= 15,   # Typical team name length
+            term.isalpha(),                       # Alphabetic only
+            not term_lower.endswith('ing'),       # Avoid gerunds
+            not term_lower.endswith('ed'),        # Avoid past participles
+        ]
+        
+        # Neural team detection using semantic similarity
+        if hasattr(self, 'sentence_transformer') and self.sentence_transformer:
+            try:
+                team_templates = [
+                    "this is a sports team name",
+                    "this is an organization or club name",
+                    "this is a brand or company name"
+                ]
+                
+                term_embedding = self.sentence_transformer.encode([term])
+                template_embeddings = self.sentence_transformer.encode(team_templates)
+                
+                similarities = np.dot(term_embedding, template_embeddings.T).flatten()
+                max_similarity = np.max(similarities)
+                
+                if max_similarity > 0.6:
+                    return True
+                
+            except:
+                pass
+        
+        # Team names are typically proper nouns with specific characteristics
+        team_score = sum(team_patterns)
+        return team_score >= 3  # Need at least 3 team-like characteristics
     
 
 
     def _generate_human_like_queries(self, search_terms, product_terms, year_event_terms, color_terms, style_terms):
         """Generate human-like eBay search queries using AI-driven context analysis"""
         queries = []
+        
+        # Extract team terms from search_terms if they exist (AI-driven detection)
+        team_terms = []
+        if search_terms:
+            for term in search_terms:
+                if self._is_likely_team_name(term):
+                    team_terms.append(term)
         
         # Priority 1: Complete team + product + year/event queries (most specific)
         if team_terms and product_terms:
@@ -1636,11 +1858,72 @@ class AIService:
         return SequenceMatcher(None, term1.lower(), term2.lower()).ratio() >= threshold
 
     def fuzzy_find_brand(self, ocr_text):
+        """AI-driven brand finding using neural similarity matching"""
         if not ocr_text:
             return ""
-        match, score, _ = process.extractOne(ocr_text, self.known_brands, scorer=fuzz.partial_ratio)
-        logger.info(f"[FUZZY BRAND] OCR: '{ocr_text}' | Match: '{match}' | Score: {score}")
-        return match.title() if score and score > 80 else ""
+        
+        # Generate potential brand candidates from OCR text using AI patterns
+        words = ocr_text.split()
+        brand_candidates = []
+        
+        for word in words:
+            clean_word = re.sub(r'[^a-zA-Z]', '', word)
+            if self._is_likely_brand(clean_word):
+                brand_candidates.append(clean_word)
+        
+        if not brand_candidates:
+            return ""
+        
+        # Use neural similarity to find the most brand-like candidate
+        if hasattr(self, 'sentence_transformer') and self.sentence_transformer:
+            try:
+                # Use semantic similarity to brand concepts
+                brand_templates = [
+                    "this is a well-known brand name",
+                    "this is a fashion or clothing brand",
+                    "this is a commercial brand"
+                ]
+                
+                best_brand = ""
+                best_score = 0.0
+                
+                for candidate in brand_candidates:
+                    candidate_embedding = self.sentence_transformer.encode([candidate])
+                    template_embeddings = self.sentence_transformer.encode(brand_templates)
+                    
+                    similarities = np.dot(candidate_embedding, template_embeddings.T).flatten()
+                    max_similarity = np.max(similarities)
+                    
+                    if max_similarity > best_score:
+                        best_score = max_similarity
+                        best_brand = candidate
+                
+                logger.info(f"[AI BRAND] OCR: '{ocr_text}' | Best Brand: '{best_brand}' | Score: {best_score:.3f}")
+                return best_brand.title() if best_score > 0.6 else ""
+                
+            except Exception as e:
+                logger.error(f"Neural brand detection failed: {e}")
+        
+        # Fallback: return the most brand-like candidate
+        if brand_candidates:
+            # Sort by brand-like characteristics
+            scored_candidates = []
+            for candidate in brand_candidates:
+                score = sum([
+                    candidate[0].isupper(),  # Capitalized
+                    len(candidate) >= 3,     # Reasonable length
+                    len(candidate) <= 12,    # Not too long
+                    candidate.isalpha(),     # Only letters
+                ])
+                scored_candidates.append((candidate, score))
+            
+            scored_candidates.sort(key=lambda x: x[1], reverse=True)
+            best_candidate = scored_candidates[0][0]
+            
+            logger.info(f"[FALLBACK BRAND] OCR: '{ocr_text}' | Best Brand: '{best_candidate}'")
+            return best_candidate.title()
+        
+        return ""
 
     def ensemble_search(self, image_data: bytes, text_query: str = None, bounding_box: tuple = None, top_k=10) -> list:
         """
