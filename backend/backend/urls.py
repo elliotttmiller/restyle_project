@@ -102,4 +102,7 @@ urlpatterns = [
 
     # Include all URLs from the 'core' app under the '/api/core/' prefix
     path('api/core/', include('core.urls')),
+    
+    # Mobile app compatibility - include core URLs without /api prefix
+    path('core/', include('core.urls')),
 ]

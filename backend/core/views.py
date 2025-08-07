@@ -48,6 +48,7 @@ import base64
 import os
 import traceback
 from django.http import JsonResponse
+from django.views import View
 
 logger = logging.getLogger(__name__)
 
@@ -489,3 +490,15 @@ class PrivacyPolicyView(APIView):
 class CropPreviewView(APIView):
     def post(self, request):
         return Response({"message": "Crop preview endpoint working - full functionality not yet restored"})
+
+class AcceptedView(View):
+    def get(self, request):
+        return JsonResponse({"message": "Accepted endpoint working", "status": "accepted"})
+
+class DeclinedView(View):
+    def get(self, request):
+        return JsonResponse({"message": "Declined endpoint working", "status": "declined"})
+
+class TestEbayLoginView(View):
+    def get(self, request):
+        return JsonResponse({"message": "Test eBay login endpoint working", "status": "ok"})
