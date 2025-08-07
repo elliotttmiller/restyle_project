@@ -3,8 +3,12 @@
 # Fast Railway startup script - optimized for production
 set -e
 
-# Activate virtual environment
-source /opt/venv/bin/activate
+# Activate virtual environment if it exists
+if [ -d "venv" ]; then
+    source venv/bin/activate
+elif [ -d "/opt/venv" ]; then
+    source /opt/venv/bin/activate
+fi
 
 echo "🚀 Starting Restyle Backend (Optimized)"
 

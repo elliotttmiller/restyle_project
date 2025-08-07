@@ -1,7 +1,8 @@
 [providers]
 python = false
+
 [variables]
-PYTHON_VERSION = "3.11"
+PIP_NO_CACHE_DIR = "1"
 
 [phases.setup]
 nixPkgs = [
@@ -11,7 +12,7 @@ nixPkgs = [
   "gcc",
   "mesa",
   "xorg.libSM",
-  "xorg.libXext",
+  "xorg.libXext", 
   "xorg.libXrender",
   "libjpeg_turbo",
   "libpng",
@@ -21,17 +22,17 @@ nixPkgs = [
 
 [phases.install]
 cmds = [
-  "python -m venv /opt/venv",
-  "/opt/venv/bin/pip install --upgrade pip",
-  "/opt/venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu",
-  "/opt/venv/bin/pip install -r requirements.txt"
+  "python -m venv venv",
+  "source venv/bin/activate && pip install --upgrade pip",
+  "source venv/bin/activate && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu",
+  "source venv/bin/activate && pip install -r requirements.txt"
 ]
 
 [phases.build]
 cmds = [
-  "/opt/venv/bin/python manage.py collectstatic --noinput --clear",
+  "source venv/bin/activate && python manage.py collectstatic --noinput --clear",
   "chmod +x fast_start.sh"
 ]
 
 [phases.start]
-cmd = "bash fast_start.sh"
+cmd = "source venv/bin/activate && bash fast_start.sh"
