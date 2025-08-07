@@ -1,48 +1,42 @@
 {
   "expo": {
-    "name": "Restyle.ai",
-    "slug": "restyle-ai-mobile",
+    "name": "restyle-mobile",
+    "slug": "restyle-mobile",
     "version": "1.0.0",
+    "scheme": "restyle-mobile",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "sdkVersion": "53.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "scheme": "restyleai",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
       "**/*"
     ],
-    "platforms": [
-      "ios",
-      "android"
-    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.restyle.ai",
-      "buildNumber": "1",
-      "icon": "./assets/icon-1024.png",
       "infoPlist": {
-        "NSCameraUsageDescription": "Restyle AI needs access to your camera to take photos of items for AI-powered market analysis.",
-        "NSPhotoLibraryUsageDescription": "Restyle AI needs access to your photo library to select images of items for AI-powered market analysis.",
-        "ITSAppUsesNonExemptEncryption": false
+        "NSCameraUsageDescription": "This app needs access to camera to take photos for AI-powered item search.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select images for AI-powered item search."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.restyleai.mobile",
       "permissions": [
-        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.RECORD_AUDIO"
       ]
     },
+    "web": {
+      "bundler": "metro"
+    },
     "plugins": [
-      "expo-router",
       [
         "expo-image-picker",
         {
@@ -52,20 +46,10 @@
       ]
     ],
     "extra": {
-      "router": {
-        "origin": false
-      },
       "eas": {
-        "projectId": "95ae3f2d-f39e-4a33-8ad9-d4c4501aed64"
+        "projectId": "ccfe2aab-adc6-4216-8ec2-e05048cad76a"
       }
     },
-    "owner": "timberpups",
-    "sdkVersion": "53.0.0",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/95ae3f2d-f39e-4a33-8ad9-d4c4501aed64"
-    }
+    "owner": "elliotttmiller"
   }
 }
