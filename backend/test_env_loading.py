@@ -23,7 +23,7 @@ def test_env_loading():
         'EBAY_REFRESH_TOKEN',
         'AWS_ACCESS_KEY_ID',
         'AWS_SECRET_ACCESS_KEY',
-        'GOOGLE_APPLICATION_CREDENTIALS'
+        'GOOGLE_API_KEY'
     ]
     
     print("\n📋 Environment Variables Status:")

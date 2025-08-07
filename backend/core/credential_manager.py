@@ -44,6 +44,7 @@ class CredentialManager:
             'ebay_***REMOVED***': os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET') or os.environ.get('EBAY_CLIENT_SECRET'),
             'ebay_refresh_token': os.environ.get('EBAY_PRODUCTION_REFRESH_TOKEN') or os.environ.get('EBAY_REFRESH_TOKEN'),
             'ebay_user_token': os.environ.get('EBAY_PRODUCTION_USER_TOKEN'),
+            'google_***REMOVED***': os.environ.get('GOOGLE_API_KEY'),
             'google_project': os.environ.get('GOOGLE_CLOUD_PROJECT'),
             'google_location': os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1'),
             # Service enable/disable flags
@@ -57,16 +58,13 @@ class CredentialManager:
         self.credentials.update({k: v for k, v in env_credentials.items() if v})
     
     def _load_google_credentials(self):
-        """Load Google Cloud credentials from file"""
-        creds_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-        if creds_path and Path(creds_path).exists():
-            try:
-                with open(creds_path, 'r') as f:
-                    google_creds = json.load(f)
-                self.credentials['google_credentials'] = google_creds
-                logger.info("✅ Google Cloud credentials loaded")
-            except Exception as e:
-                logger.warning(f"⚠️  Could not load Google credentials: {e}")
+        """Load Google Cloud API key from environment"""
+        google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
+        if google_***REMOVED***:
+            self.credentials['google_***REMOVED***'] = google_***REMOVED***
+            logger.info("✅ Google API key loaded from environment")
+        else:
+            logger.warning("⚠️  No GOOGLE_API_KEY found in environment variables")
     
     def _load_aws_credentials(self):
         """Load AWS credentials from file"""
@@ -102,9 +100,13 @@ class CredentialManager:
             'user_token': self.credentials.get('ebay_user_token')
         }
     
-    def get_google_credentials(self) -> Optional[Dict[str, Any]]:
-        """Get Google Cloud credentials"""
-        return self.credentials.get('google_credentials')
+    def get_google_credentials(self) -> Optional[str]:
+        """Get Google API key"""
+        return self.credentials.get('google_***REMOVED***')
+    
+    def get_google_***REMOVED***(self) -> Optional[str]:
+        """Get Google API key for Vision API"""
+        return self.credentials.get('google_***REMOVED***')
     
     def is_service_enabled(self, service_name: str) -> bool:
         """Check if a service is enabled"""
@@ -142,7 +144,7 @@ class CredentialManager:
         validation = {
             'aws': bool(self.credentials.get('aws_***REMOVED***') and self.credentials.get('aws_***REMOVED***')),
             'ebay': bool(self.credentials.get('ebay_app_id') and self.credentials.get('ebay_***REMOVED***') and self.credentials.get('ebay_refresh_token')),
-            'google': bool(self.credentials.get('google_credentials'))
+            'google': bool(self.credentials.get('google_***REMOVED***'))
         }
         
         logger.info(f"🔍 Credential validation: {validation}")
@@ -158,8 +160,7 @@ class CredentialManager:
                 'aws_rekognition': validation['aws'],
                 'ebay_api': validation['ebay'],
                 'google_vision': validation['google'],
-                'google_gemini': validation['google'],
-                'google_vertex': validation['google']
+                'google_gemini': validation['google']
             }
         }
 

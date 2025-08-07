@@ -73,7 +73,7 @@ class AIService:
     
     def _initialize_client(self):
         logger.info("_initialize_client called for AIService")
-        """Initialize Google Cloud Vision client using credential manager"""
+        """Initialize Google Cloud Vision client using API key"""
         
         # Check if Google Vision service is enabled
         if not credential_manager.is_service_enabled('google_vision'):
@@ -83,18 +83,21 @@ class AIService:
             return
         
         try:
-            # Get Google Cloud credentials from credential manager
-            google_creds = credential_manager.get_google_credentials()
+            # Get Google API key from credential manager
+            google_***REMOVED*** = credential_manager.get_google_***REMOVED***()
             
-            if google_creds:
-                logger.info("Using Google Cloud credentials from credential manager")
+            if google_***REMOVED***:
+                logger.info("Using Google API key from credential manager")
                 from google.cloud import vision
-                self._client = vision.ImageAnnotatorClient()
-                logger.info("Google Cloud Vision client initialized successfully via credential manager")
+                from google.oauth2 import service_account
+                
+                # Initialize client with API key
+                client_options = {"***REMOVED***": google_***REMOVED***}
+                self._client = vision.ImageAnnotatorClient(client_options=client_options)
+                logger.info("Google Cloud Vision client initialized successfully with API key")
             else:
-                logger.warning("No Google Cloud credentials available from credential manager")
-                # Fallback to original credential loading logic
-                self._fallback_credential_loading()
+                logger.error("No Google API key available from credential manager")
+                self._client = None
                 
         except Exception as e:
             logger.exception(f"Error initializing Google Cloud Vision client: {e}")
@@ -102,44 +105,7 @@ class AIService:
         finally:
             self._client_initialized = True
     
-    def _fallback_credential_loading(self):
-        """Fallback credential loading for Google Cloud Vision"""
-        logger.info("Using fallback credential loading for Google Vision")
-        
-        # Use environment variable for credentials path
-        creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "/etc/secrets/gcp.json")
-        logger.info(f"GOOGLE_APPLICATION_CREDENTIALS at fallback: {creds_path}")
-        
-        if creds_path and os.path.exists(creds_path):
-            logger.info(f"Credentials file found at {creds_path}")
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_path
-        else:
-            logger.error(f"Credentials file not found at {creds_path}")
-            # Try alternative paths
-            alt_paths = [
-                '/etc/secrets/gcp.json',
-                '/app/***REMOVED***',
-                './***REMOVED***',
-                '../***REMOVED***',
-                'C:/Users/AMD/restyle_project/backend/***REMOVED***',
-                'C:\\Users\\AMD\\restyle_project\\backend\\***REMOVED***'
-            ]
-            for alt_path in alt_paths:
-                if os.path.exists(alt_path):
-                    logger.info(f"Found credentials at alternative path: {alt_path}")
-                    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = alt_path
-                    creds_path = alt_path
-                    break
-            else:
-                logger.error("No Google Cloud credentials found. Using fallback mode.")
-        
-        try:
-            from google.cloud import vision
-            self._client = vision.ImageAnnotatorClient()
-            logger.info("Google Cloud Vision client initialized via fallback method")
-        except Exception as e:
-            logger.error(f"Fallback credential loading failed: {e}")
-            self._client = None
+
     
     def analyze_image(self, image_data: bytes, **kwargs) -> Dict[str, Any]:
         """

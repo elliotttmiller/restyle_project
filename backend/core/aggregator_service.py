@@ -40,8 +40,14 @@ class AggregatorService:
             return
         
         try:
-            # Initialize Google Vision client
-            self._google_vision_client = vision.ImageAnnotatorClient()
+            # Initialize Google Vision client with API key
+            google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
+            if google_***REMOVED***:
+                client_options = {"***REMOVED***": google_***REMOVED***}
+                self._google_vision_client = vision.ImageAnnotatorClient(client_options=client_options)
+            else:
+                logger.warning("No GOOGLE_API_KEY found, Google Vision client not initialized")
+                self._google_vision_client = None
             
             # Initialize AWS Rekognition client
             self._aws_rekognition_client = boto3.client(
@@ -272,19 +278,25 @@ class AggregatorService:
 
     def _synthesize_with_gemini(self, expert_outputs: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Uses enhanced AI service (Vertex AI or Gemini) to intelligently synthesize expert outputs.
+        Uses enhanced AI service (Gemini) to intelligently synthesize expert outputs.
         This is the core "brain" that reasons over multiple AI opinions.
         """
         try:
-            # Use the enhanced Vertex AI service for synthesis
-            from .vertex_ai_service import get_vertex_ai_service
-            vertex_service = get_vertex_ai_service()
-            
-            # Let the Vertex AI service choose the best synthesis method
-            synthesized_attributes = vertex_service.synthesize_expert_opinions(expert_outputs)
-            
-            logger.info(f"AI synthesis successful: {synthesized_attributes}")
-            return synthesized_attributes
+            # Use the Gemini AI service for synthesis
+            if self._gemini_model:
+                prompt = self._build_gemini_prompt(expert_outputs)
+                response = self._gemini_model.generate_content(prompt)
+                
+                try:
+                    synthesized_attributes = json.loads(response.text)
+                    logger.info(f"Gemini AI synthesis successful: {synthesized_attributes}")
+                    return synthesized_attributes
+                except json.JSONDecodeError:
+                    logger.warning("Failed to parse Gemini response as JSON")
+                    return self._synthesize_with_fallback(expert_outputs)
+            else:
+                logger.warning("Gemini model not available, using fallback")
+                return self._synthesize_with_fallback(expert_outputs)
             
         except Exception as e:
             logger.error(f"AI synthesis failed: {e}")

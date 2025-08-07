@@ -54,7 +54,6 @@ import logging
 _vision_client = None
 _rekognition_client = None
 _gemini_model = None
-_vertex_endpoint = None
 
 def get_vision_client():
     """Lazy initialization of Google Vision client"""
@@ -62,8 +61,14 @@ def get_vision_client():
     if _vision_client is None:
         try:
             from google.cloud import vision
-            _vision_client = vision.ImageAnnotatorClient()
-            logging.info("Google Vision client initialized successfully")
+            google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
+            if google_***REMOVED***:
+                client_options = {"***REMOVED***": google_***REMOVED***}
+                _vision_client = vision.ImageAnnotatorClient(client_options=client_options)
+                logging.info("Google Vision client initialized successfully with API key")
+            else:
+                logging.warning("No GOOGLE_API_KEY found, Google Vision client not initialized")
+                return None
         except Exception as e:
             logging.warning(f"Google Vision client initialization failed: {e}")
             return None

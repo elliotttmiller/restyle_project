@@ -228,8 +228,8 @@ GOOGLE_CLOUD_PROJECT_ID = 'silent-polygon-465403'  # Your Google Cloud Project I
 GOOGLE_VISION_LOCATION = 'us-central1'  # Default location for Vision API
 GOOGLE_PRODUCT_SET_ID = 'apparel-products'  # Your Product Set ID (create this in Google Cloud Console)
 
-# Google Cloud Vision Credentials
-GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '/etc/secrets/gcp.json')
+# Google Cloud Vision Credentials - Using API Key
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
 try:
     from .local_settings import *
@@ -274,11 +274,6 @@ LOGGING = {
         'core.ai_service': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core.vertex_ai_service': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
             'propagate': False,
         },
         'core.crop_preview': {

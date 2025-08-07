@@ -8,8 +8,8 @@ try:
 except ImportError:
     pass
 
-# Google Cloud credentials path
-GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+# Google Cloud API key (replacing service account credentials)
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 GOOGLE_CLOUD_PROJECT = os.environ.get('GOOGLE_CLOUD_PROJECT')
 GOOGLE_CLOUD_LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION')
 
@@ -26,9 +26,9 @@ if AWS_SECRET_ACCESS_KEY:
 if AWS_REGION_NAME:
     os.environ['AWS_REGION_NAME'] = AWS_REGION_NAME
 
-# Set environment variable for Google Cloud credentials
-if GOOGLE_APPLICATION_CREDENTIALS:
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = GOOGLE_APPLICATION_CREDENTIALS
+# Set environment variable for Google Cloud API key
+if GOOGLE_API_KEY:
+    os.environ['GOOGLE_API_KEY'] = GOOGLE_API_KEY
 if GOOGLE_CLOUD_PROJECT:
     os.environ['GOOGLE_CLOUD_PROJECT'] = GOOGLE_CLOUD_PROJECT
 if GOOGLE_CLOUD_LOCATION:

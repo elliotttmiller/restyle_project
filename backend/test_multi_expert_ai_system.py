@@ -19,8 +19,14 @@ def test_google_vision_api(image_path):
     print("🔍 Testing Google Vision API...")
     
     try:
-        # Initialize Vision client
-        client = vision.ImageAnnotatorClient()
+        # Initialize Vision client with API key
+        google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
+        if not google_***REMOVED***:
+            print("❌ No GOOGLE_API_KEY found")
+            return False
+            
+        client_options = {"***REMOVED***": google_***REMOVED***}
+        client = vision.ImageAnnotatorClient(client_options=client_options)
         
         # Read image
         with open(image_path, 'rb') as image_file:
@@ -153,20 +159,21 @@ def test_gemini_api(analysis_results):
         print(f"❌ Google Gemini API error: {e}")
         return None
 
-def test_vertex_ai(analysis_results):
-    """Test Google Vertex AI for advanced reasoning."""
-    print("🧠 Testing Google Vertex AI...")
+def test_gemini_ai(analysis_results):
+    """Test Google Gemini AI for advanced reasoning."""
+    print("🧠 Testing Google Gemini AI...")
     
     try:
-        # Initialize Vertex AI
-        from google.cloud import aiplatform
+        # Initialize Gemini AI
+        import google.generativeai as genai
         
-        aiplatform.init(
-            project=os.environ.get('GOOGLE_CLOUD_PROJECT', 'silent-polygon-465403-h9'),
-            location=os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1')
-        )
-        
-        # Use Gemini model through Vertex AI
+        gemini_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
+        if not gemini_***REMOVED***:
+            print("❌ No GOOGLE_API_KEY found for Gemini")
+            return None
+            
+        genai.configure(***REMOVED***=gemini_***REMOVED***)
+        from google.generativeai import GenerativeModel
         model = GenerativeModel('gemini-1.5-pro')
         
         # Create advanced analysis prompt
@@ -191,13 +198,13 @@ def test_vertex_ai(analysis_results):
         
         response = model.generate_content(prompt)
         
-        print("✅ Google Vertex AI successful!")
+        print("✅ Google Gemini AI successful!")
         print(f"  Advanced analysis: {response.text[:200]}...")
         
         return response.text
         
     except Exception as e:
-        print(f"❌ Google Vertex AI error: {e}")
+        print(f"❌ Google Gemini AI error: {e}")
         return None
 
 def generate_ebay_search_query(analysis_results):
@@ -210,15 +217,15 @@ def generate_ebay_search_query(analysis_results):
         print(f"✅ Using Gemini's intelligent query: '{final_query}'")
         return final_query
     
-    # Priority 2: Use Vertex AI analysis if available
-    if analysis_results.get('vertex_analysis'):
-        # Extract search terms from Vertex AI JSON response
+    # Priority 2: Use Gemini AI analysis if available
+    if analysis_results.get('gemini_analysis'):
+        # Extract search terms from Gemini AI JSON response
         try:
             import json
-            vertex_data = json.loads(analysis_results['vertex_analysis'])
-            if 'recommended_search_terms' in vertex_data:
-                final_query = ' '.join(vertex_data['recommended_search_terms'][:3])
-                print(f"✅ Using Vertex AI search terms: '{final_query}'")
+            gemini_data = json.loads(analysis_results['gemini_analysis'])
+            if 'recommended_search_terms' in gemini_data:
+                final_query = ' '.join(gemini_data['recommended_search_terms'][:3])
+                print(f"✅ Using Gemini AI search terms: '{final_query}'")
                 return final_query
         except:
             pass
@@ -320,10 +327,10 @@ def main():
         analysis_results['gemini_query'] = gemini_query
     print()
     
-    # Test Google Vertex AI
-    vertex_analysis = test_vertex_ai(analysis_results)
-    if vertex_analysis:
-        analysis_results['vertex_analysis'] = vertex_analysis
+    # Test Google Gemini AI
+    gemini_analysis = test_gemini_ai(analysis_results)
+    if gemini_analysis:
+        analysis_results['gemini_analysis'] = gemini_analysis
     print()
     
     # Generate final eBay search query
@@ -340,7 +347,7 @@ def main():
     print(f"✅ Google Vision API: {'Working' if vision_results else 'Failed'}")
     print(f"✅ AWS Rekognition: {'Working' if rekognition_results else 'Failed'}")
     print(f"✅ Google Gemini API: {'Working' if gemini_query else 'Failed'}")
-    print(f"✅ Google Vertex AI: {'Working' if vertex_analysis else 'Failed'}")
+    print(f"✅ Google Gemini AI: {'Working' if gemini_analysis else 'Failed'}")
     print(f"✅ Final eBay Query: '{final_query}'")
     
     return analysis_results

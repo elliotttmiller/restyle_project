@@ -4,4 +4,5 @@
 # Example:
 # AWS_ACCESS_KEY_ID = 'your-access-key-id'
 # AWS_SECRET_ACCESS_KEY = 'your-secret-access-key'
-# GOOGLE_APPLICATION_CREDENTIALS = 'path/to/your/credentials.json' 
+# Google Cloud API Key
+GOOGLE_API_KEY = 'your_google_***REMOVED***_here' 
