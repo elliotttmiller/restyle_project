@@ -3,6 +3,9 @@
 # Fast Railway startup script - optimized for production
 set -e
 
+# Set library path for Nix libraries
+export LD_LIBRARY_PATH=$(find /nix/store -type d -name lib 2>/dev/null | tr '\n' ':')$LD_LIBRARY_PATH
+
 # Activate virtual environment if it exists
 if [ -d "venv" ]; then
     source venv/bin/activate
@@ -18,18 +21,8 @@ if [ -z "$DATABASE_URL" ]; then
     exit 1
 fi
 
-# Quick database check (reduced timeout)
-echo "⏱️  Checking database connection..."
-python -c "
-import os, psycopg2
-try:
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    conn.close()
-    print('✅ Database connected')
-except Exception as e:
-    print(f'❌ Database error: {e}')
-    exit(1)
-"
+# Skip database check for faster startup
+echo "⏱️  Skipping database check for health endpoint..."
 
 # Run migrations only if needed
 echo "🔄 Running database migrations..."
