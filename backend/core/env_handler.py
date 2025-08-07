@@ -10,29 +10,22 @@ logger = logging.getLogger(__name__)
 
 def load_environment_variables():
     """
-    Load environment variables from .env file if it exists, 
-    otherwise log a message but don't treat it as an error in production.
-    
-    Returns:
-        bool: True if .env was loaded, False otherwise
+    Load environment variables from a .env file.
+    Searches for the .env file in the current directory and the parent directory.
     """
-    env_path = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) / '.env'
-    alt_env_path = Path('/') / '.env'  # Root path in Railway container
-    
-    if env_path.exists():
-        load_dotenv(dotenv_path=env_path)
-        logger.info(f"Loaded environment variables from {env_path}")
-        return True
-    elif alt_env_path.exists():
-        load_dotenv(dotenv_path=alt_env_path)
-        logger.info(f"Loaded environment variables from {alt_env_path}")
-        return True
+    # Look for .env in the project root (one level up from `backend/core`)
+    project_root = Path(__file__).resolve().parent.parent.parent
+    dotenv_path_root = project_root / '.env'
+
+    # Also check the conventional location relative to manage.py
+    backend_root = Path(__file__).resolve().parent.parent
+    dotenv_path_backend = backend_root / '.env'
+
+    if dotenv_path_root.exists():
+        load_dotenv(dotenv_path=dotenv_path_root)
+        logger.info(f"✅ Loaded environment variables from: {dotenv_path_root}")
+    elif dotenv_path_backend.exists():
+        load_dotenv(dotenv_path=dotenv_path_backend)
+        logger.info(f"✅ Loaded environment variables from: {dotenv_path_backend}")
     else:
-        # In production (Railway), env vars are set through the platform
-        # so we don't need to log this as an error
-        if os.environ.get('RAILWAY_ENVIRONMENT') == 'production':
-            logger.info("Running in Railway production environment. Using platform environment variables.")
-        else:
-            logger.warning(f".env file not found at: {env_path} or {alt_env_path}")
-        
-        return False
+        logger.warning(f".env file not found. Searched in {dotenv_path_root} and {dotenv_path_backend}.")

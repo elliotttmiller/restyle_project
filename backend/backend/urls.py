@@ -99,7 +99,7 @@ urlpatterns = [
     # Protected endpoints for testing
     path('api/protected/', protected_endpoint, name='protected_endpoint'),
     path('api/profile/', user_profile, name='user_profile'),
-    
-    # All core business logic routes (items, analysis, etc.) point to 'core.urls'.
-    path('core/', include('core.urls')),  # Mount core app under /core/
+
+    # Include all URLs from the 'core' app under the '/api/core/' prefix
+    path('api/core/', include('core.urls')),
 ]

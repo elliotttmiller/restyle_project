@@ -39,11 +39,10 @@ class CredentialManager:
             'aws_access_key_id': os.environ.get('AWS_ACCESS_KEY_ID'),
             'aws_secret_access_key': os.environ.get('AWS_SECRET_ACCESS_KEY'),
             'aws_region': os.environ.get('AWS_REGION') or os.environ.get('AWS_REGION_NAME') or os.environ.get('AWS_DEFAULT_REGION', 'us-east-1'),
-            'ebay_app_id': os.environ.get('EBAY_PRODUCTION_APP_ID') or os.environ.get('EBAY_CLIENT_ID'),
-            'ebay_cert_id': os.environ.get('EBAY_PRODUCTION_CERT_ID') or os.environ.get('EBAY_CERT_ID'),
-            'ebay_client_secret': os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET') or os.environ.get('EBAY_CLIENT_SECRET'),
-            'ebay_refresh_token': os.environ.get('EBAY_PRODUCTION_REFRESH_TOKEN') or os.environ.get('EBAY_REFRESH_TOKEN'),
-            'ebay_user_token': os.environ.get('EBAY_PRODUCTION_USER_TOKEN'),
+            'ebay_app_id': os.environ.get('EBAY_PRODUCTION_APP_ID'),
+            'ebay_cert_id': os.environ.get('EBAY_PRODUCTION_CERT_ID'),
+            'ebay_client_secret': os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET'),
+            'ebay_refresh_token': os.environ.get('EBAY_PRODUCTION_REFRESH_TOKEN'), # Corrected to use the final variable name
             'google_api_key': os.environ.get('GOOGLE_API_KEY'),
             'google_project': os.environ.get('GOOGLE_CLOUD_PROJECT'),
             'google_location': os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1'),
@@ -177,4 +176,4 @@ class CredentialManager:
         }
 
 # Global credential manager instance
-credential_manager = CredentialManager() 
+credential_manager = CredentialManager()
