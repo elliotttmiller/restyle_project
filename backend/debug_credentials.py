@@ -42,7 +42,7 @@ def debug_credentials():
     print("\n🔧 Credential Manager Internal State:")
     print(f"  ebay_app_id: {credential_manager.credentials.get('ebay_app_id')}")
     print(f"  ebay_cert_id: {credential_manager.credentials.get('ebay_cert_id')}")
-    print(f"  ebay_***REMOVED***: {credential_manager.credentials.get('ebay_***REMOVED***')}")
+    print(f"  ebay_client_secret: {credential_manager.credentials.get('ebay_client_secret')}")
     print(f"  ebay_refresh_token: {'✅ Set' if credential_manager.credentials.get('ebay_refresh_token') else '❌ Missing'}")
     
     print("\n🔍 eBay Credential Retrieval:")

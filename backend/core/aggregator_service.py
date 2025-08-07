@@ -41,10 +41,10 @@ class AggregatorService:
         
         try:
             # Initialize Google Vision client with API key
-            google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
-            if google_***REMOVED***:
+            google_api_key = os.environ.get('GOOGLE_API_KEY')
+            if google_api_key:
                 client_options = {
-                    "***REMOVED***": google_***REMOVED***,
+                    "api_key": google_api_key,
                     "quota_project_id": "609071491201"  # Our correct project ID
                 }
                 self._google_vision_client = vision.ImageAnnotatorClient(client_options=client_options)
@@ -55,15 +55,15 @@ class AggregatorService:
             # Initialize AWS Rekognition client
             self._aws_rekognition_client = boto3.client(
                 'rekognition',
-                aws_***REMOVED***=os.environ.get('AWS_ACCESS_KEY_ID'),
-                aws_***REMOVED***=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+                aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
                 region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
             )
             
             # Initialize Google Gemini
-            gemini_***REMOVED*** = os.environ.get('GEMINI_API_KEY')
-            if gemini_***REMOVED***:
-                genai.configure(***REMOVED***=gemini_***REMOVED***)
+            gemini_api_key = os.environ.get('GEMINI_API_KEY')
+            if gemini_api_key:
+                genai.configure(api_key=gemini_api_key)
                 generation_config = genai.types.GenerationConfig(
                     response_mime_type="application/json"
                 )

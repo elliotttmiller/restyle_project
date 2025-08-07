@@ -25,9 +25,9 @@ class GenerativeAIService:
         
         # Initialize Gemini API using GOOGLE_API_KEY
         try:
-            google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
-            if google_***REMOVED***:
-                genai.configure(***REMOVED***=google_***REMOVED***)
+            google_api_key = os.environ.get('GOOGLE_API_KEY')
+            if google_api_key:
+                genai.configure(api_key=google_api_key)
                 
                 # Initialize the model with JSON response configuration
                 generation_config = genai.types.GenerationConfig(

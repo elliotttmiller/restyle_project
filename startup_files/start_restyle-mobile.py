@@ -98,8 +98,8 @@ def validate_ai_services():
         print("✅ Google Cloud credentials found")
     else:
         print("⚠️  Google Cloud credentials not found - Vision API and Gemini API may not work")
-    aws_creds_path1 = os.path.join(PROJECT_ROOT, 'backend', '***REMOVED***')
-    aws_creds_path2 = os.path.join(PROJECT_ROOT, '***REMOVED***')
+    aws_creds_path1 = os.path.join(PROJECT_ROOT, 'backend', 'restyle-rekognition-user_accessKeys.csv')
+    aws_creds_path2 = os.path.join(PROJECT_ROOT, 'restyle-rekognition-user_accessKeys.csv')
     if os.path.exists(aws_creds_path1):
         print("✅ AWS Rekognition credentials found (backend folder)")
     elif os.path.exists(aws_creds_path2):

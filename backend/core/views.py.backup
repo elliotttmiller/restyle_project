@@ -60,8 +60,8 @@ def get_rekognition_client():
             import boto3
             _rekognition_client = boto3.client(
                 'rekognition',
-                aws_***REMOVED***=os.environ.get('AWS_ACCESS_KEY_ID'),
-                aws_***REMOVED***=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+                aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
                 region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
             )
             logging.info("AWS Rekognition client initialized successfully")
@@ -77,7 +77,7 @@ def get_gemini_model():
         try:
             import google.generativeai as genai
             genai.configure(
-                ***REMOVED***=os.environ.get("GOOGLE_API_KEY"),
+                api_key=os.environ.get("GOOGLE_API_KEY"),
                 transport="rest"
             )
             _gemini_model = genai.GenerativeModel('gemini-1.5-pro-latest')
@@ -425,7 +425,7 @@ def ai_status(request):
         try:
             import os
             google_creds = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-            aws_creds = os.path.exists('/app/***REMOVED***')
+            aws_creds = os.path.exists('/app/restyle-rekognition-user_accessKeys.csv')
             
             ai_services['vision'] = google_creds
             ai_services['rekognition'] = aws_creds
@@ -488,7 +488,7 @@ class SetEbayRefreshTokenView(APIView):
     def post(self, request):
         new_token = request.data.get('refresh_token')
         if not new_token:
-            return Response({'error': 'Missing ***REMOVED***in request body.'}, status=400)
+            return Response({'error': 'Missing refresh_token in request body.'}, status=400)
         try:
             from .ebay_auth import token_manager
             token_manager._update_refresh_token(new_token)
@@ -512,14 +512,14 @@ class EbayOAuthCallbackView(APIView):
             import logging
 
             client_id = getattr(settings, 'EBAY_PRODUCTION_APP_ID', None)
-            ***REMOVED*** = getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
+            client_secret = getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
             # Hardcoded redirect_uri to match eBay app settings
             redirect_uri = "https://ead6946c7030.ngrok-free.app/api/core/ebay-oauth-callback/"
-            if not all([client_id, ***REMOVED***]):
+            if not all([client_id, client_secret]):
                 return Response({'error': 'Missing eBay client credentials.'}, status=500)
 
             token_url = 'https://api.ebay.com/identity/v1/oauth2/token'
-            basic_auth = base64.b64encode(f"{client_id}:{***REMOVED***}".encode()).decode()
+            basic_auth = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
             headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Authorization': f'Basic {basic_auth}',
@@ -534,7 +534,7 @@ class EbayOAuthCallbackView(APIView):
             resp = requests.post(token_url, headers=headers, data=data, timeout=30)
             if resp.status_code == 200:
                 token_data = resp.json()
-                ***REMOVED***= token_data.get('refresh_token')
+                refresh_token = token_data.get('refresh_token')
                 if refresh_token:
                     from .ebay_auth import token_manager
                     token_manager._update_refresh_token(refresh_token)

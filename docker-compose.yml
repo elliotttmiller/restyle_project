@@ -40,8 +40,8 @@ services:
       - "8000:8000"
     volumes:
       # Mount your local secrets into the container
-      - D:/AMD/secrets/***REMOVED***:/app/gcp_credentials.json:ro
-      - D:/AMD/secrets/***REMOVED***:/app/***REMOVED***:ro
+      - D:/AMD/secrets/silent-polygon-465403-h9-3a57d36afc97.json:/app/gcp_credentials.json:ro
+      - D:/AMD/secrets/restyle-rekognition-user_accessKeys.csv:/app/restyle-rekognition-user_accessKeys.csv:ro
     depends_on:
       db:
         condition: service_healthy
@@ -52,9 +52,9 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
-      - AWS_ACCESS_KEY_FILE=/app/***REMOVED***
+      - AWS_ACCESS_KEY_FILE=/app/restyle-rekognition-user_accessKeys.csv
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-***REMOVED***}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-***REMOVED***}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-3LAsYxgRHS0msvNQLdAf7Nnab89j//0oFp2JfEja}
       - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
       - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-silent-polygon-465403-h9}
       - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
@@ -66,8 +66,8 @@ services:
     command: celery -A backend worker -l info -Q default,ebay_tokens
     volumes:
       # Mount your local secrets into the container
-      - D:/AMD/secrets/***REMOVED***:/app/gcp_credentials.json:ro
-      - D:/AMD/secrets/***REMOVED***:/app/***REMOVED***:ro
+      - D:/AMD/secrets/silent-polygon-465403-h9-3a57d36afc97.json:/app/gcp_credentials.json:ro
+      - D:/AMD/secrets/restyle-rekognition-user_accessKeys.csv:/app/restyle-rekognition-user_accessKeys.csv:ro
     depends_on:
       db:
         condition: service_healthy
@@ -78,7 +78,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
-      - AWS_ACCESS_KEY_FILE=/app/***REMOVED***
+      - AWS_ACCESS_KEY_FILE=/app/restyle-rekognition-user_accessKeys.csv
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
@@ -92,8 +92,8 @@ services:
     command: celery -A backend beat -l info
     volumes:
       # Mount your local secrets into the container
-      - D:/AMD/secrets/***REMOVED***:/app/gcp_credentials.json:ro
-      - D:/AMD/secrets/***REMOVED***:/app/***REMOVED***:ro
+      - D:/AMD/secrets/silent-polygon-465403-h9-3a57d36afc97.json:/app/gcp_credentials.json:ro
+      - D:/AMD/secrets/restyle-rekognition-user_accessKeys.csv:/app/restyle-rekognition-user_accessKeys.csv:ro
     depends_on:
       db:
         condition: service_healthy
@@ -104,7 +104,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
-      - AWS_ACCESS_KEY_FILE=/app/***REMOVED***
+      - AWS_ACCESS_KEY_FILE=/app/restyle-rekognition-user_accessKeys.csv
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}
@@ -120,8 +120,8 @@ services:
       - "5555:5555"
     volumes:
       # Mount your local secrets into the container
-      - D:/AMD/secrets/***REMOVED***:/app/gcp_credentials.json:ro
-      - D:/AMD/secrets/***REMOVED***:/app/***REMOVED***:ro
+      - D:/AMD/secrets/silent-polygon-465403-h9-3a57d36afc97.json:/app/gcp_credentials.json:ro
+      - D:/AMD/secrets/restyle-rekognition-user_accessKeys.csv:/app/restyle-rekognition-user_accessKeys.csv:ro
     depends_on:
       db:
         condition: service_healthy
@@ -132,7 +132,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp_credentials.json
-      - AWS_ACCESS_KEY_FILE=/app/***REMOVED***
+      - AWS_ACCESS_KEY_FILE=/app/restyle-rekognition-user_accessKeys.csv
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION_NAME=${AWS_REGION_NAME:-us-east-1}

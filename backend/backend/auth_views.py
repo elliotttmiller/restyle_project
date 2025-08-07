@@ -86,7 +86,7 @@ def token_obtain_pair(request):
         
         # Create tokens
         access_token = create_token(user.id, user.username)
-        ***REMOVED***= create_token(user.id, user.username)  # Simplified - same for now
+        refresh_token = create_token(user.id, user.username)  # Simplified - same for now
         
         return JsonResponse({
             'access': access_token,
@@ -117,7 +117,7 @@ def token_refresh(request):
     """
     try:
         data = json.loads(request.body)
-        ***REMOVED***= data.get('refresh')
+        refresh_token = data.get('refresh')
         
         if not refresh_token:
             return JsonResponse({

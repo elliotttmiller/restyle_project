@@ -30,8 +30,8 @@ def test_aws_rekognition():
         
         rekognition = boto3.client(
             'rekognition',
-            aws_***REMOVED***=os.environ.get('AWS_ACCESS_KEY_ID'),
-            aws_***REMOVED***=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+            aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
             region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
         )
         
@@ -58,15 +58,15 @@ def test_google_vision():
         from google.cloud import vision
         
         # Set up credentials using API key
-        google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
-        if not google_***REMOVED***:
+        google_api_key = os.environ.get('GOOGLE_API_KEY')
+        if not google_api_key:
             print("❌ No GOOGLE_API_KEY found")
             return False
             
         print("✅ Google Cloud credentials found")
         
         client_options = {
-            "***REMOVED***": google_***REMOVED***,
+            "api_key": google_api_key,
             "quota_project_id": "609071491201"  # Our correct project ID
         }
         client = vision.ImageAnnotatorClient(client_options=client_options)

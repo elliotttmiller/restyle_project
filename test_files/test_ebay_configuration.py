@@ -24,20 +24,20 @@ def test_ebay_credentials():
         # Check if credentials are set
         app_id = getattr(settings, 'EBAY_PRODUCTION_APP_ID', None)
         cert_id = getattr(settings, 'EBAY_PRODUCTION_CERT_ID', None)
-        ***REMOVED*** = getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
-        ***REMOVED***= getattr(settings, 'EBAY_PRODUCTION_REFRESH_TOKEN', None)
+        client_secret = getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
+        refresh_token = getattr(settings, 'EBAY_PRODUCTION_REFRESH_TOKEN', None)
         
         print("📋 CREDENTIAL STATUS:")
         print(f"   App ID: {'✅ Set' if app_id and app_id != 'Your-App-ID-Goes-Here' else '❌ Missing/Placeholder'}")
         print(f"   Cert ID: {'✅ Set' if cert_id and cert_id != 'Your-Cert-ID-Goes-Here' else '❌ Missing/Placeholder'}")
-        print(f"   Client Secret: {'✅ Set' if ***REMOVED*** and ***REMOVED*** != 'Your-Client-Secret-Goes-Here' else '❌ Missing/Placeholder'}")
-        print(f"   Refresh Token: {'✅ Set' if ***REMOVED***else '❌ Missing'}")
+        print(f"   Client Secret: {'✅ Set' if client_secret and client_secret != 'Your-Client-Secret-Goes-Here' else '❌ Missing/Placeholder'}")
+        print(f"   Refresh Token: {'✅ Set' if refresh_token else '❌ Missing'}")
         
         # Check if all credentials are properly set
         all_set = all([
             app_id and app_id != 'Your-App-ID-Goes-Here',
             cert_id and cert_id != 'Your-Cert-ID-Goes-Here', 
-            ***REMOVED*** and ***REMOVED*** != 'Your-Client-Secret-Goes-Here',
+            client_secret and client_secret != 'Your-Client-Secret-Goes-Here',
             refresh_token
         ])
         

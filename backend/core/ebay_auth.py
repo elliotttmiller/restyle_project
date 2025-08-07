@@ -37,8 +37,8 @@ class EbayTokenManager:
         
         self.app_id = ebay_creds.get('app_id')
         self.cert_id = ebay_creds.get('cert_id')
-        self.***REMOVED*** = ebay_creds.get('***REMOVED***')
-        self.***REMOVED***= self._load_refresh_token()
+        self.client_secret = ebay_creds.get('client_secret')
+        self.refresh_token = self._load_refresh_token()
         
         # Check if eBay service is enabled
         if not credential_manager.is_service_enabled('ebay'):
@@ -48,8 +48,8 @@ class EbayTokenManager:
         # Log credential status for debugging
         logger.info(f"eBay App ID: {'✅ Set' if self.app_id else '❌ Missing'}")
         logger.info(f"eBay Cert ID: {'✅ Set' if self.cert_id else '❌ Missing'}")
-        logger.info(f"eBay Client Secret: {'✅ Set' if self.***REMOVED*** else '❌ Missing'}")
-        logger.info(f"eBay Refresh Token: {'✅ Set' if self.***REMOVED***else '❌ Missing'}")
+        logger.info(f"eBay Client Secret: {'✅ Set' if self.client_secret else '❌ Missing'}")
+        logger.info(f"eBay Refresh Token: {'✅ Set' if self.refresh_token else '❌ Missing'}")
         
     def _load_refresh_token(self):
         """Load refresh token from file if it exists, else from settings."""
@@ -107,7 +107,7 @@ class EbayTokenManager:
             # Set refresh lock
             cache.set(self.REFRESH_LOCK_KEY, True, timeout=30)
             
-            if not all([self.app_id, self.***REMOVED***, self.refresh_token]):
+            if not all([self.app_id, self.client_secret, self.refresh_token]):
                 logger.warning("Missing eBay credentials for token refresh")
                 return self._get_fallback_token()
             
@@ -133,7 +133,7 @@ class EbayTokenManager:
                 token_data = response.json()
                 access_token = token_data.get('access_token')
                 expires_in = token_data.get('expires_in', 7200)  # Default 2 hours
-                new_***REMOVED***= token_data.get('refresh_token')
+                new_refresh_token = token_data.get('refresh_token')
                 
                 if access_token:
                     # Calculate expiry time
@@ -185,8 +185,8 @@ class EbayTokenManager:
     def _get_basic_auth(self) -> str:
         """Generate Basic Auth header for eBay API"""
         import base64
-        # Use ***REMOVED*** if cert_id is missing
-        auth_secret = self.cert_id if self.cert_id else self.***REMOVED***
+        # Use client_secret if cert_id is missing
+        auth_secret = self.cert_id if self.cert_id else self.client_secret
         credentials = f"{self.app_id}:{auth_secret}"
         return base64.b64encode(credentials.encode()).decode()
     
@@ -198,7 +198,7 @@ class EbayTokenManager:
             token_file = os.path.abspath(self.REFRESH_TOKEN_FILE)
             with open(token_file, 'w') as f:
                 f.write(new_refresh_token)
-            self.***REMOVED***= new_refresh_token
+            self.refresh_token = new_refresh_token
             logger.info("New refresh token saved to file and updated in memory.")
         except Exception as e:
             logger.error(f"Failed to update refresh token: {e}")

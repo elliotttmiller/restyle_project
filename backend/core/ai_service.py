@@ -84,16 +84,16 @@ class AIService:
         
         try:
             # Get Google API key from credential manager
-            google_***REMOVED*** = credential_manager.get_google_***REMOVED***()
+            google_api_key = credential_manager.get_google_api_key()
             
-            if google_***REMOVED***:
+            if google_api_key:
                 logger.info("Using Google API key from credential manager")
                 from google.cloud import vision
                 from google.oauth2 import service_account
                 
                 # Initialize client with API key and correct project
                 client_options = {
-                    "***REMOVED***": google_***REMOVED***,
+                    "api_key": google_api_key,
                     "quota_project_id": "609071491201"  # Our correct project ID
                 }
                 self._client = vision.ImageAnnotatorClient(client_options=client_options)
@@ -3036,14 +3036,14 @@ class AIService:
             # Get AWS credentials from credential manager
             aws_creds = credential_manager.get_aws_credentials()
             
-            if not aws_creds.get('aws_***REMOVED***') or not aws_creds.get('aws_***REMOVED***'):
+            if not aws_creds.get('aws_access_key_id') or not aws_creds.get('aws_secret_access_key'):
                 logger.warning("AWS credentials not available from credential manager")
                 return []
             
             rekognition = boto3.client(
                 'rekognition',
-                aws_***REMOVED***=aws_creds['aws_***REMOVED***'],
-                aws_***REMOVED***=aws_creds['aws_***REMOVED***'],
+                aws_access_key_id=aws_creds['aws_access_key_id'],
+                aws_secret_access_key=aws_creds['aws_secret_access_key'],
                 region_name=aws_creds.get('aws_region', 'us-east-1')
             )
             response = rekognition.detect_labels(

@@ -40,8 +40,8 @@ Since you already have Google Cloud credentials configured, you only need to set
 
 ### **Option A: Environment Variables**
 ```bash
-export AWS_ACCESS_KEY_ID=your_***REMOVED***_here
-export AWS_SECRET_ACCESS_KEY=your_***REMOVED***_here
+export AWS_ACCESS_KEY_ID=your_access_key_id_here
+export AWS_SECRET_ACCESS_KEY=your_secret_access_key_here
 export AWS_REGION_NAME=us-east-1
 ```
 
@@ -99,7 +99,7 @@ python test_multi_expert_ai.py
 ### **5.1 Enable Google APIs (if not already done)**
 ```bash
 # Using your existing Google Cloud credentials
-gcloud auth activate-service-account --key-file=***REMOVED***
+gcloud auth activate-service-account --key-file=silent-polygon-465403-h9-3a57d36afc97.json
 gcloud config set project silent-polygon-465403-h9
 
 # Enable required APIs

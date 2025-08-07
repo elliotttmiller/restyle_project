@@ -141,10 +141,10 @@ class ComprehensiveTestSuite:
         try:
             aws_creds = credential_manager.get_aws_credentials()
             return {
-                'has_access_key': bool(aws_creds.get('aws_***REMOVED***')),
-                'has_secret_key': bool(aws_creds.get('aws_***REMOVED***')),
+                'has_access_key': bool(aws_creds.get('aws_access_key_id')),
+                'has_secret_key': bool(aws_creds.get('aws_secret_access_key')),
                 'region': aws_creds.get('aws_region', 'us-east-1'),
-                'status': 'VALID' if aws_creds.get('aws_***REMOVED***') and aws_creds.get('aws_***REMOVED***') else 'INVALID'
+                'status': 'VALID' if aws_creds.get('aws_access_key_id') and aws_creds.get('aws_secret_access_key') else 'INVALID'
             }
         except Exception as e:
             return {'status': 'ERROR', 'error': str(e)}
@@ -155,7 +155,7 @@ class ComprehensiveTestSuite:
             ebay_creds = credential_manager.get_ebay_credentials()
             return {
                 'has_app_id': bool(ebay_creds.get('app_id')),
-                'has_***REMOVED***': bool(ebay_creds.get('***REMOVED***')),
+                'has_client_secret': bool(ebay_creds.get('client_secret')),
                 'has_refresh_token': bool(ebay_creds.get('refresh_token')),
                 'status': 'VALID' if ebay_creds.get('app_id') and ebay_creds.get('refresh_token') else 'INVALID'
             }

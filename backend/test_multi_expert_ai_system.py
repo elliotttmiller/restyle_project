@@ -20,12 +20,12 @@ def test_google_vision_api(image_path):
     
     try:
         # Initialize Vision client with API key
-        google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
-        if not google_***REMOVED***:
+        google_api_key = os.environ.get('GOOGLE_API_KEY')
+        if not google_api_key:
             print("❌ No GOOGLE_API_KEY found")
             return False
             
-        client_options = {"***REMOVED***": google_***REMOVED***}
+        client_options = {"api_key": google_api_key}
         client = vision.ImageAnnotatorClient(client_options=client_options)
         
         # Read image
@@ -76,8 +76,8 @@ def test_aws_rekognition(image_path):
         # Initialize Rekognition client
         rekognition = boto3.client(
             'rekognition',
-            aws_***REMOVED***=os.environ.get('AWS_ACCESS_KEY_ID', 'REDACTED'),
-            aws_***REMOVED***=os.environ.get('AWS_SECRET_ACCESS_KEY', 'REDACTED'),
+            aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID', 'REDACTED'),
+            aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY', 'REDACTED'),
             region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
         )
         
@@ -125,7 +125,7 @@ def test_gemini_api(analysis_results):
     
     try:
         # Initialize Gemini
-        genai.configure(***REMOVED***=os.environ.get('GEMINI_API_KEY'))
+        genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
         model = GenerativeModel('gemini-1.5-pro')
         
         # Create synthesis prompt
@@ -167,12 +167,12 @@ def test_gemini_ai(analysis_results):
         # Initialize Gemini AI
         import google.generativeai as genai
         
-        gemini_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
-        if not gemini_***REMOVED***:
+        gemini_api_key = os.environ.get('GOOGLE_API_KEY')
+        if not gemini_api_key:
             print("❌ No GOOGLE_API_KEY found for Gemini")
             return None
             
-        genai.configure(***REMOVED***=gemini_***REMOVED***)
+        genai.configure(api_key=gemini_api_key)
         from google.generativeai import GenerativeModel
         model = GenerativeModel('gemini-1.5-pro')
         

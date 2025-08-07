@@ -38,7 +38,7 @@
       },
       "ebay_credentials": {
         "has_app_id": true,
-        "has_***REMOVED***": true,
+        "has_client_secret": true,
         "has_refresh_token": true,
         "status": "VALID"
       },

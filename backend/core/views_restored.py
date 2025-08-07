@@ -61,10 +61,10 @@ def get_vision_client():
     if _vision_client is None:
         try:
             from google.cloud import vision
-            google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
-            if google_***REMOVED***:
+            google_api_key = os.environ.get('GOOGLE_API_KEY')
+            if google_api_key:
                 client_options = {
-                    "***REMOVED***": google_***REMOVED***,
+                    "api_key": google_api_key,
                     "quota_project_id": "609071491201"  # Our correct project ID
                 }
                 _vision_client = vision.ImageAnnotatorClient(client_options=client_options)
@@ -96,7 +96,7 @@ def get_gemini_model():
     if _gemini_model is None:
         try:
             import google.generativeai as genai
-            genai.configure(***REMOVED***=os.environ.get('GOOGLE_AI_API_KEY'))
+            genai.configure(api_key=os.environ.get('GOOGLE_AI_API_KEY'))
             _gemini_model = genai.GenerativeModel('gemini-1.5-flash')
             logging.info("Gemini model initialized successfully")
         except Exception as e:

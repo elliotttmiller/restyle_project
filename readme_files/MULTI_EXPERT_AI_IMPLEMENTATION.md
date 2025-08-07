@@ -43,11 +43,11 @@ The system requires the following environment variables:
 
 ```bash
 # Google Gemini API
-GEMINI_API_KEY=your_gemini_***REMOVED***_here
+GEMINI_API_KEY=your_gemini_api_key_here
 
 # AWS Rekognition
-AWS_ACCESS_KEY_ID=your_aws_***REMOVED***
-AWS_SECRET_ACCESS_KEY=your_aws_***REMOVED***
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_REGION_NAME=us-east-1  # or your preferred region
 ```
 
@@ -163,11 +163,11 @@ Create a `.env` file in your project root:
 
 ```bash
 # Google Gemini API
-GEMINI_API_KEY=your_gemini_***REMOVED***_here
+GEMINI_API_KEY=your_gemini_api_key_here
 
 # AWS Rekognition
-AWS_ACCESS_KEY_ID=your_aws_***REMOVED***
-AWS_SECRET_ACCESS_KEY=your_aws_***REMOVED***
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_REGION_NAME=us-east-1
 ```
 

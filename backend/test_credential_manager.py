@@ -50,14 +50,14 @@ def test_credential_manager():
     
     # AWS credentials
     aws_creds = credential_manager.get_aws_credentials()
-    has_aws = aws_creds.get('aws_***REMOVED***') and aws_creds.get('aws_***REMOVED***')
+    has_aws = aws_creds.get('aws_access_key_id') and aws_creds.get('aws_secret_access_key')
     print(f"  AWS Credentials: {'✅ Available' if has_aws else '❌ Missing'}")
     if has_aws:
         print(f"    Region: {aws_creds.get('aws_region', 'Not specified')}")
     
     # eBay credentials
     ebay_creds = credential_manager.get_ebay_credentials()
-    has_ebay = ebay_creds.get('app_id') and ebay_creds.get('***REMOVED***')
+    has_ebay = ebay_creds.get('app_id') and ebay_creds.get('client_secret')
     print(f"  eBay Credentials: {'✅ Available' if has_ebay else '❌ Missing'}")
     
     # Test validation

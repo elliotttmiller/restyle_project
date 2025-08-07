@@ -16,7 +16,7 @@ Your system now uses three AI services:
 You already have a Google Cloud service account configured:
 - **Project ID**: `silent-polygon-465403-h9`
 - **Service Account**: `restyle@silent-polygon-465403-h9.iam.gserviceaccount.com`
-- **Credentials File**: `***REMOVED***`
+- **Credentials File**: `silent-polygon-465403-h9-3a57d36afc97.json`
 
 ### 🔧 Enable Additional APIs
 You need to enable these APIs in your Google Cloud Console:
@@ -32,7 +32,7 @@ You need to enable these APIs in your Google Cloud Console:
 ### 📝 Steps to Enable APIs:
 ```bash
 # Option 1: Using gcloud CLI
-gcloud auth activate-service-account --key-file=***REMOVED***
+gcloud auth activate-service-account --key-file=silent-polygon-465403-h9-3a57d36afc97.json
 gcloud config set project silent-polygon-465403-h9
 gcloud services enable aiplatform.googleapis.com
 gcloud services enable generativelanguage.googleapis.com
@@ -59,7 +59,7 @@ gcloud services enable generativelanguage.googleapis.com
 3. **Add to Environment**:
    ```bash
    # Add to your .env file or environment variables
-   GEMINI_API_KEY=your_gemini_***REMOVED***_here
+   GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
 ### 🧪 Test Gemini API
@@ -102,8 +102,8 @@ curl -H "Content-Type: application/json" \
 
 ```bash
 # Option 1: Environment Variables
-export AWS_ACCESS_KEY_ID=your_***REMOVED***
-export AWS_SECRET_ACCESS_KEY=your_***REMOVED***
+export AWS_ACCESS_KEY_ID=your_access_key_id
+export AWS_SECRET_ACCESS_KEY=your_secret_access_key
 export AWS_REGION_NAME=us-east-1
 
 # Option 2: AWS CLI Configuration
@@ -135,14 +135,14 @@ Create a `.env` file in your project root:
 
 ```bash
 # Google Cloud (already configured)
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/***REMOVED***
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/silent-polygon-465403-h9-3a57d36afc97.json
 
 # Google Gemini API
-GEMINI_API_KEY=your_gemini_***REMOVED***_here
+GEMINI_API_KEY=your_gemini_api_key_here
 
 # AWS Rekognition
-AWS_ACCESS_KEY_ID=your_aws_***REMOVED***
-AWS_SECRET_ACCESS_KEY=your_aws_***REMOVED***
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_REGION_NAME=us-east-1
 ```
 
@@ -151,7 +151,7 @@ Your `docker-compose.yml` already includes these environment variables:
 
 ```yaml
 environment:
-  - GOOGLE_APPLICATION_CREDENTIALS=/app/***REMOVED***
+  - GOOGLE_APPLICATION_CREDENTIALS=/app/silent-polygon-465403-h9-3a57d36afc97.json
   - GEMINI_API_KEY=${GEMINI_API_KEY}
   - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
   - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
@@ -182,7 +182,7 @@ print(status)
 #### **Google Cloud Issues**
 ```bash
 # Check if service account has proper permissions
-gcloud auth activate-service-account --key-file=***REMOVED***
+gcloud auth activate-service-account --key-file=silent-polygon-465403-h9-3a57d36afc97.json
 gcloud projects get-iam-policy silent-polygon-465403-h9
 ```
 

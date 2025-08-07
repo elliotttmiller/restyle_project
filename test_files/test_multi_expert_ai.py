@@ -27,7 +27,7 @@ else:
     print(f"❌ Google Cloud credentials not found at: {credentials_path}")
     print("Expected locations:")
     print(f"  - {credentials_path}")
-    print(f"  - {os.path.join(os.path.dirname(__file__), '..', '***REMOVED***')}")
+    print(f"  - {os.path.join(os.path.dirname(__file__), '..', 'silent-polygon-465403-h9-3a57d36afc97.json')}")
 
 def test_multi_expert_ai_pipeline():
     """Test the complete multi-expert AI pipeline."""

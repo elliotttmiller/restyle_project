@@ -4,8 +4,8 @@
 import os
 
 # For local development, set these environment variables in your shell or .env file:
-#   set GOOGLE_API_KEY=your_google_***REMOVED***_here
-#   set AWS_ACCESS_KEY_FILE=D:\AMD\secrets\***REMOVED***
+#   set GOOGLE_API_KEY=your_google_api_key_here
+#   set AWS_ACCESS_KEY_FILE=D:\AMD\secrets\restyle-rekognition-user_accessKeys.csv
 
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')

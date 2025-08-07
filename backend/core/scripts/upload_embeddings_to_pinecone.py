@@ -19,7 +19,7 @@ PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
 PINECONE_INDEX = os.environ["PINECONE_INDEX_NAME"]
 
 # Initialize Pinecone (new client)
-pc = Pinecone(***REMOVED***=PINECONE_API_KEY)
+pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index(PINECONE_INDEX)
 
 # Batch upserts for efficiency
