@@ -1,23 +1,26 @@
 # Nixpacks configuration for Restyle.ai
 # This file tells Nixpacks which system packages and commands to use
 
+
+# Nixpacks setup phase: install only the system packages needed for ML/AI and image processing
 [phases.setup]
-# System packages needed for ML/AI Python libraries
 nixPkgs = [
-  "libGL",
-  "libSM",
-  "libXext",
-  "libXrender",
-  "libjpeg"
+  "mesa"            # OpenGL (libGL)
+  "libSM"           # Session Management
+  "libXext"         # X11 Extension
+  "libXrender"      # X Rendering Extension
+  "libjpeg_turbo"   # JPEG support
 ]
 
+
+# Nixpacks install phase: install Python dependencies with pip
 [phases.install]
-# Install Python dependencies
 cmds = [
   "pip install --upgrade pip",
   "pip install -r requirements.txt"
 ]
 
+
+# Nixpacks start phase: use custom startup script if present, else fallback to Django runserver
 [phases.start]
-# Use your custom startup script if present, else fallback to Django runserver
 cmd = "./fast_start.sh || python manage.py runserver 0.0.0.0:8000"
