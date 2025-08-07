@@ -1,4 +1,15 @@
-FROM python:3.11-slim
+
+FROM python:3.11
+
+# Install system dependencies for ML/AI
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libjpeg-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Build arguments for caching
 ARG BUILDKIT_INLINE_CACHE=1
