@@ -63,12 +63,15 @@ def get_vision_client():
             from google.cloud import vision
             google_api_key = os.environ.get('GOOGLE_API_KEY')
             if google_api_key:
+                # Get project ID from environment
+                project_id = os.environ.get('GOOGLE_CLOUD_PROJECT_ID', '609071491201')
+                
                 client_options = {
                     "api_key": google_api_key,
-                    "quota_project_id": "609071491201"  # Our correct project ID
+                    "quota_project_id": project_id
                 }
                 _vision_client = vision.ImageAnnotatorClient(client_options=client_options)
-                logging.info("Google Vision client initialized successfully with API key")
+                logging.info(f"Google Vision client initialized successfully with API key for project {project_id}")
             else:
                 logging.warning("No GOOGLE_API_KEY found, Google Vision client not initialized")
                 return None

@@ -43,11 +43,15 @@ class AggregatorService:
             # Initialize Google Vision client with API key
             google_api_key = os.environ.get('GOOGLE_API_KEY')
             if google_api_key:
+                # Get project ID from environment
+                project_id = os.environ.get('GOOGLE_CLOUD_PROJECT_ID', '609071491201')
+                
                 client_options = {
                     "api_key": google_api_key,
-                    "quota_project_id": "609071491201"  # Our correct project ID
+                    "quota_project_id": project_id
                 }
                 self._google_vision_client = vision.ImageAnnotatorClient(client_options=client_options)
+                logger.info(f"Google Vision client initialized with API key for project {project_id}")
             else:
                 logger.warning("No GOOGLE_API_KEY found, Google Vision client not initialized")
                 self._google_vision_client = None

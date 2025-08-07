@@ -91,13 +91,16 @@ class AIService:
                 from google.cloud import vision
                 from google.oauth2 import service_account
                 
+                # Get project ID from environment
+                project_id = os.environ.get('GOOGLE_CLOUD_PROJECT_ID', '609071491201')
+                
                 # Initialize client with API key and correct project
                 client_options = {
                     "api_key": google_api_key,
-                    "quota_project_id": "609071491201"  # Our correct project ID
+                    "quota_project_id": project_id
                 }
                 self._client = vision.ImageAnnotatorClient(client_options=client_options)
-                logger.info("Google Cloud Vision client initialized successfully with API key")
+                logger.info(f"Google Cloud Vision client initialized successfully with API key for project {project_id}")
             else:
                 logger.error("No Google API key available from credential manager")
                 self._client = None
