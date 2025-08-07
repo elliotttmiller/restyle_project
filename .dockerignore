@@ -1,0 +1,49 @@
+# Ignore Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Ignore virtual environments
+venv/
+.env/
+
+# Ignore test, docs, and local dev files
+test_files/
+docs/
+readme_files/
+*.log
+*.bak
+*.swp
+
+# Ignore node_modules and frontend build artifacts
+node_modules/
+frontend/build/
+frontend/.next/
+frontend/.cache/
+
+# Ignore mobile build artifacts
+restyle-mobile/.expo/
+restyle-mobile/node_modules/
+restyle-mobile/dist/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore secrets
+*.pem
+*.key
+*.env
+.env.*
+
+# Ignore git and CI/CD
+.git/
+.github/
+.gitignore
+
+# Ignore Docker artifacts
+*.tar
+*.img
