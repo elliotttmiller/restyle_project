@@ -5,10 +5,10 @@
 # Nixpacks setup phase: install only the system packages needed for ML/AI and image processing
 [phases.setup]
 nixPkgs = [
-  "mesa"            # OpenGL (libGL)
-  "libSM"           # Session Management
-  "libXext"         # X11 Extension
-  "libXrender"      # X Rendering Extension
+  "mesa",           # OpenGL (libGL)
+  "libSM",          # Session Management
+  "libXext",        # X11 Extension
+  "libXrender",     # X Rendering Extension
   "libjpeg_turbo"   # JPEG support
 ]
 
