@@ -89,8 +89,10 @@ def get_rekognition_client():
     if _rekognition_client is None:
         try:
             import boto3
-            _rekognition_client = boto3.client('rekognition')
-            logging.info("AWS Rekognition client initialized successfully")
+            import os
+            region = os.environ.get('AWS_REGION', 'us-east-1')
+            _rekognition_client = boto3.client('rekognition', region_name=region)
+            logging.info(f"AWS Rekognition client initialized successfully (region: {region})")
         except Exception as e:
             logging.warning(f"AWS Rekognition client initialization failed: {e}")
             return None
