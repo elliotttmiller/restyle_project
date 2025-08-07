@@ -407,7 +407,35 @@ class SetEbayRefreshTokenView(APIView):
 
 class EbayOAuthCallbackView(APIView):
     def get(self, request):
-        return Response({"message": "eBay OAuth callback endpoint working - full functionality not yet restored"})
+        code = request.GET.get('code')
+        if not code:
+            return Response({"error": "No code provided"}, status=400)
+
+        token_url = "https://api.ebay.com/identity/v1/oauth2/token"
+        client_id = getattr(settings, 'EBAY_CLIENT_ID', None)
+        client_secret = getattr(settings, 'EBAY_CLIENT_SECRET', None)
+        redirect_uri = getattr(settings, 'EBAY_RUNAME', 'Elliott_Miller-ElliottM-Restyl-mibanzi')
+
+        if not client_id or not client_secret:
+            return Response({"error": "eBay client credentials not set in settings"}, status=500)
+
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+        data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": redirect_uri,
+        }
+        auth = (client_id, client_secret)
+
+        resp = requests.post(token_url, headers=headers, data=data, auth=auth)
+        if resp.status_code == 200:
+            tokens = resp.json()
+            # TODO: Save tokens['refresh_token'] securely!
+            return Response({"message": "eBay OAuth successful", "tokens": tokens})
+        else:
+            return Response({"error": "Failed to get token", "details": resp.text}, status=resp.status_code)
 
 class EbayOAuthDeclinedView(APIView):
     def get(self, request):
