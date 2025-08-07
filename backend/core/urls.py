@@ -1,11 +1,13 @@
 # File: backend/core/urls.py
 
 from django.urls import path
-# We ONLY import the views that currently exist in core/views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from .views import (
-    ItemListCreateView, 
-    ItemDetailView, 
-    ListingListCreateView, 
+    ItemListCreateView,
+    ItemDetailView,
+    ListingListCreateView,
     ListingDetailView,
     TriggerAnalysisView,
     AnalysisStatusView,
@@ -24,12 +26,10 @@ from .views import (
     AdvancedMultiExpertAISearchView,
     PrivacyPolicyView,
     CropPreviewView,
-    root_view,  # Add this import
+    root_view,
 )
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
 
+# We ONLY import the views that currently exist in core/views.py
 urlpatterns = [
     # Health check endpoint
     path('health/', health_check, name='health-check'),
