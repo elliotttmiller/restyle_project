@@ -1,26 +1,39 @@
-# Nixpacks configuration for Restyle.ai
-# This file tells Nixpacks which system packages and commands to use
+# Optimized Nixpacks configuration for Restyle.ai Railway deployment
 
+[variables]
+PYTHON_VERSION = "3.11"
+PIP_NO_CACHE_DIR = "1"
+PIP_DISABLE_PIP_VERSION_CHECK = "1"
 
-# Nixpacks setup phase: install only the system packages needed for ML/AI and image processing
 [phases.setup]
 nixPkgs = [
-  "mesa",           # OpenGL (libGL)
-  "libSM",          # Session Management
-  "libXext",        # X11 Extension
-  "libXrender",     # X Rendering Extension
-  "libjpeg_turbo"   # JPEG support
+  "python311",
+  "python311Packages.pip",
+  "gcc",
+  "glibc",
+  "mesa",
+  "xorg.libSM",
+  "xorg.libXext",
+  "xorg.libXrender",
+  "libjpeg_turbo",
+  "libpng",
+  "freetype",
+  "fontconfig",
+  "pkg-config"
 ]
 
-
-# Nixpacks install phase: install Python dependencies with pip
 [phases.install]
 cmds = [
-  "pip install --upgrade pip",
-  "pip install -r requirements.txt"
+  "pip install --upgrade pip setuptools wheel",
+  "pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu",
+  "pip install --no-cache-dir -r requirements.txt"
 ]
 
+[phases.build]
+cmds = [
+  "python manage.py collectstatic --noinput --clear",
+  "chmod +x fast_start.sh"
+]
 
-# Nixpacks start phase: use custom startup script if present, else fallback to Django runserver
 [phases.start]
-cmd = "./fast_start.sh || python manage.py runserver 0.0.0.0:8000"
+cmd = "bash fast_start.sh"
