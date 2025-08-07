@@ -17,7 +17,9 @@ const config = {
     API_BASE_URL: 'https://restyleproject-production.up.railway.app',
     API_TIMEOUT: 15000,
     DEBUG: false,
-    DEMO_MODE: false, // Set to true if backend is not available
+    DEMO_MODE: true, // Enabled due to backend service issues
+    RETRY_ATTEMPTS: 3,
+    FALLBACK_ENABLED: true,
   }
 };
 

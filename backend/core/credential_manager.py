@@ -38,14 +38,19 @@ class CredentialManager:
         env_credentials = {
             'aws_***REMOVED***': os.environ.get('AWS_ACCESS_KEY_ID'),
             'aws_***REMOVED***': os.environ.get('AWS_SECRET_ACCESS_KEY'),
-            'aws_region': os.environ.get('AWS_REGION_NAME', 'us-east-1'),
-            'ebay_app_id': os.environ.get('EBAY_PRODUCTION_APP_ID'),
+            'aws_region': os.environ.get('AWS_REGION') or os.environ.get('AWS_REGION_NAME') or os.environ.get('AWS_DEFAULT_REGION', 'us-east-1'),
+            'ebay_app_id': os.environ.get('EBAY_PRODUCTION_APP_ID') or os.environ.get('EBAY_CLIENT_ID'),
             'ebay_cert_id': os.environ.get('EBAY_PRODUCTION_CERT_ID'),
-            'ebay_***REMOVED***': os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET'),
-            'ebay_refresh_token': os.environ.get('EBAY_PRODUCTION_REFRESH_TOKEN'),
+            'ebay_***REMOVED***': os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET') or os.environ.get('EBAY_CLIENT_SECRET'),
+            'ebay_refresh_token': os.environ.get('EBAY_PRODUCTION_REFRESH_TOKEN') or os.environ.get('EBAY_REFRESH_TOKEN'),
             'ebay_user_token': os.environ.get('EBAY_PRODUCTION_USER_TOKEN'),
             'google_project': os.environ.get('GOOGLE_CLOUD_PROJECT'),
             'google_location': os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1'),
+            # Service enable/disable flags
+            'enable_ebay_service': os.environ.get('ENABLE_EBAY_SERVICE', 'True').lower() == 'true',
+            'enable_google_vision': os.environ.get('ENABLE_GOOGLE_VISION', 'True').lower() == 'true',
+            'enable_aws_rekognition': os.environ.get('ENABLE_AWS_REKOGNITION', 'True').lower() == 'true',
+            'enable_ai_services': os.environ.get('ENABLE_AI_SERVICES', 'True').lower() == 'true',
         }
         
         # Filter out None values
@@ -101,11 +106,42 @@ class CredentialManager:
         """Get Google Cloud credentials"""
         return self.credentials.get('google_credentials')
     
+    def is_service_enabled(self, service_name: str) -> bool:
+        """Check if a service is enabled"""
+        service_flags = {
+            'ebay': self.credentials.get('enable_ebay_service', True),
+            'google_vision': self.credentials.get('enable_google_vision', True),
+            'aws_rekognition': self.credentials.get('enable_aws_rekognition', True),
+            'ai_services': self.credentials.get('enable_ai_services', True),
+        }
+        return service_flags.get(service_name, True)
+    
+    def get_service_status(self) -> Dict[str, Dict[str, Any]]:
+        """Get detailed service status"""
+        validation = self.validate_credentials()
+        return {
+            'aws_rekognition': {
+                'enabled': self.is_service_enabled('aws_rekognition'),
+                'credentials_valid': validation['aws'],
+                'available': self.is_service_enabled('aws_rekognition') and validation['aws']
+            },
+            'ebay_api': {
+                'enabled': self.is_service_enabled('ebay'),
+                'credentials_valid': validation['ebay'],
+                'available': self.is_service_enabled('ebay') and validation['ebay']
+            },
+            'google_vision': {
+                'enabled': self.is_service_enabled('google_vision'),
+                'credentials_valid': validation['google'],
+                'available': self.is_service_enabled('google_vision') and validation['google']
+            }
+        }
+    
     def validate_credentials(self) -> Dict[str, bool]:
         """Validate all credentials"""
         validation = {
             'aws': bool(self.credentials.get('aws_***REMOVED***') and self.credentials.get('aws_***REMOVED***')),
-            'ebay': bool(self.credentials.get('ebay_app_id') and self.credentials.get('ebay_refresh_token')),
+            'ebay': bool(self.credentials.get('ebay_app_id') and self.credentials.get('ebay_***REMOVED***') and self.credentials.get('ebay_refresh_token')),
             'google': bool(self.credentials.get('google_credentials'))
         }
         
@@ -125,6 +161,18 @@ class CredentialManager:
                 'google_gemini': validation['google'],
                 'google_vertex': validation['google']
             }
+        }
+
+    def get_summary_report(self) -> Dict[str, Any]:
+        """Get a summary report of credential manager status"""
+        validation = self.validate_credentials()
+        status = self.get_service_status()
+        
+        return {
+            'loaded_credentials': len([k for k, v in self.credentials.items() if v]),
+            'enabled_services': len([k for k, v in status.items() if v.get('enabled', False)]),
+            'validated_services': len([k for k, v in validation.items() if v]),
+            'available_services': len([k for k, v in status.items() if v.get('available', False)])
         }
 
 # Global credential manager instance

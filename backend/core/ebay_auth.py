@@ -14,6 +14,7 @@ from django.db import models
 from typing import Optional, Dict, Any
 import os
 from django.core.mail import mail_admins
+from core.credential_manager import credential_manager
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +32,24 @@ class EbayTokenManager:
     REFRESH_TOKEN_FILE = os.path.join(os.path.dirname(__file__), '..', 'ebay_refresh_token.txt')
     
     def __init__(self):
-        self.app_id = getattr(settings, 'EBAY_PRODUCTION_APP_ID', None)
-        self.cert_id = getattr(settings, 'EBAY_PRODUCTION_CERT_ID', None)
-        self.***REMOVED*** = getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
+        # Get eBay credentials from credential manager
+        ebay_creds = credential_manager.get_ebay_credentials()
+        
+        self.app_id = ebay_creds.get('app_id')
+        self.cert_id = ebay_creds.get('cert_id')
+        self.***REMOVED*** = ebay_creds.get('***REMOVED***')
         self.***REMOVED***= self._load_refresh_token()
+        
+        # Check if eBay service is enabled
+        if not credential_manager.is_service_enabled('ebay'):
+            logger.info("eBay service is disabled via environment variables")
+            return
+        
+        # Log credential status for debugging
+        logger.info(f"eBay App ID: {'✅ Set' if self.app_id else '❌ Missing'}")
+        logger.info(f"eBay Cert ID: {'✅ Set' if self.cert_id else '❌ Missing'}")
+        logger.info(f"eBay Client Secret: {'✅ Set' if self.***REMOVED*** else '❌ Missing'}")
+        logger.info(f"eBay Refresh Token: {'✅ Set' if self.***REMOVED***else '❌ Missing'}")
         
     def _load_refresh_token(self):
         """Load refresh token from file if it exists, else from settings."""
@@ -92,7 +107,7 @@ class EbayTokenManager:
             # Set refresh lock
             cache.set(self.REFRESH_LOCK_KEY, True, timeout=30)
             
-            if not all([self.app_id, self.cert_id, self.***REMOVED***, self.refresh_token]):
+            if not all([self.app_id, self.***REMOVED***, self.refresh_token]):
                 logger.warning("Missing eBay credentials for token refresh")
                 return self._get_fallback_token()
             
@@ -170,7 +185,7 @@ class EbayTokenManager:
     def _get_basic_auth(self) -> str:
         """Generate Basic Auth header for eBay API"""
         import base64
-        credentials = f"{self.app_id}:{self.cert_id}"
+        credentials = f"{self.app_id}:{self.***REMOVED***}"
         return base64.b64encode(credentials.encode()).decode()
     
     def _update_refresh_token(self, new_refresh_token: str):
@@ -215,6 +230,27 @@ class EbayTokenManager:
         cache.delete(self.TOKEN_CACHE_KEY)
         cache.delete(self.TOKEN_EXPIRY_CACHE_KEY)
         return self._refresh_token()
+    
+    def get_access_token(self) -> Optional[str]:
+        """
+        Alias for get_valid_token for backward compatibility
+        """
+        return self.get_valid_token()
+    
+    def is_token_valid(self) -> bool:
+        """
+        Check if current token is valid
+        """
+        try:
+            token = self.get_valid_token()
+            if not token:
+                return False
+            
+            # Validate token by making a test API call
+            return self.validate_token(token)
+        except Exception as e:
+            logger.error(f"Error checking token validity: {e}")
+            return False
 
 # Global token manager instance
 token_manager = EbayTokenManager()

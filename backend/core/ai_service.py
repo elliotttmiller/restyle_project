@@ -26,6 +26,7 @@ import hashlib
 import pickle
 from datetime import datetime, timedelta
 import boto3
+from core.credential_manager import credential_manager
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +73,42 @@ class AIService:
     
     def _initialize_client(self):
         logger.info("_initialize_client called for AIService")
-        """Initialize Google Cloud Vision client"""
-        import traceback
+        """Initialize Google Cloud Vision client using credential manager"""
+        
+        # Check if Google Vision service is enabled
+        if not credential_manager.is_service_enabled('google_vision'):
+            logger.info("Google Vision service is disabled via environment variables")
+            self._client = None
+            self._client_initialized = True
+            return
+        
+        try:
+            # Get Google Cloud credentials from credential manager
+            google_creds = credential_manager.get_google_credentials()
+            
+            if google_creds:
+                logger.info("Using Google Cloud credentials from credential manager")
+                from google.cloud import vision
+                self._client = vision.ImageAnnotatorClient()
+                logger.info("Google Cloud Vision client initialized successfully via credential manager")
+            else:
+                logger.warning("No Google Cloud credentials available from credential manager")
+                # Fallback to original credential loading logic
+                self._fallback_credential_loading()
+                
+        except Exception as e:
+            logger.exception(f"Error initializing Google Cloud Vision client: {e}")
+            self._client = None
+        finally:
+            self._client_initialized = True
+    
+    def _fallback_credential_loading(self):
+        """Fallback credential loading for Google Cloud Vision"""
+        logger.info("Using fallback credential loading for Google Vision")
+        
         # Use environment variable for credentials path
         creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "/etc/secrets/gcp.json")
-        logger.info(f"GOOGLE_APPLICATION_CREDENTIALS at init: {creds_path}")
+        logger.info(f"GOOGLE_APPLICATION_CREDENTIALS at fallback: {creds_path}")
         
         if creds_path and os.path.exists(creds_path):
             logger.info(f"Credentials file found at {creds_path}")
@@ -100,15 +132,14 @@ class AIService:
                     break
             else:
                 logger.error("No Google Cloud credentials found. Using fallback mode.")
+        
         try:
             from google.cloud import vision
             self._client = vision.ImageAnnotatorClient()
-            logger.info("Google Cloud Vision client initialized successfully.")
+            logger.info("Google Cloud Vision client initialized via fallback method")
         except Exception as e:
-            logger.exception(f"Error initializing Google Cloud Vision client: {e}")
+            logger.error(f"Fallback credential loading failed: {e}")
             self._client = None
-        finally:
-            self._client_initialized = True
     
     def analyze_image(self, image_data: bytes) -> Dict[str, Any]:
         """
@@ -3024,12 +3055,24 @@ class AIService:
         Use AWS Rekognition to detect objects and their bounding boxes in the image.
         Returns a list of dicts: {name, confidence, bounding_box: (x_min, y_min, x_max, y_max)}
         """
+        # Check if AWS Rekognition service is enabled
+        if not credential_manager.is_service_enabled('aws_rekognition'):
+            logger.info("AWS Rekognition service is disabled via environment variables")
+            return []
+        
         try:
+            # Get AWS credentials from credential manager
+            aws_creds = credential_manager.get_aws_credentials()
+            
+            if not aws_creds.get('aws_***REMOVED***') or not aws_creds.get('aws_***REMOVED***'):
+                logger.warning("AWS credentials not available from credential manager")
+                return []
+            
             rekognition = boto3.client(
                 'rekognition',
-                aws_***REMOVED***=os.environ.get('AWS_ACCESS_KEY_ID'),
-                aws_***REMOVED***=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-                region_name=os.environ.get('AWS_REGION_NAME', 'us-east-1')
+                aws_***REMOVED***=aws_creds['aws_***REMOVED***'],
+                aws_***REMOVED***=aws_creds['aws_***REMOVED***'],
+                region_name=aws_creds.get('aws_region', 'us-east-1')
             )
             response = rekognition.detect_labels(
                 Image={'Bytes': image_data},
@@ -3076,22 +3119,28 @@ class AIService:
         Returns (cropped_image_bytes, crop_info_dict)
         crop_info_dict: {service: 'vision'|'rekognition'|'none', bounding_box: tuple or None}
         """
-        # Try Google Vision
-        if use_vision and self.client:
+        # Try Google Vision (check if enabled and client available)
+        if use_vision and self.client and credential_manager.is_service_enabled('google_vision'):
             objects = self.detect_objects_and_regions(image_data)
             bbox = self.get_best_bounding_box(objects)
             if bbox:
                 logger.info(f"[CROP] Using Google Vision bounding box: {bbox}")
                 cropped = self.crop_to_region(image_data, bbox)
                 return cropped, {'service': 'vision', 'bounding_box': bbox}
-        # Try Rekognition
-        if use_rekognition:
+        elif use_vision and not credential_manager.is_service_enabled('google_vision'):
+            logger.info("[CROP] Google Vision service is disabled")
+            
+        # Try Rekognition (check if enabled)
+        if use_rekognition and credential_manager.is_service_enabled('aws_rekognition'):
             objects = self.detect_objects_rekognition(image_data)
             bbox = self.get_best_bounding_box(objects)
             if bbox:
                 logger.info(f"[CROP] Using Rekognition bounding box: {bbox}")
                 cropped = self.crop_to_region(image_data, bbox)
                 return cropped, {'service': 'rekognition', 'bounding_box': bbox}
+        elif use_rekognition and not credential_manager.is_service_enabled('aws_rekognition'):
+            logger.info("[CROP] AWS Rekognition service is disabled")
+            
         # Fallback: no crop
         logger.info(f"[CROP] No bounding box found, using original image")
         return image_data, {'service': 'none', 'bounding_box': None}
