@@ -295,11 +295,20 @@ class AdvancedMultiExpertAISearchView(APIView):
                     "message": "No image data provided"
                 }, status=400)
             
+            # Convert InMemoryUploadedFile to bytes if needed
+            if hasattr(image_data, 'read'):
+                # This is a file object, read the content
+                image_bytes = image_data.read()
+                self.logger.info(f"Converted uploaded file to bytes: {len(image_bytes)} bytes")
+            else:
+                # This is already bytes or string
+                image_bytes = image_data
+            
             self.logger.info(f"Processing image with intelligent_crop={intelligent_crop}")
             
             # Process the image (this would call the real AI service)
             try:
-                results = ai_service.analyze_image(image_data, intelligent_crop=intelligent_crop)
+                results = ai_service.analyze_image(image_bytes, intelligent_crop=intelligent_crop)
                 
                 if isinstance(results, dict) and results.get("status") == "error":
                     # This is a stub response
