@@ -216,7 +216,10 @@ export default function Dashboard() {
 
   // Text search functionality
   const handleTextSearch = useCallback(async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim()) {
+      setSearchError('Please enter a search query');
+      return;
+    }
     
     setSearchLoading(true);
     setSearchError('');
@@ -224,21 +227,66 @@ export default function Dashboard() {
     
     try {
       console.log('Searching with query:', searchQuery.trim());
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await api.get('/core/ebay-search/', {
         params: {
           q: searchQuery.trim(),
           limit: 20,
           offset: 0,
         },
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
       console.log('API response:', response.data);
-      const results = response.data.results || response.data;
+      
+      // Handle different response formats
+      let results = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          results = response.data;
+        } else if (response.data.results && Array.isArray(response.data.results)) {
+          results = response.data.results;
+        } else if (response.data.items && Array.isArray(response.data.items)) {
+          results = response.data.items;
+        }
+      }
+      
       setSearchResults(results);
+      
+      // Show demo mode notification if applicable
+      if (response.data?.demo_mode) {
+        console.log('🎭 Running in demo mode - backend unavailable');
+      }
       
     } catch (err) {
       console.error('Search failed:', err);
-      setSearchError(err.response?.data?.error || 'Search failed. Please try again.');
+      
+      let errorMessage = 'Search failed. Please try again.';
+      
+      if (err.name === 'AbortError') {
+        errorMessage = 'Search timed out. Please try again.';
+      } else if (err.response) {
+        if (err.response.status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (err.response.status === 503) {
+          errorMessage = 'Service temporarily unavailable. Please try again later.';
+        } else if (err.response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (err.response.data?.error) {
+          errorMessage = err.response.data.error;
+        } else if (err.response.data?.message) {
+          errorMessage = err.response.data.message;
+        }
+      } else if (err.request) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      setSearchError(errorMessage);
+      
     } finally {
       setSearchLoading(false);
     }
@@ -331,6 +379,8 @@ export default function Dashboard() {
     }
     
     setImageSearchLoading(true);
+    setSearchError('');
+    
     try {
       console.log('Selected image URI:', selectedImage.uri);
       
@@ -339,43 +389,72 @@ export default function Dashboard() {
       
       const file = {
         uri: selectedImage.uri,
-        type: 'image/jpeg',
-        name: 'image.jpg',
+        type: selectedImage.mimeType || 'image/jpeg',
+        name: selectedImage.fileName || 'image.jpg',
       };
       
       formData.append('image', file);
-      formData.append('image_type', 'image/jpeg');
       
       const queryToSend = queryOverride !== null ? queryOverride : searchQuery;
-      if (queryToSend) {
-        formData.append('query', queryToSend);
+      if (queryToSend && queryToSend.trim()) {
+        formData.append('query', queryToSend.trim());
       }
       
-      console.log('Sending image to advanced AI backend...');
+      console.log('Sending image to AI backend...');
       
-      // Update the endpoint to the correct backend path
-      const fullUrl = api.defaults.baseURL + '/api/core/ai/advanced-search/';
-      console.log('Full image search URL:', fullUrl);
-      console.log('Auth token:', token);
-      const searchResponse = await api.post('core/ai/advanced-search/', formData, {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for image upload
+      
+      const searchResponse = await api.post('/core/ai/advanced-search/', formData, {
         headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-          // Let axios set Content-Type
+          'Content-Type': 'multipart/form-data',
         },
+        timeout: 60000,
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
+      
       const responseData = searchResponse.data;
-      setSearchResults(responseData.analysis_results?.visually_ranked_comps || responseData.results || []);
+      console.log('Image search response:', responseData);
+      
+      // Handle different response formats
+      const results = responseData.analysis_results?.visually_ranked_comps || 
+                     responseData.results || 
+                     responseData.items || 
+                     [];
+      
+      setSearchResults(results);
       setImageAnalysis(responseData.analysis_results || responseData.analysis || null);
       setQueryVariants(responseData.queries?.variants || []);
       setSelectedQueryVariant(responseData.queries?.primary || '');
-      // Removed pop-up: Alert for 'AI Search Complete' with number of items found
-      // if ((responseData.analysis_results?.visually_ranked_comps || responseData.results || []).length > 0) {
-      //   Alert.alert('AI Search Complete', `Found ${(responseData.analysis_results?.visually_ranked_comps?.length || responseData.results?.length || 0)} items!`);
-      // }
 
     } catch (error) {
       console.error('Image search failed:', error);
-      Alert.alert('Error', 'Image search failed. Please try again.');
+      
+      let errorMessage = 'Image search failed. Please try again.';
+      
+      if (error.name === 'AbortError') {
+        errorMessage = 'Image search timed out. Please try again with a smaller image.';
+      } else if (error.response) {
+        if (error.response.status === 413) {
+          errorMessage = 'Image file is too large. Please select a smaller image.';
+        } else if (error.response.status === 415) {
+          errorMessage = 'Image format not supported. Please select a JPEG or PNG image.';
+        } else if (error.response.status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (error.response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (error.response.data?.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.request) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      setSearchError(errorMessage);
+      Alert.alert('Error', errorMessage);
+      
     } finally {
       setImageSearchLoading(false);
     }
@@ -489,7 +568,7 @@ export default function Dashboard() {
         <View style={styles.headerLeft} />
         <Text style={styles.headerTitle}>Restyle</Text>
         <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.aiDashboardButton} onPress={() => router.push('/ai-dashboard')}>
+          <TouchableOpacity style={styles.aiDashboardButton} onPress={() => router.push('ai-dashboard')}>
             <Ionicons name="analytics" size={20} color="#a259f7" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -497,6 +576,14 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Demo Mode Indicator */}
+      {searchResults.length > 0 && searchResults[0]?.demo_mode && (
+        <View style={styles.demoIndicator}>
+          <Ionicons name="information-circle" size={16} color="#FF9800" />
+          <Text style={styles.demoText}>Demo Mode: Backend unavailable</Text>
+        </View>
+      )}
 
       {/* Search Section */}
       <View style={styles.searchSection}>
@@ -1171,5 +1258,22 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#ff6b6b',
     fontSize: 16,
+  },
+  demoIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a1a1a',
+    marginHorizontal: 20,
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FF9800',
+  },
+  demoText: {
+    color: '#FF9800',
+    fontSize: 14,
+    marginLeft: 8,
+    fontWeight: '500',
   },
 }); 

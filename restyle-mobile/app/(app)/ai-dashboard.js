@@ -35,22 +35,40 @@ export default function AIDashboard() {
   const checkSystemStatus = async () => {
     setLoading(true);
     try {
-      // Check backend health
-      const healthResponse = await api.get('/core/health/');
-      setSystemStatus(prev => ({
-        ...prev,
-        backend: healthResponse.status === 200
-      }));
+      // Check backend health with timeout and proper error handling
+      try {
+        const healthResponse = await api.get('/core/health/');
+        setSystemStatus(prev => ({
+          ...prev,
+          backend: healthResponse.status === 200,
+          database: healthResponse.data?.database || false,
+          redis: healthResponse.data?.redis || false,
+          celery: healthResponse.data?.celery || false
+        }));
+      } catch (error) {
+        console.log('Backend health check failed:', error.message);
+        setSystemStatus(prev => ({
+          ...prev,
+          backend: false,
+          database: false,
+          redis: false,
+          celery: false
+        }));
+      }
 
       // Check eBay token health
       try {
         const tokenResponse = await api.get('/core/ebay-token/health/');
         setSystemStatus(prev => ({
           ...prev,
-          ebay_tokens: tokenResponse.data.status === 'healthy'
+          ebay_tokens: tokenResponse.data?.status === 'healthy'
         }));
       } catch (error) {
-        console.log('eBay token health check failed:', error);
+        console.log('eBay token health check failed:', error.message);
+        setSystemStatus(prev => ({
+          ...prev,
+          ebay_tokens: false
+        }));
       }
 
       // Check AI services status
@@ -58,15 +76,42 @@ export default function AIDashboard() {
         const aiResponse = await api.get('/core/ai/status/');
         setSystemStatus(prev => ({
           ...prev,
-          ai_services: aiResponse.data.services || prev.ai_services
+          ai_services: aiResponse.data?.services || {
+            vision: false,
+            rekognition: false,
+            gemini: false,
+            vertex: false
+          }
         }));
       } catch (error) {
-        console.log('AI services status check failed:', error);
+        console.log('AI services status check failed:', error.message);
+        setSystemStatus(prev => ({
+          ...prev,
+          ai_services: {
+            vision: false,
+            rekognition: false,
+            gemini: false,
+            vertex: false
+          }
+        }));
       }
 
     } catch (error) {
       console.error('System status check failed:', error);
-      Alert.alert('Error', 'Failed to check system status');
+      // Don't show alert on every failure to avoid annoying the user
+      setSystemStatus({
+        backend: false,
+        database: false,
+        redis: false,
+        celery: false,
+        ebay_tokens: false,
+        ai_services: {
+          vision: false,
+          rekognition: false,
+          gemini: false,
+          vertex: false
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -76,9 +121,23 @@ export default function AIDashboard() {
     try {
       // This would be a new endpoint for performance metrics
       const metricsResponse = await api.get('/core/metrics/');
-      setPerformanceMetrics(metricsResponse.data);
+      if (metricsResponse.data) {
+        setPerformanceMetrics({
+          total_searches: metricsResponse.data.total_searches || 0,
+          successful_searches: metricsResponse.data.successful_searches || 0,
+          average_response_time: metricsResponse.data.average_response_time || 0,
+          ai_confidence_avg: metricsResponse.data.ai_confidence_avg || 0
+        });
+      }
     } catch (error) {
-      console.log('Performance metrics load failed:', error);
+      console.log('Performance metrics load failed:', error.message);
+      // Set default values instead of failing
+      setPerformanceMetrics({
+        total_searches: 0,
+        successful_searches: 0,
+        average_response_time: 0,
+        ai_confidence_avg: 0
+      });
     }
   };
 

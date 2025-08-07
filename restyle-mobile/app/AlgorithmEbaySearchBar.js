@@ -19,6 +19,11 @@ export default function AlgorithmEbaySearchBar() {
   const router = useRouter();
 
   const searchItems = async (searchQuery, searchOffset = 0, append = false) => {
+    if (!searchQuery || !searchQuery.trim()) {
+      setError('Please enter a search query');
+      return;
+    }
+
     if (searchOffset === 0) {
       setLoading(true);
     } else {
@@ -29,16 +34,33 @@ export default function AlgorithmEbaySearchBar() {
     
     try {
       console.log('Searching with query:', searchQuery, 'offset:', searchOffset);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await api.get('/core/ebay-search/', {
         params: {
           q: searchQuery.trim(),
           limit: 20,
           offset: searchOffset,
         },
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
       console.log('API response:', response.data);
-      const newResults = response.data.results || response.data;
+      
+      // Handle different response formats
+      let newResults = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          newResults = response.data;
+        } else if (response.data.results && Array.isArray(response.data.results)) {
+          newResults = response.data.results;
+        } else if (response.data.items && Array.isArray(response.data.items)) {
+          newResults = response.data.items;
+        }
+      }
       
       if (append) {
         setResults(prev => [...prev, ...newResults]);
@@ -52,10 +74,26 @@ export default function AlgorithmEbaySearchBar() {
       
     } catch (err) {
       console.error('Search failed:', err);
-      if (err.response) {
+      if (err.name === 'AbortError') {
+        setError('Search timed out. Please try again.');
+      } else if (err.response) {
+        console.error('Error response status:', err.response.status);
         console.error('Error response data:', err.response.data);
+        
+        if (err.response.status === 401) {
+          setError('Authentication failed. Please log in again.');
+        } else if (err.response.status === 503) {
+          setError('Service temporarily unavailable. Please try again later.');
+        } else if (err.response.status >= 500) {
+          setError('Server error. Please try again later.');
+        } else {
+          setError(err.response?.data?.error || err.response?.data?.message || 'Search failed. Please try again.');
+        }
+      } else if (err.request) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
       }
-      setError(err.response?.data?.error || 'Search failed. Please try again.');
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -64,11 +102,23 @@ export default function AlgorithmEbaySearchBar() {
   };
 
   const fetchPriceAnalysis = async (searchQuery) => {
+    if (!searchQuery || !searchQuery.trim()) {
+      return;
+    }
+    
     try {
-      const response = await api.post('/core/price-analysis/', { title: searchQuery });
-      setPriceAnalysis(response.data);
+      const response = await api.post('/core/price-analysis/', { 
+        title: searchQuery.trim() 
+      });
+      
+      if (response.data) {
+        setPriceAnalysis(response.data);
+      }
     } catch (err) {
-      setPriceAnalysis({ error: 'Price analysis failed.' });
+      console.log('Price analysis failed:', err.message);
+      setPriceAnalysis({ 
+        error: 'Price analysis temporarily unavailable.' 
+      });
     }
   };
 

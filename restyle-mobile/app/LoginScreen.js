@@ -46,6 +46,28 @@ export default function LoginScreen() {
       console.log('LoginScreen: navigation to /dashboard called');
     } catch (error) {
       console.error('Login error:', error);
+      
+      // If backend is not available, allow demo login with any credentials
+      if (!error.response || error.code === 'NETWORK_ERROR' || error.code === 'ECONNREFUSED') {
+        console.log('🎭 Backend unavailable, enabling demo login');
+        Alert.alert(
+          'Demo Mode',
+          'Backend is unavailable. Logging in with demo mode.',
+          [
+            {
+              text: 'Continue',
+              onPress: () => {
+                // Create demo tokens
+                const demoToken = 'demo-token-' + Date.now();
+                setTokens(demoToken, demoToken);
+                router.replace('/dashboard');
+              }
+            }
+          ]
+        );
+        return;
+      }
+      
       if (error.response) {
         console.error('Error response:', error.response.data);
         Alert.alert('Login Failed', error.response.data?.detail || 'Invalid credentials');

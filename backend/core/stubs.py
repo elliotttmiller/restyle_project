@@ -24,10 +24,13 @@ class EbayService:
         pass
         
     def search(self, *args, **kwargs):
-        return {"status": "error", "message": "eBay services not available - ebaysdk not installed"}
+        return {"status": "error", "message": "eBay services not available - dependencies not installed"}
+        
+    def search_items(self, query, category_ids=None, limit=20, **kwargs):
+        return {"status": "error", "message": "eBay services not available - dependencies not installed"}
         
     def get_token_info(self):
-        return {"status": "error", "message": "eBay token info not available - ebaysdk not installed"}
+        return {"status": "error", "message": "eBay token info not available - dependencies not installed"}
 
 # Stub for market_analysis_service.py
 def get_market_analysis_service():
