@@ -1,16 +1,15 @@
-# Optimized Nixpacks configuration for Restyle.ai Railway deployment
-
+[providers]
+# Disable the default Python provider so only custom venv and pip steps are used
+python = false
 [variables]
 PYTHON_VERSION = "3.11"
-PIP_NO_CACHE_DIR = "1"
-PIP_DISABLE_PIP_VERSION_CHECK = "1"
 
 [phases.setup]
 nixPkgs = [
   "python311",
   "python311Packages.pip",
+  "python311Packages.virtualenv",
   "gcc",
-  "glibc",
   "mesa",
   "xorg.libSM",
   "xorg.libXext",
@@ -18,20 +17,20 @@ nixPkgs = [
   "libjpeg_turbo",
   "libpng",
   "freetype",
-  "fontconfig",
-  "pkg-config"
+  "fontconfig"
 ]
 
 [phases.install]
 cmds = [
-  "pip install --upgrade pip setuptools wheel",
-  "pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu",
-  "pip install --no-cache-dir -r requirements.txt"
+  "python -m venv /opt/venv",
+  "/opt/venv/bin/pip install --upgrade pip",
+  "/opt/venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu",
+  "/opt/venv/bin/pip install -r requirements.txt"
 ]
 
 [phases.build]
 cmds = [
-  "python manage.py collectstatic --noinput --clear",
+  "/opt/venv/bin/python manage.py collectstatic --noinput --clear",
   "chmod +x fast_start.sh"
 ]
 

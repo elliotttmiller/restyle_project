@@ -3,6 +3,9 @@
 # Fast Railway startup script - optimized for production
 set -e
 
+# Activate virtual environment
+source /opt/venv/bin/activate
+
 echo "🚀 Starting Restyle Backend (Optimized)"
 
 # Environment check
@@ -27,10 +30,6 @@ except Exception as e:
 # Run migrations only if needed
 echo "🔄 Running database migrations..."
 python manage.py migrate --noinput
-
-# Skip static files collection in production (use CDN/pre-built)
-echo "📦 Collecting static files..."
-python manage.py collectstatic --noinput --clear
 
 # Start optimized Gunicorn
 echo "🌟 Starting Gunicorn server..."
