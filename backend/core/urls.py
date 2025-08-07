@@ -27,6 +27,8 @@ from .views import (
     PrivacyPolicyView,
     CropPreviewView,
     root_view,
+    AcceptedView,
+    DeclinedView,
 )
 
 # We ONLY import the views that currently exist in core/views.py
@@ -74,6 +76,9 @@ urlpatterns = [
     path('ai/advanced-search/', AdvancedMultiExpertAISearchView.as_view(), name='advanced-ai-search'),
 
     path('privacy-policy/', PrivacyPolicyView.as_view(), name='privacy-policy'),
+
+    path('accepted/', AcceptedView.as_view(), name='accepted'),
+    path('declined/', DeclinedView.as_view(), name='declined'),
 
     path('ai/crop-preview/', CropPreviewView.as_view(), name='ai-crop-preview'),
 ]

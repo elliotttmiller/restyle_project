@@ -259,6 +259,59 @@ This project is proprietary software. All rights reserved.
 
 ## 🆘 Support & Documentation
 
+## 📚 Backend API Endpoints
+
+Below is a comprehensive list of backend API endpoints provided by the Django REST API. All endpoints are available under `/api/core/` (and `/core/` for mobile compatibility), unless otherwise noted.
+
+### Health & Status
+- `GET /api/core/health/` — Basic health check for the core service
+- `GET /api/core/health-check/` — Authenticated health check (requires login)
+- `GET /api/core/ai/status/` — AI service status (Google Vision, AWS Rekognition, Gemini, etc.)
+- `GET /api/core/metrics/` — System performance metrics (CPU, memory, disk)
+- `GET /api/core/` — Root endpoint with status and available endpoints
+
+### eBay OAuth & Token Management
+- `GET /api/core/ebay-oauth/` — Initiate eBay OAuth flow
+- `GET /api/core/ebay-oauth-callback/` — eBay OAuth callback (handles code/token exchange)
+- `GET /api/core/ebay-oauth-declined/` — eBay OAuth declined/cancelled endpoint
+- `GET /api/core/ebay-token/health/` — eBay OAuth token status
+- `POST /api/core/ebay-token/action/` — eBay token action endpoint (placeholder)
+- `POST /api/core/admin/set-ebay-refresh-token/` — Set eBay refresh token (admin only)
+
+### Item & Listing Management
+- `GET/POST /api/core/items/` — List or create items
+- `GET /api/core/items/<pk>/` — Retrieve item details
+- `POST /api/core/items/<pk>/analyze/` — Trigger market analysis for an item
+- `GET /api/core/items/<pk>/analysis/` — Get analysis status for an item
+- `GET/POST /api/core/items/<item_pk>/listings/` — List or create listings for an item
+- `GET /api/core/listings/<pk>/` — Retrieve listing details
+
+### AI & Image Analysis
+- `POST /api/core/ai/image-search/` — AI-powered image search
+- `POST /api/core/ai/advanced-search/` — Advanced multi-expert AI image search
+- `POST /api/core/ai/crop-preview/` — Crop preview (AI-based, placeholder)
+
+### Price Analysis
+- `POST /api/core/price-analysis/` — Price analysis for a given item/image
+
+### Legal & Policy
+- `GET /api/core/privacy-policy/` — Privacy policy endpoint
+- `GET /api/core/accepted/` — Accepted endpoint (legal/consent)
+- `GET /api/core/declined/` — Declined endpoint (legal/consent)
+
+### Test & Utility
+- `GET /api/core/test-ebay-login/` — Test eBay login endpoint
+
+### Admin & Auth (global)
+- `GET /admin/` — Django admin panel
+- `POST /api/token/` — Obtain JWT token (login)
+- `POST /api/token/refresh/` — Refresh JWT token
+- `GET /api/test-credentials/` — Test credentials endpoint
+- `GET /api/protected/` — Protected endpoint (requires authentication)
+- `GET /api/profile/` — Get user profile (requires authentication)
+
+**Note:** All endpoints return JSON responses. Some endpoints require authentication or admin privileges. For full details, see the code in `backend/core/views.py` and `backend/core/urls.py`.
+
 ### Additional Documentation
 - [Credential Setup Guide](readme_files/CREDENTIAL_SETUP_GUIDE.md)
 - [eBay OAuth Setup](readme_files/EBAY_OAUTH_SETUP.md)

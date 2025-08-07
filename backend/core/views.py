@@ -412,12 +412,14 @@ class EbayOAuthCallbackView(APIView):
             return Response({"error": "No code provided"}, status=400)
 
         token_url = "https://api.ebay.com/identity/v1/oauth2/token"
-        client_id = getattr(settings, 'EBAY_CLIENT_ID', None)
-        client_secret = getattr(settings, 'EBAY_CLIENT_SECRET', None)
-        redirect_uri = getattr(settings, 'EBAY_RUNAME', 'Elliott_Miller-ElliottM-Restyl-mibanzi')
+        # Use .env variable names
+        client_id = os.environ.get('EBAY_PRODUCTION_APP_ID')
+        client_secret = os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET')
+        # Use the deployed callback URL as redirect_uri
+        redirect_uri = "https://restyleproject-production.up.railway.app/api/core/ebay-oauth-callback/"
 
         if not client_id or not client_secret:
-            return Response({"error": "eBay client credentials not set in settings"}, status=500)
+            return Response({"error": "eBay client credentials not set in environment"}, status=500)
 
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
