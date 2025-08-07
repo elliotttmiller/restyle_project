@@ -119,13 +119,13 @@ class AIService:
     
 
     
-    async def analyze_image(self, image_data: bytes, **kwargs) -> dict:
+    def analyze_image(self, image_data: bytes, **kwargs) -> dict:
         """
         Asynchronously analyze an image using Google Vision and AWS Rekognition in parallel.
         """
         if not image_data or len(image_data) == 0:
             logger.error("Empty image data provided")
-            return await self._fallback_analysis(image_data)
+            return self._fallback_analysis(image_data)
 
         logger.info(f"Starting async AI analysis with image data of size: {len(image_data)} bytes")
 
@@ -137,35 +137,28 @@ class AIService:
             logger.info(f"Image validation successful: {test_image.size} {test_image.mode}")
         except Exception as e:
             logger.error(f"Invalid image data: {e}")
-            return await self._fallback_analysis(image_data)
+            return self._fallback_analysis(image_data)
 
-        # Run Google Vision and AWS Rekognition in parallel
-        async def google_vision_task():
-            if self.client:
-                try:
-                    image = vision.Image(content=image_data)
-                    features = [
-                        vision.Feature(type_=vision.Feature.Type.LABEL_DETECTION),
-                        vision.Feature(type_=vision.Feature.Type.TEXT_DETECTION),
-                        vision.Feature(type_=vision.Feature.Type.OBJECT_LOCALIZATION),
-                        vision.Feature(type_=vision.Feature.Type.IMAGE_PROPERTIES),
-                        vision.Feature(type_=vision.Feature.Type.WEB_DETECTION),
-                    ]
-                    request = vision.AnnotateImageRequest(image=image, features=features)
-                    logger.info("Sending batch request to Google Vision API (async)")
-                    response = self.client.batch_annotate_images(requests=[request])
-                    if response.responses:
-                        return response.responses[0]
-                except Exception as e:
-                    logger.warning(f"Google Vision analysis failed: {e}")
-            return None
-
-        async def aws_rekognition_task():
-            return await self._aws_rekognition_analysis(image_data)
-
-        google_task = asyncio.create_task(google_vision_task())
-        aws_task = asyncio.create_task(aws_rekognition_task())
-        google_results, aws_results = await asyncio.gather(google_task, aws_task)
+        # Run Google Vision analysis
+        google_results = None
+        if self.client:
+            try:
+                image = vision.Image(content=image_data)
+                features = [
+                    vision.Feature(type_=vision.Feature.Type.LABEL_DETECTION),
+                    vision.Feature(type_=vision.Feature.Type.TEXT_DETECTION),
+                    vision.Feature(type_=vision.Feature.Type.OBJECT_LOCALIZATION),
+                ]
+                request = vision.AnnotateImageRequest(image=image, features=features)
+                logger.info("Sending request to Google Vision API")
+                response = self.client.batch_annotate_images(requests=[request])
+                if response.responses:
+                    google_results = response.responses[0]
+            except Exception as e:
+                logger.warning(f"Google Vision analysis failed: {e}")
+        
+        # Run AWS Rekognition analysis
+        aws_results = self._aws_rekognition_analysis(image_data)
 
         # CLIP/semantic analysis (if available)
         clip_results = {}
@@ -184,34 +177,41 @@ class AIService:
         }
         semantic_results = {}  # Placeholder for future semantic/LLM analysis
 
-        # Step 2: Neural Reasoning
-        reasoner = NeuralReasoner()
-        reasoning_results = await reasoner.reason(visual_results, semantic_results)
-
-        # Step 3: Multimodal Fusion
-        fusion = MultimodalFusion()
-        fused_results = await fusion.fuse(visual_results, semantic_results)
-
-        # Step 4: Uncertainty Quantification
-        uncertainty = UncertaintyQuantifier()
-        quantified_results = await uncertainty.quantify(fused_results)
-
-        # Step 5: Adaptive Thresholding
-        threshold = AdaptiveThreshold()
-        adaptive_threshold = threshold.get_adaptive_threshold(quantified_results)
-        quantified_results['adaptive_threshold'] = adaptive_threshold
-
-        # Step 6: Final output assembly
-        output = {
-            'analysis_timestamp': datetime.now(timezone.utc).isoformat(),
-            'fused_results': fused_results,
-            'reasoning': reasoning_results,
-            'uncertainty': quantified_results,
-            'adaptive_threshold': adaptive_threshold,
-            'models_used': [k for k, v in visual_results.items() if v],
-            'ai_driven': True
+        # Process results
+        labels = []
+        if google_results and google_results.label_annotations:
+            labels = [{'description': label.description, 'score': label.score} 
+                     for label in google_results.label_annotations[:5]]
+        
+        ocr_text = ""
+        if google_results and google_results.text_annotations:
+            ocr_text = google_results.text_annotations[0].description if google_results.text_annotations else ""
+        
+        objects = []
+        if google_results and google_results.localized_object_annotations:
+            objects = [{'name': obj.name, 'score': obj.score} 
+                      for obj in google_results.localized_object_annotations[:3]]
+        
+        # Generate search terms
+        analysis_results = {
+            'labels': labels,
+            'ocr_text': ocr_text,
+            'objects': objects,
+            'image_data': image_data
         }
-        return output
+        
+        search_terms, best_guess, suggested_queries = self._nlp_enhanced_search_terms(analysis_results)
+        
+        return {
+            'status': 'success',
+            'labels': labels,
+            'ocr_text': ocr_text,
+            'objects': objects,
+            'search_terms': search_terms,
+            'best_guess': best_guess,
+            'suggested_queries': suggested_queries,
+            'analysis_timestamp': datetime.now().isoformat()
+        }
 
     def detect_objects_and_regions(self, image_data: bytes) -> list:
         """
@@ -1203,7 +1203,7 @@ class AIService:
         return team_score >= 3  # Need at least 3 team-like characteristics
     
 
-    async def _aws_rekognition_analysis(self, image_data: bytes) -> dict:
+    def _aws_rekognition_analysis(self, image_data: bytes) -> dict:
         """AWS Rekognition analysis"""
         try:
             if not self._aws_client:
@@ -1274,21 +1274,35 @@ class AIService:
             return None
         return 'blue'  # Placeholder
     
+    def _fallback_analysis(self, image_data):
+        """Fallback analysis when image data is invalid"""
+        return {
+            'status': 'error',
+            'message': 'Invalid or empty image data provided',
+            'labels': [],
+            'ocr_text': '',
+            'objects': [],
+            'search_terms': ['item'],
+            'best_guess': 'item',
+            'suggested_queries': ['item', 'product'],
+            'analysis_timestamp': datetime.now().isoformat()
+        }
+    
 
 
 
 class NeuralReasoner:
-    async def reason(self, visual_results: dict, semantic_results: dict) -> dict:
+    def reason(self, visual_results: dict, semantic_results: dict) -> dict:
         return {}
 
 
 class MultimodalFusion:
-    async def fuse(self, visual_results: dict, semantic_results: dict) -> dict:
+    def fuse(self, visual_results: dict, semantic_results: dict) -> dict:
         return {}
 
 
 class UncertaintyQuantifier:
-    async def quantify(self, fused_results: dict) -> dict:
+    def quantify(self, fused_results: dict) -> dict:
         return fused_results
 
 

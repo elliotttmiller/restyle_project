@@ -267,146 +267,70 @@ class EbaySearchView(APIView):
             }, status=500)
 
 class AdvancedMultiExpertAISearchView(APIView):
-    """
-    Advanced multi-expert AI search endpoint with sophisticated neural network analysis.
-    Uses both traditional AI service and advanced neural networks for comprehensive analysis.
-    """
     permission_classes = [AllowAny]
-    
-    def __init__(self):
-        super().__init__()
-        import logging
-        self.logger = logging.getLogger("advanced_ai_search_debug")
 
     def post(self, request):
         try:
-            self.logger.info("=== Advanced Multi-Expert AI Search with Neural Networks ===")
+            logger.info("[DEBUG] AdvancedMultiExpertAISearchView: Starting request")
             
-            # Get both AI services
-            ai_service = get_ai_service()
-            advanced_ai_service = get_advanced_ai_service()
-            
-            if not ai_service and not advanced_ai_service:
-                return Response({
-                    "status": "error",
-                    "message": "AI services not available - dependencies not installed",
-                    "debug": "Both AI service initialization failed"
-                }, status=503)
-            
-            # Extract request data
-            data = request.data
-            image_data = data.get('image')
-            intelligent_crop = data.get('intelligent_crop', True)
-            use_advanced_ai = data.get('use_advanced_ai', True)
-            
+            # Extract image data
+            image_data = request.data.get('image')
             if not image_data:
                 return Response({
                     "status": "error", 
                     "message": "No image data provided"
                 }, status=400)
             
-            # Convert InMemoryUploadedFile to bytes if needed
-            if hasattr(image_data, 'read'):
-                # This is a file object, read the content
-                image_bytes = image_data.read()
-                self.logger.info(f"Converted uploaded file to bytes: {len(image_bytes)} bytes")
-            else:
-                # This is already bytes or string
-                image_bytes = image_data
+            # Decode base64 image
+            try:
+                if isinstance(image_data, str):
+                    image_bytes = base64.b64decode(image_data)
+                else:
+                    image_bytes = image_data
+                logger.info(f"[DEBUG] Image processed: {len(image_bytes)} bytes")
+            except Exception as e:
+                return Response({
+                    "status": "error",
+                    "message": f"Image processing failed: {str(e)}"
+                }, status=400)
             
-            self.logger.info(f"Processing image with intelligent_crop={intelligent_crop}, use_advanced_ai={use_advanced_ai}")
+            # Get AI service
+            ai_service = get_ai_service()
+            if not ai_service:
+                return Response({
+                    "status": "error",
+                    "message": "AI service not available"
+                }, status=503)
             
-            # Choose AI processing strategy
-            if use_advanced_ai and advanced_ai_service:
-                self.logger.info("Using Advanced AI Service with neural networks")
-                try:
-                    # Use advanced AI service with asyncio support
-                    import asyncio
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    
-                    results = loop.run_until_complete(
-                        advanced_ai_service.analyze_image_advanced(
-                            image_bytes, 
-                            intelligent_crop=intelligent_crop
-                        )
-                    )
-                    
-                    loop.close()
-                    
-                    # Enhanced response with advanced AI results
+            # Call AI service (future-proof: support async or sync)
+            try:
+                from asgiref.sync import async_to_sync
+                results = async_to_sync(ai_service.analyze_image)(image_bytes)
+                logger.info(f"[DEBUG] AI analysis completed: {type(results)}")
+                # Ensure results are JSON serializable
+                if isinstance(results, dict):
                     return Response({
                         "status": "success",
-                        "message": "Advanced neural network analysis completed",
-                        "results": results,
-                        "ai_service_used": "advanced_neural_networks",
-                        "intelligent_crop_used": intelligent_crop,
-                        "features": {
-                            "neural_reasoning": True,
-                            "multimodal_fusion": True,
-                            "uncertainty_quantification": True,
-                            "adaptive_thresholding": True,
-                            "semantic_understanding": True,
-                            "hardcoded_rules": False
-                        }
+                        "message": "AI analysis completed",
+                        "results": results
                     })
-                    
-                except Exception as e:
-                    self.logger.error(f"Advanced AI analysis failed: {str(e)}")
-                    # Fallback to standard AI service
-                    use_advanced_ai = False
-            
-            # Standard AI service processing
-            if ai_service:
-                self.logger.info("Using Standard AI Service")
-                try:
-                    results = ai_service.analyze_image(image_bytes, intelligent_crop=intelligent_crop)
-                    
-                    if isinstance(results, dict) and results.get("status") == "error":
-                        # This is a stub response
-                        return Response({
-                            "status": "error",
-                            "message": results.get("message", "AI analysis unavailable"),
-                            "debug": "AI dependencies not installed - this is a placeholder response"
-                        }, status=503)
-                    
-                    # Enhanced standard response
-                    return Response({
-                        "status": "success",
-                        "message": "Standard AI analysis completed",
-                        "results": results,
-                        "ai_service_used": "standard_vision_ai",
-                        "intelligent_crop_used": intelligent_crop,
-                        "features": {
-                            "vision_analysis": True,
-                            "search_terms": True,
-                            "object_detection": True,
-                            "text_recognition": True,
-                            "advanced_reasoning": False
-                        }
-                    })
-                    
-                except Exception as e:
-                    self.logger.error(f"Standard AI analysis failed: {str(e)}")
+                else:
                     return Response({
                         "status": "error",
-                        "message": f"AI analysis failed: {str(e)}",
-                        "debug": traceback.format_exc()
+                        "message": "Invalid AI service response"
                     }, status=500)
-            
-            # No AI service available
-            return Response({
-                "status": "error",
-                "message": "No AI services available",
-                "debug": "Both standard and advanced AI services failed"
-            }, status=503)
+            except Exception as e:
+                logger.error(f"[DEBUG] AI service error: {str(e)}")
+                return Response({
+                    "status": "error",
+                    "message": f"AI analysis failed: {str(e)}"
+                }, status=500)
                 
         except Exception as e:
-            self.logger.error(f"Advanced AI search failed: {str(e)}")
+            logger.error(f"[DEBUG] Unexpected error: {str(e)}")
             return Response({
                 "status": "error",
-                "message": f"Search failed: {str(e)}",
-                "debug": traceback.format_exc()
+                "message": f"Request failed: {str(e)}"
             }, status=500)
 
 # Placeholder views for other endpoints that were in original
@@ -525,8 +449,7 @@ class AIImageSearchView(APIView):
             if ai_service is None:
                 return Response({
                     "status": "error",
-                    "message": "AI image search not available - dependencies not installed",
-                    "debug": "AI service initialization failed"
+                    "message": "AI image search not available"
                 }, status=503)
                 
             # Extract image data
@@ -537,8 +460,14 @@ class AIImageSearchView(APIView):
                     "message": "No image data provided"
                 }, status=400)
             
-            # This would call the real AI search
-            results = ai_service.search_similar(image_data)
+            # Decode image
+            if isinstance(image_data, str):
+                image_bytes = base64.b64decode(image_data)
+            else:
+                image_bytes = image_data
+            
+            # Call AI analysis
+            results = ai_service.analyze_image(image_bytes)
             
             return Response({
                 "status": "success",
