@@ -3,8 +3,6 @@ providers = []
 
 [variables]
 PIP_NO_CACHE_DIR = "1"
-LD_LIBRARY_PATH = "/nix/store/*/lib"
-PKG_CONFIG_PATH = "/nix/store/*/lib/pkgconfig"
 
 [phases.setup]
 nixPkgs = [
@@ -28,7 +26,6 @@ nixPkgs = [
 
 [phases.install]
 cmds = [
-  "export LD_LIBRARY_PATH=/nix/store/*/lib:$LD_LIBRARY_PATH",
   "python -m venv venv",
   "source venv/bin/activate && pip install --upgrade pip",
   "source venv/bin/activate && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu",
@@ -42,4 +39,4 @@ cmds = [
 ]
 
 [phases.start]
-cmd = "source venv/bin/activate && bash fast_start.sh"
+cmd = "export LD_LIBRARY_PATH=$(find /nix/store -type d -name lib | tr '\n' ':') && source venv/bin/activate && bash fast_start.sh"
