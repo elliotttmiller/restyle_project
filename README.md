@@ -261,6 +261,116 @@ This project is proprietary software. All rights reserved.
 
 ## 📚 Backend API Endpoints
 
+## 🗂️ Complete Directory Tree Overview
+
+Below is the full directory and component overview for the Restyle.ai project. This provides a detailed map of all major folders, files, and their purposes, as well as a summary of key components and current project status.
+
+```
+================================================================================
+                    RESTYLE.AI - COMPLETE DIRECTORY TREE OVERVIEW
+================================================================================
+                    AI-Powered Fashion Search Platform
+                    Full-Stack Application with Mobile & Web Components
+================================================================================
+
+📁 restyle_project/ (ROOT DIRECTORY)
+├── 📁 ..bfg-report/ - BFG Repo-Cleaner reports for removing sensitive data
+│   └── 📁 2025-08-07/06-39-08/ - Timestamped cleanup session
+│       ├── 📄 cache-stats.txt - Cache statistics from cleanup
+│       ├── 📄 changed-files.txt - List of files modified during cleanup
+│       └── 📄 object-id-map.old-new.txt - Git object ID mappings after cleanup
+│
+├── 📁 .expo/ - Expo development environment configuration
+│   ├── 📄 devices.json - Connected device registry for Expo development
+│   ├── 📄 packager-info.json - Metro bundler configuration and status
+│   ├── 📄 README.md - Expo configuration documentation
+│   └── 📄 settings.json - Expo CLI settings and preferences
+│
+├── 📁 .github/ - GitHub Actions and CI/CD workflows
+│   └── 📁 workflows/
+│       └── 📄 eas-update.yml - Expo Application Services update workflow
+│
+├── 📁 backend/ - Django REST API Backend (Main Server)
+│   ├── 📁 backend/ - Django project configuration directory
+│   │   ├── 📄 __init__.py - Python package initialization
+│   │   ├── 📄 asgi.py - ASGI configuration for async Django deployment
+│   │   ├── 📄 auth_middleware.py - Custom authentication middleware
+│   │   ├── 📄 auth_views.py - Authentication view handlers
+│   │   ├── 📄 celery_app.py - Celery task queue configuration
+│   │   ├── 📄 debug.log - Application debug logs
+│   │   ├── 📄 ebay_monitoring_settings.py - eBay API monitoring configuration
+│   │   ├── 📄 ebay_settings.py - eBay API integration settings
+│   │   ├── 📄 local_settings_secrets.py - Local development secrets
+│   │   ├── 📄 local_settings_template.py - Template for local settings
+│   │   ├── 📄 local_settings.py - Local development configuration
+│   │   ├── 📄 settings.py - Main Django settings configuration
+│   │   ├── 📄 urls.py - URL routing configuration
+│   │   └── 📄 wsgi.py - WSGI configuration for production deployment
+│   │
+│   ├── 📁 core/ - Main application logic and AI services
+│   │   ├── 📁 management/ - Django management commands
+│   │   │   ├── 📁 commands/ - Custom Django commands
+│   │   │   │   ├── 📄 __init__.py - Package initialization
+│   │   │   │   ├── 📄 create_prod_superuser.py - Production superuser creation
+│   │   │   │   ├── 📄 manage_ebay_tokens.py - eBay token management utility
+│   │   │   │   ├── 📄 set_ebay_refresh_token.py - eBay refresh token setter
+│   │   │   │   └── 📄 set_user_staff.py - User staff status management
+│   │   │   └── 📄 __init__.py - Management package initialization
+│   │   │
+│   │   ├── 📁 migrations/ - Database schema migrations
+│   │   │   ├── 📄 __init__.py - Migrations package initialization
+│   │   │   ├── 📄 0001_initial.py - Initial database schema
+│   │   │   ├── 📄 0002_item_ebay_category_id.py - eBay category ID addition
+│   │   │   └── 📄 0003_searchfeedback_itemembedding.py - Search feedback & embeddings
+│   │   │
+│   │   ├── 📁 scripts/ - Utility scripts
+│   │   │   └── 📄 upload_embeddings_to_pinecone.py - Pinecone vector database upload
+│   │   │
+│   │   ├── 📄 __init__.py - Core app package initialization
+│   │   ├── 📄 admin.py - Django admin interface configuration
+│   │   ├── 📄 advanced_ai_service.py - Advanced AI with AWS Rekognition
+│   │   ├── 📄 aggregator_service.py - Data aggregation service
+│   │   ├── 📄 ai_image_search_log_summary.json - AI search analytics
+│   │   ├── 📄 ai_service.py - Main AI service with Google Vision & CLIP
+│   │   ├── 📄 analyze_ai_logs.py - AI performance analysis tool
+│   │   ├── 📄 apps.py - Django app configuration
+│   │   ├── 📄 credential_manager.py - Secure credential management system
+│   │   ├── 📄 ebay_auth_service.py - eBay OAuth authentication service
+│   │   ├── 📄 ebay_auth.py - eBay authentication utilities
+│   │   ├── 📄 encoder_service.py - Data encoding/decoding service
+│   │   ├── 📄 env_handler.py - Environment variable handler
+│   │   ├── 📄 extract_ai_reasoning.py - AI decision extraction tool
+│   │   ├── 📄 market_analysis_service.py - Market data analysis service
+│   │   ├── 📄 models.py - Database models (Item, Listing, MarketAnalysis)
+│   │   ├── 📄 serializers.py - DRF serializers for API responses
+│   │   ├── 📄 services.py - Business logic services (eBay integration)
+│   │   ├── 📄 stubs.py - Service stubs for testing/fallback
+│   │   ├── 📄 tasks.py - Celery background tasks
+│   │   ├── 📄 tests.py - Unit tests for core functionality
+│   │   ├── 📄 urls.py - Core app URL routing
+│   │   ├── 📄 utils.py - Utility functions and helpers
+│   │   ├── 📄 vertex_ai_service.py - Google Vertex AI integration
+│   │   ├── 📄 views_minimal.py - Minimal view implementations
+│   │   ├── 📄 views_restored.py - Restored view implementations
+│   │   ├── 📄 views.py - Main API view handlers
+│   │   └── 📄 views.py.backup - Backup of views file
+│   │
+│   ├── 📁 staticfiles/ - Collected static files for production
+│   │   ├── 📁 admin/ - Django admin static files
+│   │   │   ├── 📁 css/ - Admin CSS stylesheets
+│   │   │   ├── 📁 img/ - Admin images and icons
+│   │   │   └── 📁 js/ - Admin JavaScript files
+│   │   └── 📁 rest_framework/ - Django REST Framework static files
+│   │       ├── 📁 css/ - DRF CSS stylesheets
+│   │       ├── 📁 docs/ - API documentation assets
+│   │       ├── 📁 fonts/ - Web fonts for DRF interface
+│   │       ├── 📁 img/ - DRF images and icons
+│   │       └── 📁 js/ - DRF JavaScript files
+... (see COMPLETE_DIRECTORY_TREE_OVERVIEW.txt for full details)
+```
+
+For the full, up-to-date directory tree and file descriptions, see `COMPLETE_DIRECTORY_TREE_OVERVIEW.txt` in the project root.
+
 Below is a comprehensive list of backend API endpoints provided by the Django REST API. All endpoints are available under `/api/core/` (and `/core/` for mobile compatibility), unless otherwise noted.
 
 ### Health & Status
