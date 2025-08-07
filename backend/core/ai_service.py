@@ -91,8 +91,11 @@ class AIService:
                 from google.cloud import vision
                 from google.oauth2 import service_account
                 
-                # Initialize client with API key
-                client_options = {"***REMOVED***": google_***REMOVED***}
+                # Initialize client with API key and correct project
+                client_options = {
+                    "***REMOVED***": google_***REMOVED***,
+                    "quota_project_id": "609071491201"  # Our correct project ID
+                }
                 self._client = vision.ImageAnnotatorClient(client_options=client_options)
                 logger.info("Google Cloud Vision client initialized successfully with API key")
             else:

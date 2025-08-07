@@ -8,14 +8,13 @@ import requests
 import base64
 from PIL import Image
 import io
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add the backend directory to the path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-
-# Set up environment variables
-os.environ['AWS_ACCESS_KEY_ID'] = '***REMOVED***'
-os.environ['AWS_SECRET_ACCESS_KEY'] = '***REMOVED***'
-os.environ['AWS_REGION_NAME'] = 'us-east-1'
 
 def test_aws_rekognition():
     """Test AWS Rekognition service"""
@@ -58,16 +57,19 @@ def test_google_vision():
     try:
         from google.cloud import vision
         
-        # Set up credentials
-        credentials_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-        if credentials_path and os.path.exists(credentials_path):
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
-            print("✅ Google Cloud credentials found")
-        else:
-            print("❌ Google Cloud credentials not found")
+        # Set up credentials using API key
+        google_***REMOVED*** = os.environ.get('GOOGLE_API_KEY')
+        if not google_***REMOVED***:
+            print("❌ No GOOGLE_API_KEY found")
             return False
+            
+        print("✅ Google Cloud credentials found")
         
-        client = vision.ImageAnnotatorClient()
+        client_options = {
+            "***REMOVED***": google_***REMOVED***,
+            "quota_project_id": "609071491201"  # Our correct project ID
+        }
+        client = vision.ImageAnnotatorClient(client_options=client_options)
         print("✅ Google Vision client created successfully")
         
         # Create a simple test image
