@@ -302,10 +302,9 @@ class AdvancedMultiExpertAISearchView(APIView):
                     "message": "AI service not available"
                 }, status=503)
             
-            # Call AI service (future-proof: support async or sync)
+            # Call AI service
             try:
-                from asgiref.sync import async_to_sync
-                results = async_to_sync(ai_service.analyze_image)(image_bytes)
+                results = ai_service.analyze_image(image_bytes)
                 logger.info(f"[DEBUG] AI analysis completed: {type(results)}")
                 # Ensure results are JSON serializable
                 if isinstance(results, dict):
