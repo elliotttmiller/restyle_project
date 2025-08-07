@@ -12,6 +12,8 @@ jobs:
       - uses: actions/checkout@v3
       - run: npm install -g eas-cli
       - run: npm ci
+        working-directory: ./restyle-mobile
       - run: eas update --branch production --non-interactive --message "Automated update from CI/CD"
+        working-directory: ./restyle-mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }} 
