@@ -40,7 +40,7 @@ class CredentialManager:
             'aws_***REMOVED***': os.environ.get('AWS_SECRET_ACCESS_KEY'),
             'aws_region': os.environ.get('AWS_REGION') or os.environ.get('AWS_REGION_NAME') or os.environ.get('AWS_DEFAULT_REGION', 'us-east-1'),
             'ebay_app_id': os.environ.get('EBAY_PRODUCTION_APP_ID') or os.environ.get('EBAY_CLIENT_ID'),
-            'ebay_cert_id': os.environ.get('EBAY_PRODUCTION_CERT_ID'),
+            'ebay_cert_id': os.environ.get('EBAY_PRODUCTION_CERT_ID') or os.environ.get('EBAY_CERT_ID'),
             'ebay_***REMOVED***': os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET') or os.environ.get('EBAY_CLIENT_SECRET'),
             'ebay_refresh_token': os.environ.get('EBAY_PRODUCTION_REFRESH_TOKEN') or os.environ.get('EBAY_REFRESH_TOKEN'),
             'ebay_user_token': os.environ.get('EBAY_PRODUCTION_USER_TOKEN'),

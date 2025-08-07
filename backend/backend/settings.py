@@ -1,4 +1,3 @@
-import os
 """
 Django settings for backend project.
 
@@ -10,17 +9,17 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
+import logging
 from pathlib import Path
-from dotenv import load_dotenv
+from core.env_handler import load_environment_variables
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
-env_path = Path(__file__).resolve().parent.parent.parent / '.env'
-if env_path.exists():
-    load_dotenv(env_path)
-    print(f"✅ Loaded .env from: {env_path}")
-else:
-    print(f"⚠️ .env file not found at: {env_path}")
+load_environment_variables()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

@@ -185,7 +185,9 @@ class EbayTokenManager:
     def _get_basic_auth(self) -> str:
         """Generate Basic Auth header for eBay API"""
         import base64
-        credentials = f"{self.app_id}:{self.***REMOVED***}"
+        # Use ***REMOVED*** if cert_id is missing
+        auth_secret = self.cert_id if self.cert_id else self.***REMOVED***
+        credentials = f"{self.app_id}:{auth_secret}"
         return base64.b64encode(credentials.encode()).decode()
     
     def _update_refresh_token(self, new_refresh_token: str):
