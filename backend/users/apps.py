@@ -6,11 +6,14 @@ class UsersConfig(AppConfig):
     name = 'users'
     
     def ready(self):
-        """Create or update the superuser on app startup"""
-        # Only run this once during startup, not during migrations
+        """Skip superuser creation in production for faster startup"""
         import os
-        if os.environ.get('RUN_MAIN') != 'true':
-            self.create_superuser()
+        
+        # Only create superuser in development or if explicitly requested
+        if (os.environ.get('DJANGO_SETTINGS_MODULE', '').endswith('development') or 
+            os.environ.get('CREATE_SUPERUSER') == 'true'):
+            if os.environ.get('RUN_MAIN') != 'true':
+                self.create_superuser()
     
     def create_superuser(self):
         """Create the elliotttmiller superuser if it doesn't exist"""
@@ -26,7 +29,7 @@ class UsersConfig(AppConfig):
             with transaction.atomic():
                 # Check if user exists and has correct permissions
                 if User.objects.filter(username=username, is_superuser=True, is_active=True).exists():
-                    print(f"Superuser '{username}' already exists with correct permissions")
+                    print(f"✅ Superuser '{username}' already exists")
                     return
                 
                 # Create or update user only if needed
@@ -46,14 +49,14 @@ class UsersConfig(AppConfig):
                     user.is_staff = True
                     user.is_superuser = True
                     user.is_active = True
-                    print(f"Updated superuser '{username}' with correct permissions")
+                    print(f"✅ Updated superuser '{username}'")
                 else:
-                    print(f"Created superuser '{username}' successfully")
+                    print(f"✅ Created superuser '{username}'")
                 
                 user.set_password(password)
                 user.save()
                     
         except Exception as e:
             # Don't fail app startup if superuser creation fails
-            print(f"Warning: Could not create/update superuser: {e}")
+            print(f"⚠️  Superuser creation skipped: {e}")
             pass
