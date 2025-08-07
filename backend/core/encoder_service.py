@@ -5,10 +5,12 @@ This service is responsible for encoding images into vector embeddings for visua
 import logging
 logger = logging.getLogger(__name__)
 
+
 import numpy as np
 from PIL import Image
 import requests
 from io import BytesIO
+from typing import Optional
 
 # Placeholder for a real image model
 # In a real application, this would be a more sophisticated model like CLIP, ResNet, etc.
