@@ -361,15 +361,8 @@ class AdvancedAIService:
             logger.warning(f"AWS text detection failed: {e}")
             results['text_detections'] = []
         
-        # Celebrity/face detection for fashion context
-        try:
-            celebrity_response = self.aws_client.recognize_celebrities(Image={'Bytes': image_data})
-            results['celebrities'] = [
-                {'name': celeb['Name'], 'confidence': celeb['MatchConfidence']}
-                for celeb in celebrity_response['CelebrityFaces']
-            ]
-        except Exception as e:
-            results['celebrities'] = []
+        # Celebrity/face detection removed: not relevant for item/apparel recognition
+        # If needed in the future, can be re-added for specific use cases
         
         return results
     
