@@ -257,6 +257,11 @@ export default function Dashboard() {
       
       setSearchResults(results);
       
+      // Show demo mode notification if applicable
+      if (response.data?.demo_mode) {
+        console.log('🎭 Running in demo mode - backend unavailable');
+      }
+      
     } catch (err) {
       console.error('Search failed:', err);
       
@@ -571,6 +576,14 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Demo Mode Indicator */}
+      {searchResults.length > 0 && searchResults[0]?.demo_mode && (
+        <View style={styles.demoIndicator}>
+          <Ionicons name="information-circle" size={16} color="#FF9800" />
+          <Text style={styles.demoText}>Demo Mode: Backend unavailable</Text>
+        </View>
+      )}
 
       {/* Search Section */}
       <View style={styles.searchSection}>
@@ -1245,5 +1258,22 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#ff6b6b',
     fontSize: 16,
+  },
+  demoIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a1a1a',
+    marginHorizontal: 20,
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FF9800',
+  },
+  demoText: {
+    color: '#FF9800',
+    fontSize: 14,
+    marginLeft: 8,
+    fontWeight: '500',
   },
 }); 
