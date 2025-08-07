@@ -25,8 +25,10 @@ except ImportError:
 
 try:
     from .services import EbayService
+    from .ebay_auth_service import ebay_auth_service # Import the new service
 except ImportError:
     from .stubs import EbayService
+    ebay_auth_service = None
 
 try:
     from .market_analysis_service import get_market_analysis_service
@@ -458,24 +460,18 @@ class AnalysisStatusView(APIView):
 
 class EbayTokenHealthView(APIView):
     def get(self, request):
+        """
+        Provides a detailed status report for the eBay OAuth token.
+        """
         try:
-            ebay_service = EbayService()
-            token_info = ebay_service.get_token_info()
-            
-            if isinstance(token_info, dict) and token_info.get("status") == "error":
-                return Response({
-                    "status": "error",
-                    "message": token_info.get("message", "eBay token check unavailable"),
-                    "debug": "eBay SDK not installed"
-                }, status=503)
-            
-            return Response(token_info)
-            
+            status_report = ebay_auth_service.get_status()
+            return Response(status_report, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({
-                "status": "error",
-                "message": f"Token health check failed: {str(e)}"
-            }, status=500)
+            logger.error(f"Failed to get eBay token status: {e}", exc_info=True)
+            return Response(
+                {"status": "error", "message": "An internal error occurred while checking token status."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class EbayTokenActionView(APIView):
     def post(self, request):

@@ -1,5 +1,14 @@
 # File: backend/core/tasks.py
 
+import sys
+import os
+import django
+
+# Set up the Django environment
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+django.setup()
+
 import requests
 import base64
 import json
@@ -14,11 +23,12 @@ from ebaysdk.exception import ConnectionError as EbayConnectionError
 import logging
 from datetime import datetime, timedelta, timezone
 import time
-import os
 import numpy as np
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
+from backend.celery_app import app as celery_app
+from core.ebay_auth_service import ebay_auth_service
 
 logger = logging.getLogger(__name__)
 
@@ -749,44 +759,26 @@ def test_task():
 @shared_task(bind=True, max_retries=3)
 def refresh_ebay_token_task(self):
     """
-    Celery task to refresh eBay OAuth token
-    This can be scheduled to run periodically
+    Celery task to refresh eBay OAuth token.
+    This task now acts as a simple trigger for the centralized service.
     """
     try:
-        from .ebay_auth import token_manager
-        logger.info("🔄 Starting scheduled eBay token refresh...")
-        
-        token = token_manager.get_valid_token()
+        logger.info("Background refresh task triggered.")
+        # The service handles all logic: refreshing, caching, and error handling.
+        token = ebay_auth_service.force_refresh()
+
         if token:
-            logger.info("✅ eBay token refresh completed successfully")
-            
-            # Store success metrics
-            cache.set('ebay_token_last_refresh', datetime.now(), timeout=86400)
-            cache.set('ebay_token_refresh_success_count', 
-                     cache.get('ebay_token_refresh_success_count', 0) + 1, 
-                     timeout=86400)
-            
+            logger.info("Background token refresh successful.")
             return {"status": "success", "token_length": len(token)}
         else:
-            logger.error("❌ eBay token refresh failed")
-            
-            # Store failure metrics
-            cache.set('ebay_token_last_failure', datetime.now(), timeout=86400)
-            cache.set('ebay_token_refresh_failure_count', 
-                     cache.get('ebay_token_refresh_failure_count', 0) + 1, 
-                     timeout=86400)
-            
-            # Retry with exponential backoff
-            raise self.retry(countdown=60 * (2 ** self.request.retries), max_retries=3)
-            
+            logger.error("Background token refresh failed. Retrying if possible.")
+            # The service's internal logic will have logged details.
+            # We can still use Celery's retry mechanism as a fallback.
+            raise self.retry(countdown=60 * (2 ** self.request.retries))
+
     except Exception as e:
-        logger.error(f"❌ Error in eBay token refresh task: {e}")
-        
-        # Store error metrics
-        cache.set('ebay_token_last_error', str(e), timeout=86400)
-        
-        # Retry with exponential backoff
-        raise self.retry(countdown=60 * (2 ** self.request.retries), max_retries=3)
+        logger.critical(f"Critical error in refresh_ebay_token_task: {e}", exc_info=True)
+        raise self.retry(countdown=60 * (2 ** self.request.retries))
 
 @shared_task(bind=True, max_retries=2)
 def validate_ebay_token_task(self):

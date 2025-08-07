@@ -1,8 +1,17 @@
-import requests
-import logging
-from .ebay_auth import get_ebay_oauth_token, token_manager
-from django.conf import settings
+import sys
+import os
+import django
+
+# Set up the Django environment
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+django.setup()
+
 from typing import Optional, Dict, Any, List
+import requests
+from .credential_manager import credential_manager
+from core.ebay_auth_service import ebay_auth_service # Corrected import path
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -23,17 +32,8 @@ class EbayService:
             self.auth_token = None
 
     def _get_valid_token(self) -> Optional[str]:
-        # Use token_manager for auto-refresh
-        try:
-            token = token_manager.get_valid_token()
-            if not token:
-                logger.warning("[EbayService] Token manager returned no token, attempting manual refresh.")
-                token_manager.force_refresh()
-                token = token_manager.get_valid_token()
-            return token
-        except Exception as e:
-            logger.error(f"[EbayService] Error getting eBay token: {e}")
-            return None
+        """Gets a valid token using the new centralized service."""
+        return ebay_auth_service.ensure_valid_token()
 
     def get_headers(self, extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         headers = {
@@ -68,15 +68,20 @@ class EbayService:
             headers['X-EBAY-C-ENDUSERCTX'] = f"contextualLocation=country={localization}"
         logger.info(f"[EbayService] Searching eBay with query: '{query}' params={params}")
         try:
+            # Use the new auth service to get a token
+            oauth_token = ebay_auth_service.ensure_valid_token()
+            if not oauth_token:
+                logger.error("Could not obtain a valid eBay OAuth token for search.")
+                return {"error": "Authentication failed", "items": []}
+
+            headers = {
+                "Authorization": f"Bearer {oauth_token}",
+                'Accept': 'application/json',
+                'Content-Language': 'en-US',
+                'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+            }
+
             response = requests.get(endpoint, headers=headers, params=params, timeout=self.DEFAULT_TIMEOUT)
-            if response.status_code == 401:
-                logger.warning("[EbayService] Token expired, attempting refresh and retry.")
-                self.auth_token = self._get_valid_token()
-                if not self.auth_token:
-                    logger.warning("[EbayService] Token refresh failed, returning empty results.")
-                    return []
-                headers = self.get_headers()
-                response = requests.get(endpoint, headers=headers, params=params, timeout=self.DEFAULT_TIMEOUT)
             response.raise_for_status()
             data = response.json()
             items = data.get('itemSummaries', [])
@@ -116,4 +121,4 @@ class EbayService:
             return response.json()
         except Exception as e:
             logger.error(f"[EbayService] Failed to fetch item details for {item_id}: {e}")
-            return None 
+            return None
