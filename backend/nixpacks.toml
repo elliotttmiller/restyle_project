@@ -1,5 +1,4 @@
 [providers]
-# Disable the default Python provider so only custom venv and pip steps are used
 python = false
 [variables]
 PYTHON_VERSION = "3.11"
