@@ -70,7 +70,7 @@ def test_monitoring_endpoints():
     print("\n🔗 Testing Monitoring Endpoints")
     print("=" * 40)
     
-    base_url = "http://localhost:8000/api/core"
+    base_url = "https://restyleproject-production.up.railway.app/api/core"
     
     # Test 1: Health endpoint
     print("\n1. Testing health endpoint...")
@@ -88,7 +88,7 @@ def test_monitoring_endpoints():
                 print(f"   📄 Response: {response.text[:200]}...")
     except requests.exceptions.ConnectionError:
         print("   ❌ Could not connect to backend")
-        print("   ℹ️  Make sure the backend is running on localhost:8000")
+        print("   ℹ️  Make sure the backend is running on Railway")
     except Exception as e:
         print(f"   ❌ Error testing health endpoint: {e}")
     
@@ -331,7 +331,7 @@ def main():
         print("\n💡 Recommendations:")
         print("   1. Ensure Celery is properly configured")
         print("   2. Check Redis connection for caching")
-        print("   3. Verify backend is running on localhost:8000")
+        print("   3. Verify backend is running on Railway")
         print("   4. Review monitoring settings")
 
 if __name__ == "__main__":

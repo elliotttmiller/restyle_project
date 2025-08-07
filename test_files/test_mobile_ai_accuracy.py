@@ -14,6 +14,10 @@ import base64
 from PIL import Image
 import io
 import mimetypes
+import urllib3
+
+# Disable SSL warnings for testing
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Add the backend directory to the path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
@@ -27,7 +31,28 @@ def simulate_mobile_app_search():
     print()
     
     # Mobile app configuration (same as mobile app)
-    BASE_URL = "http://localhost:8000/api"  # Use localhost since backend is running locally
+    import os
+import sys
+import json
+import time
+import requests
+from PIL import Image
+from datetime import datetime
+import urllib3
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Disable SSL warnings for testing
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Get Railway domain from environment
+RAILWAY_DOMAIN = os.getenv('RAILWAY_PUBLIC_DOMAIN', 'restyleproject-production.up.railway.app')
+BASE_URL = f"https://{RAILWAY_DOMAIN}/core"
+
+def main():
+    """Main test function simulating mobile app behavior"""
     TEST_IMAGE_PATH = r"C:\Users\AMD\restyle_project\test_files\example2.JPG"  # Absolute path
     
     print("📸 STEP 1: Simulating Mobile App Image Selection")
@@ -77,8 +102,8 @@ def simulate_mobile_app_search():
             'image_type': 'image/jpeg'  # Same as mobile app
         }
         
-        print("📤 Sending request to /core/ai/advanced-search/ (mobile app style)")
-        print(f"   URL: {BASE_URL}/core/ai/advanced-search/")
+        print("📤 Sending request to /ai/advanced-search/ (mobile app style)")
+        print(f"   URL: {BASE_URL}/ai/advanced-search/")
         print(f"   Method: POST")
         print(f"   Content-Type: multipart/form-data (auto-generated)")
         
@@ -86,10 +111,11 @@ def simulate_mobile_app_search():
         
         # Make the exact same request as mobile app
         response = requests.post(
-            f"{BASE_URL}/core/ai/advanced-search/",
+            f"{BASE_URL}/ai/advanced-search/",
             files=files,
             data=data,
             timeout=60,  # Same timeout as mobile app
+            verify=False,  # Disable SSL verification for testing
             headers={
                 # Don't set Content-Type - let requests set it with boundary (same as mobile app)
             }

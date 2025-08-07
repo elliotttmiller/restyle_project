@@ -8,16 +8,17 @@ import sys
 import requests
 import json
 import time
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
-# Set up environment variables for the test
-os.environ['AWS_ACCESS_KEY_ID'] = '***REMOVED***'
-os.environ['AWS_SECRET_ACCESS_KEY'] = '***REMOVED***'
-os.environ['AWS_REGION_NAME'] = 'us-east-1'
-
-# Set up Google Cloud credentials path
+# Get Railway domain from environment
+RAILWAY_DOMAIN = os.getenv('RAILWAY_PUBLIC_DOMAIN', 'restyleproject-production.up.railway.app')
+BASE_URL = f"https://{RAILWAY_DOMAIN}"
 credentials_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 if credentials_path and os.path.exists(credentials_path):
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
@@ -41,7 +42,7 @@ def test_multi_expert_ai_pipeline():
         return False
     
     # Test the API endpoint
-    api_url = "http://localhost:8000/api/ai-image-search/"
+    api_url = "https://restyleproject-production.up.railway.app/api/ai-image-search/"
     
     print(f"📸 Using test image: {test_image_path}")
     print(f"🌐 Testing API endpoint: {api_url}")
@@ -130,7 +131,7 @@ def test_multi_expert_ai_pipeline():
                 return False
                 
     except requests.exceptions.ConnectionError:
-        print("❌ Connection error: Make sure the Django server is running on localhost:8000")
+        print("❌ Connection error: Make sure the Django server is running on Railway")
         return False
     except requests.exceptions.Timeout:
         print("❌ Request timeout: The AI pipeline took too long to respond")

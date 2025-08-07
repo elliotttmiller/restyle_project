@@ -97,7 +97,8 @@ def test_backend_ai_endpoint():
         img_byte_arr = img_byte_arr.getvalue()
         
         # Test the advanced AI search endpoint
-        url = "http://localhost:8000/api/core/ai/advanced-search/"
+        railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', 'restyleproject-production.up.railway.app')
+        url = f"https://{railway_domain}/core/ai/advanced-search/"
         files = {'image': ('test.png', img_byte_arr, 'image/png')}
         
         response = requests.post(url, files=files, timeout=30)

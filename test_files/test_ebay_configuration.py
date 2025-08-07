@@ -133,7 +133,7 @@ def test_ai_system_with_ebay():
             return False
         
         # Prepare the request
-        url = "http://localhost:8000/api/core/ai/advanced-search/"
+        url = "https://restyleproject-production.up.railway.app/api/core/ai/advanced-search/"
         
         with open(test_image_path, 'rb') as f:
             files = {'image': ('test.jpg', f, 'image/jpeg')}

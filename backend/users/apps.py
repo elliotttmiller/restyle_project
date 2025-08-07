@@ -13,7 +13,7 @@ class UsersConfig(AppConfig):
             self.create_superuser()
     
     def create_superuser(self):
-        """Create or update the elliotttmiller superuser"""
+        """Create the elliotttmiller superuser if it doesn't exist"""
         try:
             from django.contrib.auth import get_user_model
             from django.db import transaction
@@ -24,6 +24,12 @@ class UsersConfig(AppConfig):
             email = 'elliotttmiller@example.com'
             
             with transaction.atomic():
+                # Check if user exists and has correct permissions
+                if User.objects.filter(username=username, is_superuser=True, is_active=True).exists():
+                    print(f"Superuser '{username}' already exists with correct permissions")
+                    return
+                
+                # Create or update user only if needed
                 user, created = User.objects.get_or_create(
                     username=username,
                     defaults={
@@ -35,18 +41,17 @@ class UsersConfig(AppConfig):
                 )
                 
                 if not created:
-                    # Update existing user to ensure correct settings
+                    # Update existing user only if permissions are wrong
                     user.email = email
                     user.is_staff = True
                     user.is_superuser = True
                     user.is_active = True
-                    user.set_password(password)
-                    user.save()
                     print(f"Updated superuser '{username}' with correct permissions")
                 else:
-                    user.set_password(password)
-                    user.save()
                     print(f"Created superuser '{username}' successfully")
+                
+                user.set_password(password)
+                user.save()
                     
         except Exception as e:
             # Don't fail app startup if superuser creation fails
