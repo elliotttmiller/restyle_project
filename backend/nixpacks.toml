@@ -26,6 +26,9 @@ nixPkgs = [
 
 [phases.install]
 cmds = [
+  "echo 'Python binary:' $(which python)",
+  "python --version",
+  "ldd --version || true",
   "python -m venv venv",
   "source venv/bin/activate && pip install --upgrade pip",
   "source venv/bin/activate && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu",
@@ -39,4 +42,4 @@ cmds = [
 ]
 
 [phases.start]
-cmd = "export LD_LIBRARY_PATH=$(find /nix/store -type d -name lib | tr '\n' ':') && source venv/bin/activate && bash fast_start.sh"
+cmd = "export LD_LIBRARY_PATH=$(find /nix/store -type d -name lib | tr '\n' ':'); echo 'Python binary at runtime:' \$(which python); python --version; ldd --version || true; source venv/bin/activate && bash fast_start.sh"
