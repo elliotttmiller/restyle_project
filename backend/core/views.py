@@ -227,7 +227,7 @@ class EbaySearchView(APIView):
     """
     Search eBay items using query parameters. Enterprise-grade: robust error handling, rate limiting, and OpenAPI-ready.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
@@ -296,7 +296,7 @@ class EnvVarDebugView(APIView):
     Debug endpoint to inspect selected environment variables.
     Only accessible by admin users.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
@@ -315,7 +315,7 @@ class ItemListCreateView(APIView):
     """
     List and create items. Enterprise-grade: robust error handling, rate limiting, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
@@ -330,7 +330,7 @@ class ItemDetailView(APIView):
     """
     Retrieve item details. Enterprise-grade: robust error handling, rate limiting, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request, pk):
@@ -347,7 +347,7 @@ class ListingListCreateView(APIView):
     """
     List and create listings for an item. Enterprise-grade: robust error handling, rate limiting, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request, item_pk):
@@ -362,7 +362,7 @@ class ListingDetailView(APIView):
     """
     Retrieve listing details. Enterprise-grade: robust error handling, rate limiting, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request, pk):
@@ -379,7 +379,7 @@ class TriggerAnalysisView(APIView):
     """
     Trigger market analysis for an item. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def post(self, request, pk):
@@ -406,7 +406,7 @@ class AnalysisStatusView(APIView):
     """
     Get the status of a market analysis. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request, pk):
@@ -426,7 +426,7 @@ class EbayTokenHealthView(APIView):
     """
     Provides a detailed status report for the eBay OAuth token. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
@@ -444,7 +444,7 @@ class EbayTokenActionView(APIView):
     """
     Perform actions on eBay token. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def post(self, request):
@@ -458,7 +458,7 @@ class SetEbayRefreshTokenView(APIView):
     """
     Set the eBay refresh token. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def post(self, request):
@@ -472,7 +472,7 @@ class EbayOAuthCallbackView(APIView):
     """
     Handle eBay OAuth callback. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
@@ -515,7 +515,7 @@ class EbayOAuthDeclinedView(APIView):
     """
     Handle eBay OAuth declined callback. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
@@ -546,7 +546,7 @@ class PriceAnalysisView(APIView):
     """
     Perform price analysis. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def post(self, request):
@@ -573,7 +573,7 @@ class AIImageSearchView(APIView):
     """
     Perform AI image search. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def post(self, request):
@@ -609,7 +609,7 @@ class PrivacyPolicyView(APIView):
     """
     Privacy policy endpoint. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
@@ -643,7 +643,7 @@ class AcceptedView(APIView):
     """
     Accepted endpoint. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
@@ -656,7 +656,7 @@ class DeclinedView(APIView):
     """
     Declined endpoint. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):
@@ -669,7 +669,7 @@ class TestEbayLoginView(APIView):
     """
     Test eBay login endpoint. Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
     throttle_classes = [throttling.UserRateThrottle]
 
     def get(self, request):

@@ -373,25 +373,20 @@ def calculate_market_volatility(prices, sale_dates):
     mean_price = np.mean(recent_prices)
     std_price = np.std(recent_prices)
     
-    if mean_price > 0:
-        volatility = std_price / mean_price
-    else:
-        volatility = 0.5
+    volatility = std_price / mean_price if mean_price > 0 else 0.5
     
     return min(volatility, 1.0)  # Cap at 1.0
 
 def calculate_adaptive_decay_rate(volatility):
     """Calculate adaptive decay rate based on market volatility - FINE-TUNED"""
     base_decay_rate = 0.03  # Reduced from 0.05 for more gradual decay
-    
+
     if volatility > 0.25:  # Lowered threshold from 0.3 - more sensitive to volatility
-        decay_rate = base_decay_rate * 1.8  # Increased multiplier for high volatility
+        return base_decay_rate * 1.8  # Increased multiplier for high volatility
     elif volatility < 0.08:  # Lowered threshold from 0.1 - more sensitive to stability
-        decay_rate = base_decay_rate * 0.5  # Reduced multiplier for low volatility
-    else:  # Moderate volatility
-        decay_rate = base_decay_rate
-    
-    return decay_rate
+        return base_decay_rate * 0.5  # Reduced multiplier for low volatility
+    else:
+        return base_decay_rate  # Moderate volatility
 
 def calculate_seasonal_multiplier(sale_date, title):
     """Calculate seasonal adjustment multiplier - ENHANCED"""
@@ -721,7 +716,6 @@ def create_ebay_listing(listing_id):
                 "warnings": warnings
             }
         else:
-            # This is a real error
             error_msg = f"eBay API error: {response.reply.Errors[0].LongMessage if hasattr(response.reply, 'Errors') else 'Unknown error'}"
             logger.error(error_msg)
             return {"status": "error", "message": error_msg}

@@ -13,10 +13,10 @@ class UsersConfig(AppConfig):
         import os
         import logging
         logger = logging.getLogger(__name__)
-        if (os.environ.get('DJANGO_SETTINGS_MODULE', '').endswith('development') or 
-            os.environ.get('CREATE_SUPERUSER') == 'true'):
-            if os.environ.get('RUN_MAIN') != 'true':
-                self.create_superuser()
+        if ((os.environ.get('DJANGO_SETTINGS_MODULE', '').endswith('development') or 
+             os.environ.get('CREATE_SUPERUSER') == 'true') and
+            os.environ.get('RUN_MAIN') != 'true'):
+            self.create_superuser()
     
     def create_superuser(self):
         """
