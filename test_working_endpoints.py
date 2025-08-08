@@ -3,99 +3,85 @@
 Test only the working endpoints
 """
 
+
 import requests
 import json
 import time
+import logging
 
 BASE_URL = "https://restyleproject-production.up.railway.app"
+logger = logging.getLogger(__name__)
 
 def test_health():
-    print("Testing Health...")
+    """Test the /health endpoint."""
     response = requests.get(f"{BASE_URL}/health")
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.json()}")
-    return response.status_code == 200
+    logger.info(f"/health status: {response.status_code}")
+    assert response.status_code == 200, f"/health failed: {response.text}"
 
 def test_core_health():
-    print("\nTesting Core Health...")
+    """Test the /api/core/health/ endpoint."""
     response = requests.get(f"{BASE_URL}/api/core/health/")
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.json()}")
-    return response.status_code == 200
+    logger.info(f"/api/core/health/ status: {response.status_code}")
+    assert response.status_code == 200, f"/api/core/health/ failed: {response.text}"
 
 def test_ai_status():
-    print("\nTesting AI Status...")
+    """Test the /api/core/ai/status/ endpoint."""
     response = requests.get(f"{BASE_URL}/api/core/ai/status/")
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.json()}")
-    return response.status_code == 200
+    logger.info(f"/api/core/ai/status/ status: {response.status_code}")
+    assert response.status_code == 200, f"/api/core/ai/status/ failed: {response.text}"
 
 def test_user_registration():
-    print("\nTesting User Registration...")
+    """Test user registration endpoint."""
     test_user = {
         "username": f"testuser_{int(time.time())}",
         "email": "test@example.com",
         "password": "testpass123"
     }
-    
     response = requests.post(
         f"{BASE_URL}/api/users/register/",
         json=test_user,
         headers={"Content-Type": "application/json"}
     )
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.text[:200]}...")
-    return response.status_code == 201
+    logger.info(f"/api/users/register/ status: {response.status_code}")
+    assert response.status_code == 201, f"/api/users/register/ failed: {response.text}"
 
 def test_token_endpoint():
-    print("\nTesting Token Endpoint...")
-    # First register a user
+    """Test token endpoint after registering a user."""
     test_user = {
         "username": f"tokentest_{int(time.time())}",
-        "email": "token@example.com", 
+        "email": "token@example.com",
         "password": "testpass123"
     }
-    
-    # Register
     requests.post(f"{BASE_URL}/api/users/register/", json=test_user)
-    
-    # Get token
     response = requests.post(
         f"{BASE_URL}/api/token/",
         json={"username": test_user["username"], "password": test_user["password"]},
         headers={"Content-Type": "application/json"}
     )
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.text[:100]}...")
-    return response.status_code == 200
+    logger.info(f"/api/token/ status: {response.status_code}")
+    assert response.status_code == 200, f"/api/token/ failed: {response.text}"
 
 def test_ebay_search_get():
-    print("\nTesting eBay Search (GET)...")
+    """Test eBay search endpoint."""
     response = requests.get(f"{BASE_URL}/api/core/ebay-search/?q=nike+shoes&limit=3")
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.text[:300]}...")
-    return response.status_code == 200
+    logger.info(f"/api/core/ebay-search/ status: {response.status_code}")
+    assert response.status_code == 200, f"/api/core/ebay-search/ failed: {response.text}"
 
 def test_advanced_search_with_image():
-    print("\nTesting Advanced Search with proper image...")
-    
-    # Simple 1x1 PNG image
+    """Test advanced search with a sample image."""
     test_image_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-    
     payload = {
         "image": test_image_b64,
         "intelligent_crop": True,
         "use_advanced_ai": False
     }
-    
     response = requests.post(
         f"{BASE_URL}/api/core/ai/advanced-search/",
         json=payload,
         headers={"Content-Type": "application/json"}
     )
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.text[:300]}...")
-    return response.status_code in [200, 503]  # 503 is acceptable for stub
+    logger.info(f"/api/core/ai/advanced-search/ status: {response.status_code}")
+    assert response.status_code in [200, 503], f"/api/core/ai/advanced-search/ failed: {response.text}"
 
 def main():
     print("Testing Working Endpoints")
@@ -112,22 +98,26 @@ def main():
     ]
     
     results = {}
+    import logging
+    logger = logging.getLogger(__name__)
     for name, test_func in tests:
         try:
-            results[name] = test_func()
-        except Exception as e:
-            print(f"Test {name} failed: {e}")
+            test_func()
+            results[name] = True
+        except AssertionError as e:
+            logger.error(f"Test {name} failed: {e}")
             results[name] = False
-    
-    print("\n" + "=" * 40)
-    print("RESULTS:")
+        except Exception as e:
+            logger.error(f"Test {name} raised an unexpected exception: {e}")
+            results[name] = False
+    logger.info("\n" + "=" * 40)
+    logger.info("RESULTS:")
     for name, passed in results.items():
         status = "PASS" if passed else "FAIL"
-        print(f"{name:<25} {status}")
-    
+        logger.info(f"{name:<25} {status}")
     passed = sum(results.values())
     total = len(results)
-    print(f"\nOverall: {passed}/{total} tests passed")
+    logger.info(f"\nOverall: {passed}/{total} tests passed")
 
 if __name__ == "__main__":
     main()

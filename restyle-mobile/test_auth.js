@@ -3,17 +3,18 @@
  * Test authentication with Railway backend
  */
 const axios = require('axios');
+const logger = require('./shared/logger');
 
 const RAILWAY_URL = 'https://restyleproject-production.up.railway.app';
 
 async function testAuthentication() {
-  console.log('🔐 Testing Authentication with Railway Backend');
-  console.log('=' .repeat(50));
-  console.log(`Railway URL: ${RAILWAY_URL}`);
-  console.log();
+  logger.info('🔐 Testing Authentication with Railway Backend');
+  logger.info('=' .repeat(50));
+  logger.info(`Railway URL: ${RAILWAY_URL}`);
+  logger.info('');
 
   // Test 1: Register a test user
-  console.log('1. Testing User Registration...');
+  logger.info('1. Testing User Registration...');
   try {
     const registerData = {
       username: 'testuser_' + Date.now(),
@@ -30,11 +31,11 @@ async function testAuthentication() {
       }
     });
 
-    console.log('✅ Registration successful');
-    console.log(`   User ID: ${registerResponse.data.user?.id}`);
+    logger.info('✅ Registration successful');
+    logger.info(`   User ID: ${registerResponse.data.user?.id}`);
     
     // Test 2: Login with the registered user
-    console.log('\n2. Testing User Login...');
+    logger.info('\n2. Testing User Login...');
     const loginData = {
       username: registerData.username,
       password: registerData.password
@@ -47,12 +48,12 @@ async function testAuthentication() {
       }
     });
 
-    console.log('✅ Login successful');
-    console.log(`   Access Token: ${loginResponse.data.access?.substring(0, 20)}...`);
-    console.log(`   Refresh Token: ${loginResponse.data.refresh?.substring(0, 20)}...`);
+    logger.info('✅ Login successful');
+    logger.info(`   Access Token: ${loginResponse.data.access?.substring(0, 20)}...`);
+    logger.info(`   Refresh Token: ${loginResponse.data.refresh?.substring(0, 20)}...`);
 
     // Test 3: Test authenticated endpoint
-    console.log('\n3. Testing Authenticated Endpoint...');
+    logger.info('\n3. Testing Authenticated Endpoint...');
     const authResponse = await axios.get(`${RAILWAY_URL}/api/core/health-check/`, {
       timeout: 10000,
       headers: {
@@ -61,20 +62,20 @@ async function testAuthentication() {
       }
     });
 
-    console.log('✅ Authenticated endpoint successful');
-    console.log(`   Response: ${JSON.stringify(authResponse.data, null, 2)}`);
+    logger.info('✅ Authenticated endpoint successful');
+    logger.info(`   Response: ${JSON.stringify(authResponse.data, null, 2)}`);
 
   } catch (error) {
-    console.log(`❌ Authentication test failed: ${error.response?.status || error.code}`);
+    logger.error(`❌ Authentication test failed: ${error.response?.status || error.code}`);
     if (error.response?.data) {
-      console.log(`   Error: ${JSON.stringify(error.response.data, null, 2)}`);
+      logger.error(`   Error: ${JSON.stringify(error.response.data, null, 2)}`);
     } else {
-      console.log(`   Error: ${error.message}`);
+      logger.error(`   Error: ${error.message}`);
     }
   }
 
-  console.log('\n🎉 Authentication Test Complete!');
-  console.log('Your mobile app should now be able to authenticate with the Railway backend.');
+  logger.info('\n🎉 Authentication Test Complete!');
+  logger.info('Your mobile app should now be able to authenticate with the Railway backend.');
 }
 
-testAuthentication().catch(console.error); 
+testAuthentication().catch(logger.error);

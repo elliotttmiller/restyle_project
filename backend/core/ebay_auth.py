@@ -4,14 +4,12 @@ Handles OAuth token management, refresh, and automatic renewal
 """
 
 import requests
-import json
 import logging
 import time
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models
-from typing import Optional, Dict, Any
+from typing import Optional
 import os
 from django.core.mail import mail_admins
 from core.credential_manager import credential_manager

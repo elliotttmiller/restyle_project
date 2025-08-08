@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../shared/authStore';
 import api from '../shared/api';
+import logger from '../shared/logger';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -20,36 +21,36 @@ export default function LoginScreen() {
   }, [isInitialized, isAuthenticated, router]);
 
   const handleLogin = async () => {
-    console.log('LoginScreen: handleLogin called');
+    logger.info('LoginScreen: handleLogin called');
     if (!username || !password) {
       Alert.alert('Error', 'Please enter both username and password');
       return;
     }
 
     setLoading(true);
-    console.log('LoginScreen: setLoading(true)');
+    logger.info('LoginScreen: setLoading(true)');
     try {
-      console.log('Attempting login to:', api.defaults.baseURL);
+      logger.info('Attempting login to:', api.defaults.baseURL);
       const response = await api.post('/api/token/', { username, password });
-      console.log('Login successful:', response.data);
+      logger.info('Login successful:', response.data);
       
       // Store both access and refresh tokens
       setTokens(response.data.access, response.data.refresh);
       
       // Debug: print the tokens after storing
-      console.log('Stored tokens in auth store:', {
+      logger.info('Stored tokens in auth store:', {
         token: useAuthStore.getState().token,
         refreshToken: useAuthStore.getState().refreshToken
       });
       
       router.replace('/dashboard');
-      console.log('LoginScreen: navigation to /dashboard called');
+      logger.info('LoginScreen: navigation to /dashboard called');
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       
       // If backend is not available, allow demo login with any credentials
       if (!error.response || error.code === 'NETWORK_ERROR' || error.code === 'ECONNREFUSED') {
-        console.log('🎭 Backend unavailable, enabling demo login');
+        logger.info('🎭 Backend unavailable, enabling demo login');
         Alert.alert(
           'Demo Mode',
           'Backend is unavailable. Logging in with demo mode.',
@@ -69,17 +70,17 @@ export default function LoginScreen() {
       }
       
       if (error.response) {
-        console.error('Error response:', error.response.data);
+        logger.error('Error response:', error.response.data);
         Alert.alert('Login Failed', error.response.data?.detail || 'Invalid credentials');
       } else if (error.request) {
-        console.error('Network error:', error.request);
+        logger.error('Network error:', error.request);
         Alert.alert('Connection Error', 'Unable to connect to server. Please check your network connection.');
       } else {
         Alert.alert('Login Failed', 'An unexpected error occurred');
       }
     } finally {
       setLoading(false);
-      console.log('LoginScreen: setLoading(false)');
+      logger.info('LoginScreen: setLoading(false)');
     }
   };
 

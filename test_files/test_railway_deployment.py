@@ -12,26 +12,28 @@ from pathlib import Path
 # Railway deployment URL
 RAILWAY_URL = "https://restyleproject-production.up.railway.app"
 
+
 def test_health_endpoints():
-    """Test basic health endpoints"""
-    print("🏥 TESTING HEALTH ENDPOINTS")
-    print("="*50)
-    
+    """Test basic health endpoints."""
+    import logging
+    logger = logging.getLogger(__name__)
     endpoints = [
         "/core/health/",
         "/core/metrics/", 
         "/core/ai/status/"
     ]
-    
     for endpoint in endpoints:
         try:
             response = requests.get(f"{RAILWAY_URL}{endpoint}", timeout=10)
-            status = "✅" if response.status_code == 200 else "❌"
-            print(f"{status} {endpoint}: {response.status_code}")
             if response.status_code == 200:
-                print(f"   Response: {response.json()}")
+                logger.info(f"{endpoint}: {response.status_code}")
+                logger.debug(f"Response: {response.json()}")
+            else:
+                logger.error(f"{endpoint}: {response.status_code} - {response.text}")
+            assert response.status_code == 200, f"{endpoint} failed: {response.text}"
         except Exception as e:
-            print(f"❌ {endpoint}: ERROR - {e}")
+            logger.error(f"{endpoint}: ERROR - {e}")
+            raise
 
 def test_ai_endpoints():
     """Test AI endpoints with sample data"""

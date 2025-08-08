@@ -26,10 +26,12 @@ for line in reversed(lines):
 
 # Print results
 found = False
+import logging
+logger = logging.getLogger(__name__)
 for label in results:
     if results[label]:
-        print(f"\n==== {label} ====")
-        print(results[label])
+        logger.info(f"\n==== {label} ====")
+        logger.info(results[label])
         found = True
 if not found:
-    print("No Vertex AI or Gemini prompts/responses found in the log.") 
+    logger.warning("No Vertex AI or Gemini prompts/responses found in the log.")

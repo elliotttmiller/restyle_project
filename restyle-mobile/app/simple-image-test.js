@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../shared/api';
+import logger from '../shared/logger';
 
 export default function SimpleImageTest() {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -22,7 +23,7 @@ export default function SimpleImageTest() {
         setResult('');
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      logger.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to pick image.');
     }
   };
@@ -37,11 +38,11 @@ export default function SimpleImageTest() {
     setResult('');
 
     try {
-      console.log('=== IMAGE UPLOAD TEST ===');
-      console.log('Image URI:', selectedImage.uri);
-      console.log('Image type:', selectedImage.type);
-      console.log('Image size:', selectedImage.fileSize);
-      console.log('Image dimensions:', selectedImage.width, 'x', selectedImage.height);
+      logger.info('=== IMAGE UPLOAD TEST ===');
+      logger.info('Image URI:', selectedImage.uri);
+      logger.info('Image type:', selectedImage.type);
+      logger.info('Image size:', selectedImage.fileSize);
+      logger.info('Image dimensions:', selectedImage.width, 'x', selectedImage.height);
 
       // Create FormData
       const formData = new FormData();
@@ -52,10 +53,10 @@ export default function SimpleImageTest() {
       };
 
       formData.append('image', file);
-      console.log('FormData created with file:', file);
+      logger.info('FormData created with file:', file);
 
       // Test upload
-      console.log('Sending to:', api.defaults.baseURL + '/api/core/ai/advanced-search/');
+      logger.info('Sending to:', api.defaults.baseURL + '/api/core/ai/advanced-search/');
       
       const response = await api.post('core/ai/advanced-search/', formData, {
         headers: {
@@ -63,8 +64,8 @@ export default function SimpleImageTest() {
         },
       });
 
-      console.log('Upload successful!');
-      console.log('Response:', response.data);
+      logger.info('Upload successful!');
+      logger.info('Response:', response.data);
       
       setResult('✅ Upload successful!\n\nResponse received from backend.');
 

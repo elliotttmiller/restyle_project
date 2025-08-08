@@ -1,24 +1,20 @@
 # File: backend/core/tasks.py
 
 import requests
-import base64
 import json
 import math
 from decimal import Decimal
-from celery import shared_task, group
+from celery import shared_task
 from django.conf import settings
-from django.db.models import Avg, Min, Max, Count
-from .models import Item, MarketAnalysis, ComparableSale, Listing
+from .models import MarketAnalysis, ComparableSale, Listing
 from ebaysdk.trading import Connection as Trading
 from ebaysdk.exception import ConnectionError as EbayConnectionError
 import logging
 from datetime import datetime, timedelta, timezone
 import time
-import os
 import numpy as np
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.contrib.auth import get_user_model
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +137,7 @@ def aggregate_analysis_results(results, analysis_id):
     4. Dynamic Decay Rate based on market volatility
     5. Advanced Outlier Detection with multi-dimensional analysis
     """
-    print(f"--- Running Enhanced Advanced Pricing Algorithm for Analysis ID: {analysis_id} ---")
+    logger.info(f"--- Running Enhanced Advanced Pricing Algorithm for Analysis ID: {analysis_id} ---")
     try:
         analysis = MarketAnalysis.objects.get(id=analysis_id)
         # Fetch comprehensive data including additional fields for advanced analysis
@@ -164,13 +160,13 @@ def aggregate_analysis_results(results, analysis_id):
     conditions = [comp['condition'] for comp in comps]
     titles = [comp['title'] for comp in comps]
 
-    print(f"Initial analysis with {len(comps)} comparable sales")
+    logger.info(f"Initial analysis with {len(comps)} comparable sales")
 
     # --- IMPROVEMENT 1: Enhanced Confidence Scoring ---
     confidence_factors = calculate_confidence_factors(comps, prices, sale_dates, platforms)
     overall_confidence = sum(confidence_factors.values()) / len(confidence_factors)
     
-    print(f"Confidence Analysis: {confidence_factors}")
+    logger.info(f"Confidence Analysis: {confidence_factors}")
 
     # --- IMPROVEMENT 2: Advanced Outlier Detection ---
     outlier_flags = advanced_outlier_detection(prices, conditions, titles, platforms)
@@ -178,14 +174,14 @@ def aggregate_analysis_results(results, analysis_id):
     
     if len(filtered_comps) < 3:  # Fallback if too many outliers
         filtered_comps = comps
-        print("Warning: Too many outliers detected, using all data")
+        logger.warning("Warning: Too many outliers detected, using all data")
     
-    print(f"After outlier detection: {len(filtered_comps)} comps remaining")
+    logger.info(f"After outlier detection: {len(filtered_comps)} comps remaining")
 
     # --- IMPROVEMENT 3: Dynamic Decay Rate ---
     market_volatility = calculate_market_volatility(prices, sale_dates)
     decay_rate = calculate_adaptive_decay_rate(market_volatility)
-    print(f"Market volatility: {market_volatility:.3f}, Decay rate: {decay_rate:.3f}")
+    logger.info(f"Market volatility: {market_volatility:.3f}, Decay rate: {decay_rate:.3f}")
 
     # --- IMPROVEMENT 4: Enhanced Temporal Weighting with Seasonal Analysis ---
     weighted_prices = []
@@ -268,8 +264,8 @@ def aggregate_analysis_results(results, analysis_id):
     analysis.status = 'COMPLETE'
     analysis.save()
 
-    print(f"+++ Enhanced Analysis Complete. Suggested Price: ${analysis.suggested_price} +++")
-    print(f"Confidence: {overall_confidence:.2f}/1.0 - {confidence_report}")
+    logger.info(f"+++ Enhanced Analysis Complete. Suggested Price: ${analysis.suggested_price} +++")
+    logger.info(f"Confidence: {overall_confidence:.2f}/1.0 - {confidence_report}")
     return f"Enhanced aggregation complete for Analysis {analysis.id}."
 
 # --- HELPER FUNCTIONS FOR ENHANCED ALGORITHM ---
@@ -496,7 +492,7 @@ def generate_confidence_report(confidence_factors, overall_confidence, comps_cou
 @shared_task(name="core.tasks.perform_market_analysis")
 def perform_market_analysis(analysis_id):
     logger.error(f"[PERFORM_MARKET_ANALYSIS] Called for analysis_id={analysis_id}")
-    print(f"[DEBUG] perform_market_analysis called for analysis_id={analysis_id}")
+    logger.debug(f"[DEBUG] perform_market_analysis called for analysis_id={analysis_id}")
     logger.info(f"[DEBUG] perform_market_analysis called for analysis_id={analysis_id}")
     try:
         analysis = MarketAnalysis.objects.get(id=analysis_id)
@@ -743,7 +739,7 @@ def create_ebay_listing(listing_id):
 
 @shared_task
 def test_task():
-    print("Test task executed")
+    logger.info("Test task executed")
     return "Test task executed"
 
 @shared_task(bind=True, max_retries=3)

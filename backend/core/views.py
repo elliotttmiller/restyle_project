@@ -1,24 +1,18 @@
 """
 Core API views - cleaned imports for enterprise upgrade.
 """
-from rest_framework import generics, permissions, serializers, status, throttling
+from rest_framework import permissions, status, throttling
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.views import View
 from django.http import JsonResponse
-from .serializers import ItemSerializer, ListingSerializer, MarketAnalysisSerializer
-from .models import Item, Listing, MarketAnalysis
+from .serializers import ItemSerializer, ListingSerializer
+from .models import Item, Listing
 import base64
 import os
 import logging
 import traceback
-from django.conf import settings
-from django.core.cache import cache
-from datetime import datetime, timedelta
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAdminUser
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+from datetime import datetime
+from rest_framework.permissions import AllowAny
 try:
     from .tasks import create_ebay_listing, perform_market_analysis
 except ImportError:
@@ -67,20 +61,14 @@ try:
 except ImportError:
     from .stubs import get_market_analysis_service
 
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny
 import requests
-from django.conf import settings
 import logging
-from django.core.cache import cache
-from datetime import datetime, timedelta
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+from datetime import datetime
 import base64
 import os
 import traceback
 from django.http import JsonResponse
-from django.views import View
 
 logger = logging.getLogger(__name__)
 
@@ -208,11 +196,11 @@ def performance_metrics(request):
     
     if PSUTIL_AVAILABLE:
         try:
-            metrics.update({
+            metrics |= {
                 "cpu_usage": f"{psutil.cpu_percent()}%",
                 "memory_usage": f"{psutil.virtual_memory().percent}%",
                 "disk_usage": f"{psutil.disk_usage('/').percent}%"
-            })
+            }
         except Exception as e:
             metrics["error"] = f"Failed to get system metrics: {str(e)}"
     else:

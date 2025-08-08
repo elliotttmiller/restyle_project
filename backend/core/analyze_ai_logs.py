@@ -62,9 +62,11 @@ def main():
     # Write summary to JSON
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2)
-    print(f"Extracted {len(results)} AI image search log entries. Summary written to {OUTPUT_PATH}")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Extracted {len(results)} AI image search log entries. Summary written to {OUTPUT_PATH}")
     if len(results) == 0:
-        print("No AI image search log entries found. Try running with --docker if using Docker logs.")
+        logger.warning("No AI image search log entries found. Try running with --docker if using Docker logs.")
 
 if __name__ == '__main__':
     main() 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import api from '../shared/api';
+import logger from '../shared/logger';
 
 export default function TestConnection() {
   const [testing, setTesting] = useState(false);
@@ -15,20 +16,22 @@ export default function TestConnection() {
     setResults([]);
     
     try {
-      console.log('Testing connection to backend...');
-      console.log('API base URL:', api.defaults.baseURL);
+      logger.info('Testing connection to backend...');
+      logger.info('API base URL:', api.defaults.baseURL);
       addResult('Starting connection tests...', true);
       
       // Test 1: Basic connectivity
       try {
         addResult('Testing basic connectivity...', true);
         const response = await api.get('/core/health/');
-        console.log('Health check response:', response.data);
+        logger.info('Health check response:', response.data);
         addResult(`✅ Health check successful: ${response.data.status}`, true);
       } catch (error) {
-        console.error('Health check failed:', error);
+        logger.error('Health check failed:', error);
         addResult(`❌ Health check failed: ${error.message}`, false);
         if (error.response) {
+          logger.error('Status: ' + error.response.status);
+          logger.error('Data: ' + JSON.stringify(error.response.data));
           addResult(`Status: ${error.response.status}`, false);
           addResult(`Data: ${JSON.stringify(error.response.data)}`, false);
         }
@@ -43,7 +46,7 @@ export default function TestConnection() {
         });
         addResult('✅ Token endpoint accessible', true);
       } catch (error) {
-        console.error('Token endpoint test (expected error):', error.response?.data);
+        logger.error('Token endpoint test (expected error):', error.response?.data);
         addResult('✅ Token endpoint accessible (returns expected error for invalid credentials)', true);
       }
       
@@ -53,7 +56,7 @@ export default function TestConnection() {
         const aiResponse = await api.post('core/ai/advanced-search/', {});
         addResult('✅ AI endpoint accessible', true);
       } catch (error) {
-        console.error('AI endpoint test (expected error):', error.response?.data);
+        logger.error('AI endpoint test (expected error):', error.response?.data);
         addResult('✅ AI endpoint accessible (returns expected error for missing image)', true);
       }
       
@@ -61,7 +64,7 @@ export default function TestConnection() {
       addResult(`Network Info: ${api.defaults.baseURL}`, true);
       
     } catch (error) {
-      console.error('Connection test failed:', error);
+      logger.error('Connection test failed:', error);
       addResult(`❌ Connection test failed: ${error.message}`, false);
       if (error.response) {
         addResult(`Status: ${error.response.status}`, false);
@@ -160,4 +163,4 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 4,
   },
-}); 
+});

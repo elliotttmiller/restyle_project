@@ -1,13 +1,14 @@
 import * as ImagePicker from 'expo-image-picker';
+import logger from './shared/logger';
 
 // Simple function to test image picker availability
 const testImagePicker = async () => {
   try {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    console.log('Image Picker permission status:', status);
+    logger.info('Image Picker permission status:', status);
     return true;
   } catch (error) {
-    console.error('Error testing Image Picker:', error);
+    logger.error('Error testing Image Picker:', error);
     return false;
   }
 };
@@ -17,12 +18,12 @@ export default testImagePicker;
 
 // If this file is run directly, execute the test
 if (require.main === module) {
-  console.log('Testing Image Picker...');
+  logger.info('Testing Image Picker...');
   testImagePicker()
     .then(result => {
-      console.log('Test completed, result:', result);
+      logger.info('Test completed, result:', result);
     })
     .catch(err => {
-      console.error('Test failed:', err);
+      logger.error('Test failed:', err);
     });
 }

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import config from '../../config.js';
+import logger from '../../shared/logger';
 
 const api = axios.create({
   baseURL: config.API_BASE_URL,
@@ -7,6 +8,6 @@ const api = axios.create({
   // ... any other config ...
 });
 
-console.log('API baseURL:', api.defaults.baseURL);
+logger.info('API baseURL:', api.defaults.baseURL);
 
 export default api; 

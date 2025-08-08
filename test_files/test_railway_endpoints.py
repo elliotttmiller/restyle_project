@@ -6,49 +6,55 @@ import requests
 import time
 import sys
 
+
 def test_endpoint(base_url, endpoint, description):
-    """Test a specific endpoint"""
+    """Test a specific endpoint."""
+    import logging
+    logger = logging.getLogger(__name__)
     url = f"{base_url}{endpoint}"
     try:
-        print(f"Testing {description}...")
+        logger.info(f"Testing {description}...")
         response = requests.get(url, timeout=30)
-        print(f"✓ {description}: {response.status_code}")
+        logger.info(f"{description}: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
-            print(f"  Response: {data}")
+            logger.debug(f"Response: {data}")
         else:
-            print(f"  Error: {response.text}")
-        return response.status_code == 200
+            logger.error(f"Error: {response.text}")
+        assert response.status_code == 200, f"{description} failed: {response.text}"
     except requests.exceptions.RequestException as e:
-        print(f"✗ {description}: Error - {e}")
-        return False
+        logger.error(f"{description}: Error - {e}")
+        raise
+
 
 def main():
-    """Test all endpoints"""
-    # Get base URL from command line or use default
+    """Test all endpoints."""
+    import logging
+    logger = logging.getLogger(__name__)
     base_url = sys.argv[1] if len(sys.argv) > 1 else "https://restyleproject-production.up.railway.app"
-    
-    print(f"Testing Railway endpoints at: {base_url}")
-    print("=" * 50)
-    
+    logger.info(f"Testing Railway endpoints at: {base_url}")
+    logger.info("=" * 50)
     endpoints = [
         ("/", "Root endpoint"),
         ("/health", "Health check (no trailing slash)"),
         ("/health/", "Health check (with trailing slash)"),
         ("/test/", "Test endpoint"),
     ]
-    
     all_passed = True
     for endpoint, description in endpoints:
-        if not test_endpoint(base_url, endpoint, description):
+        try:
+            test_endpoint(base_url, endpoint, description)
+        except AssertionError as e:
+            logger.error(e)
             all_passed = False
-        print()
-    
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            all_passed = False
     if all_passed:
-        print("✅ All endpoints are working!")
+        logger.info("All endpoints are working!")
     else:
-        print("❌ Some endpoints failed")
+        logger.error("Some endpoints failed")
         sys.exit(1)
 
 if __name__ == '__main__':
-    main() 
+    main()

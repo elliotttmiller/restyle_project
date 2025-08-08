@@ -1,7 +1,6 @@
 """
 Environment variable handler to gracefully handle missing .env files in production.
 """
-import os
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
