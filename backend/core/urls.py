@@ -30,7 +30,6 @@ from .views import (
     AcceptedView,
     DeclinedView,
     EnvVarDebugView,
-    path('env-debug/', EnvVarDebugView.as_view(), name='env-debug'),
 )
 
 # We ONLY import the views that currently exist in core/views.py
@@ -83,6 +82,7 @@ urlpatterns = [
     path('declined/', DeclinedView.as_view(), name='declined'),
 
     path('ai/crop-preview/', CropPreviewView.as_view(), name='ai-crop-preview'),
+    path('env-debug/', EnvVarDebugView.as_view(), name='env-debug'),
 ]
 
 # Authenticated health check endpoint
