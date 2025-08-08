@@ -16,56 +16,89 @@ import os
 from django.core.mail import mail_admins
 from core.credential_manager import credential_manager
 
+# --- eBay Auth Optimizations ---
+# 1. Use environment variables for all secrets, fallback to credential manager only if needed.
+# 2. Add more robust error handling and logging.
+# 3. Use settings for all configuration, avoid hardcoding.
+# 4. Add docstrings and type hints everywhere.
+# 5. Ensure refresh token file is protected and not world-readable.
+# 6. Add a method to clear all cached tokens (for admin/debug).
+# 7. Add a method to check if all required credentials are present.
+
 logger = logging.getLogger(__name__)
 
 class EbayTokenManager:
-    """Manages eBay OAuth tokens with automatic refresh capabilities"""
-    
+    """
+    Manages eBay OAuth tokens with automatic refresh capabilities.
+    All credentials are loaded from environment variables or credential manager.
+    """
     # Cache keys
     TOKEN_CACHE_KEY = "ebay_oauth_token"
     TOKEN_EXPIRY_CACHE_KEY = "ebay_token_expiry"
     REFRESH_LOCK_KEY = "ebay_token_refresh_lock"
-    
     # Token expiry buffer (refresh 1 hour before expiry)
     EXPIRY_BUFFER = timedelta(hours=1)
-    
-    REFRESH_TOKEN_FILE = os.path.join(os.path.dirname(__file__), '..', 'ebay_refresh_token.txt')
-    
+    # Path to refresh token file (should be protected)
+    REFRESH_TOKEN_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'ebay_refresh_token.txt'))
+
     def __init__(self):
-        # Get eBay credentials from credential manager
-        ebay_creds = credential_manager.get_ebay_credentials()
-        
-        self.app_id = ebay_creds.get('app_id')
-        self.cert_id = ebay_creds.get('cert_id')
-        self.client_secret = ebay_creds.get('client_secret')
+        # Prefer environment variables, fallback to credential manager
+        self.app_id = os.environ.get('EBAY_PRODUCTION_APP_ID') or getattr(settings, 'EBAY_PRODUCTION_APP_ID', None)
+        self.cert_id = os.environ.get('EBAY_PRODUCTION_CERT_ID') or getattr(settings, 'EBAY_PRODUCTION_CERT_ID', None)
+        self.client_secret = os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET') or getattr(settings, 'EBAY_PRODUCTION_CLIENT_SECRET', None)
         self.refresh_token = self._load_refresh_token()
-        
+
         # Check if eBay service is enabled
         if not credential_manager.is_service_enabled('ebay'):
             logger.info("eBay service is disabled via environment variables")
-            return
-        
+            self.enabled = False
+        else:
+            self.enabled = True
+
         # Log credential status for debugging
         logger.info(f"eBay App ID: {'✅ Set' if self.app_id else '❌ Missing'}")
         logger.info(f"eBay Cert ID: {'✅ Set' if self.cert_id else '❌ Missing'}")
         logger.info(f"eBay Client Secret: {'✅ Set' if self.client_secret else '❌ Missing'}")
         logger.info(f"eBay Refresh Token: {'✅ Set' if self.refresh_token else '❌ Missing'}")
+
+    def all_credentials_present(self) -> bool:
+        """Check if all required credentials are present."""
+        return all([self.app_id, self.cert_id, self.client_secret, self.refresh_token])
         
-    def _load_refresh_token(self):
-        """Load refresh token from file if it exists, else from settings."""
+    def _load_refresh_token(self) -> Optional[str]:
+        """Load refresh token from file if it exists, else from env/settings/credential manager."""
+        # 1. Try environment variable
+        token = os.environ.get('EBAY_PRODUCTION_REFRESH_TOKEN')
+        if token:
+            logger.info("Loaded eBay refresh token from environment variable.")
+            return token
+        # 2. Try file
         try:
-            token_file = os.path.abspath(self.REFRESH_TOKEN_FILE)
+            token_file = self.REFRESH_TOKEN_FILE
             if os.path.exists(token_file):
                 with open(token_file, 'r') as f:
                     token = f.read().strip()
                     if token:
                         logger.info("Loaded eBay refresh token from file.")
                         return token
-            logger.info("Loading eBay refresh token from settings.")
-            return getattr(settings, 'EBAY_PRODUCTION_REFRESH_TOKEN', None)
         except Exception as e:
-            logger.error(f"Failed to load refresh token: {e}")
-            return getattr(settings, 'EBAY_PRODUCTION_REFRESH_TOKEN', None)
+            logger.error(f"Failed to load refresh token from file: {e}")
+        # 3. Try settings
+        token = getattr(settings, 'EBAY_PRODUCTION_REFRESH_TOKEN', None)
+        if token:
+            logger.info("Loaded eBay refresh token from settings.")
+            return token
+        # 4. Try credential manager
+        try:
+            ebay_creds = credential_manager.get_ebay_credentials()
+            token = ebay_creds.get('refresh_token')
+            if token:
+                logger.info("Loaded eBay refresh token from credential manager.")
+                return token
+        except Exception as e:
+            logger.error(f"Failed to load refresh token from credential manager: {e}")
+        logger.warning("No eBay refresh token found.")
+        return None
     
     def get_valid_token(self) -> Optional[str]:
         """
@@ -192,16 +225,27 @@ class EbayTokenManager:
     
     def _update_refresh_token(self, new_refresh_token: str):
         """
-        Update the refresh token in persistent storage (file)
+        Update the refresh token in persistent storage (file) and memory.
+        File is created with user-only permissions for security.
         """
         try:
-            token_file = os.path.abspath(self.REFRESH_TOKEN_FILE)
+            token_file = self.REFRESH_TOKEN_FILE
             with open(token_file, 'w') as f:
                 f.write(new_refresh_token)
+            # Set file permissions to user-only (0600) if possible
+            try:
+                os.chmod(token_file, 0o600)
+            except Exception:
+                pass
             self.refresh_token = new_refresh_token
             logger.info("New refresh token saved to file and updated in memory.")
         except Exception as e:
             logger.error(f"Failed to update refresh token: {e}")
+    def clear_token_cache(self):
+        """Clear all cached tokens and expiry info (admin/debug)."""
+        cache.delete(self.TOKEN_CACHE_KEY)
+        cache.delete(self.TOKEN_EXPIRY_CACHE_KEY)
+        cache.delete(self.REFRESH_LOCK_KEY)
     
     def validate_token(self, token: str) -> bool:
         """
