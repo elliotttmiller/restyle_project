@@ -6,29 +6,37 @@ FROM python:3.11-slim as builder
 # Install build dependencies only for pip install
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    libpq-dev \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
     libjpeg-dev \
+    libpng-dev \
+    libfreetype6-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Install pip dependencies in a separate layer for better caching
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install --prefix=/install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --prefix=/install torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --prefix=/install -r requirements.txt
 
 # ---- Final Stage ----
 FROM python:3.11-slim
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
-    libjpeg-dev \
+    libxrender1 \
+    libjpeg62-turbo \
+    libpng16-16 \
+    libfreetype6 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
