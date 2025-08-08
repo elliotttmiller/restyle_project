@@ -16,6 +16,7 @@ class EnvVarDebugView(View):
 
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.views import APIView
+from django.views import View
 from rest_framework.response import Response
 from .serializers import ItemSerializer, ListingSerializer, MarketAnalysisSerializer
 from .models import Item, Listing, MarketAnalysis # We need MarketAnalysis for the view
