@@ -407,41 +407,52 @@ class SetEbayRefreshTokenView(APIView):
 
 class EbayOAuthCallbackView(APIView):
     def get(self, request):
-        code = request.GET.get('code')
-        if not code:
-            return Response({"error": "No code provided"}, status=400)
+        import traceback
+        try:
+            code = request.GET.get('code')
+            if not code:
+                return Response({"error": "No code provided"}, status=400)
 
-        token_url = "https://api.ebay.com/identity/v1/oauth2/token"
-        # Use .env variable names
-        client_id = os.environ.get('EBAY_PRODUCTION_APP_ID')
-        client_secret = os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET')
-        # Use the deployed callback URL as redirect_uri
-        redirect_uri = "https://restyleproject-production.up.railway.app/api/core/ebay-oauth-callback/"
+            token_url = "https://api.ebay.com/identity/v1/oauth2/token"
+            client_id = os.environ.get('EBAY_PRODUCTION_APP_ID')
+            client_secret = os.environ.get('EBAY_PRODUCTION_CLIENT_SECRET')
+            redirect_uri = "https://restyleproject-production.up.railway.app/api/core/ebay-oauth-callback/"
 
-        if not client_id or not client_secret:
-            return Response({"error": "eBay client credentials not set in environment"}, status=500)
+            if not client_id or not client_secret:
+                return Response({"error": "eBay client credentials not set in environment"}, status=500)
 
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        data = {
-            "grant_type": "authorization_code",
-            "code": code,
-            "redirect_uri": redirect_uri,
-        }
-        auth = (client_id, client_secret)
+            headers = {
+                "Content-Type": "application/x-www-form-urlencoded",
+            }
+            data = {
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": redirect_uri,
+            }
+            auth = (client_id, client_secret)
 
-        resp = requests.post(token_url, headers=headers, data=data, auth=auth)
-        if resp.status_code == 200:
-            tokens = resp.json()
-            # TODO: Save tokens['refresh_token'] securely!
-            return Response({"message": "eBay OAuth successful", "tokens": tokens})
-        else:
-            return Response({"error": "Failed to get token", "details": resp.text}, status=resp.status_code)
+            resp = requests.post(token_url, headers=headers, data=data, auth=auth)
+            if resp.status_code == 200:
+                tokens = resp.json()
+                return Response({"message": "eBay OAuth successful", "tokens": tokens})
+            else:
+                return Response({"error": "Failed to get token", "details": resp.text}, status=resp.status_code)
+        except Exception as e:
+            return Response({
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=500)
 
 class EbayOAuthDeclinedView(APIView):
     def get(self, request):
-        return Response({"message": "eBay OAuth declined endpoint working - full functionality not yet restored"})
+        import traceback
+        try:
+            return Response({"message": "eBay OAuth declined endpoint working - full functionality not yet restored"})
+        except Exception as e:
+            return Response({
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=500)
 
 class EbayOAuthView(APIView):
     def get(self, request):
@@ -512,10 +523,17 @@ class AIImageSearchView(APIView):
 
 class PrivacyPolicyView(APIView):
     def get(self, request):
-        return Response({
-            "message": "Privacy policy endpoint working",
-            "content": "Privacy policy content would be here"
-        })
+        import traceback
+        try:
+            return Response({
+                "message": "Privacy policy endpoint working",
+                "content": "Privacy policy content would be here"
+            })
+        except Exception as e:
+            return Response({
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=500)
 
 class CropPreviewView(APIView):
     def post(self, request):
