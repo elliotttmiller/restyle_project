@@ -29,6 +29,8 @@ from .views import (
     root_view,
     AcceptedView,
     DeclinedView,
+    EnvVarDebugView,
+    path('env-debug/', EnvVarDebugView.as_view(), name='env-debug'),
 )
 
 # We ONLY import the views that currently exist in core/views.py

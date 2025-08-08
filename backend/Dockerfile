@@ -47,8 +47,6 @@ COPY --from=builder /install /usr/local
 # Copy only necessary source files (use .dockerignore to exclude unnecessary files)
 COPY . .
 
-# Copy .env file from backend directory to /app/.env in the container
-COPY .env /app/.env
 
 # Make startup scripts executable if present
 RUN [ -f /app/fast_start.sh ] && chmod +x /app/fast_start.sh || true

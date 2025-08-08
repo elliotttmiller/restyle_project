@@ -1,3 +1,15 @@
+class EnvVarDebugView(View):
+    def get(self, request):
+        # List of environment variables to check
+        keys = [
+            "DEBUG", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION_NAME", "AWS_REGION", "AWS_DEFAULT_REGION",
+            "GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CLOUD_PROJECT_ID", "GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_LOCATION",
+            "EXPO_TOKEN", "APPLE_ID", "APPLE_APP_SPECIFIC_PASSWORD", "PINECONE_API_KEY", "PINECONE_ENVIRONMENT", "PINECONE_INDEX_NAME",
+            "RAILWAY_PUBLIC_DOMAIN", "RAILWAY_TOKEN", "DATABASE_URL", "EBAY_PRODUCTION_APP_ID", "EBAY_PRODUCTION_CERT_ID",
+            "EBAY_PRODUCTION_CLIENT_SECRET", "EBAY_SANDBOX", "EBAY_PRODUCTION_REFRESH_TOKEN"
+        ]
+        env = {k: os.environ.get(k, None) for k in keys}
+        return JsonResponse({"env": env})
 # File: backend/core/views.py
 
 # pyright: reportAttributeAccessIssue=false
