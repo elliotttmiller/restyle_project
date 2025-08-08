@@ -26,11 +26,13 @@ nixPkgs = [
 
 [phases.install]
 cmds = [
-  "echo 'Python binary:' $(which python)",
+  "echo 'Python binary before venv:' $(which python)",
   "python --version",
   "ldd --version || true",
-  "python -m venv venv",
-  "source venv/bin/activate && pip install --upgrade pip",
+  "rm -rf venv",
+  "PYTHON_BIN=$(which python) && $PYTHON_BIN -m venv venv",
+  "echo 'Python binary after venv:' $(which python)",
+  "source venv/bin/activate && which python && python --version && pip install --upgrade pip",
   "source venv/bin/activate && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu",
   "source venv/bin/activate && pip install -r requirements.txt"
 ]
