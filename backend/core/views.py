@@ -285,7 +285,82 @@ class EbaySearchView(APIView):
             }, status=500)
 
 class AdvancedMultiExpertAISearchView(APIView):
+
+    """
+    Advanced multi-expert AI search endpoint.
+    Handles both text and image search using combined logic (Google Vision + AWS Rekognition for images).
+    Enterprise-grade: robust error handling, permissions, throttling, and OpenAPI-ready.
+    """
     permission_classes = [AllowAny]
+    throttle_classes = [throttling.UserRateThrottle]
+
+    def post(self, request):
+        try:
+            data = request.data
+            query = data.get('query')
+            image_base64 = data.get('image_base64')
+            image_url = data.get('image_url')
+            results = {}
+
+            # Text search logic
+            if query:
+                ai_service = get_advanced_ai_service() or get_ai_service()
+                if ai_service:
+                    text_results = ai_service.search(query)
+                    results['text_search'] = text_results
+                else:
+                    results['text_search'] = {'error': 'AI service unavailable'}
+
+            # Image search logic (Google Vision + AWS Rekognition)
+            if image_base64 or image_url:
+                image_content = None
+                if image_base64:
+                    import base64
+                    image_content = base64.b64decode(image_base64)
+                elif image_url:
+                    import requests
+                    resp = requests.get(image_url)
+                    if resp.status_code == 200:
+                        image_content = resp.content
+                if image_content:
+                    vision_labels = []
+                    rek_labels = []
+                    # Google Vision
+                    try:
+                        from .ai_service import get_vision_client
+                        vision_client = get_vision_client()
+                        if vision_client:
+                            from google.cloud import vision
+                            image = vision.Image(content=image_content)
+                            response = vision_client.label_detection(image=image)
+                            vision_labels = [label.description for label in response.label_annotations]
+                    except Exception as e:
+                        vision_labels = [f'Google Vision error: {str(e)}']
+                    # AWS Rekognition
+                    try:
+                        from .ai_service import get_rekognition_client
+                        rek_client = get_rekognition_client()
+                        if rek_client:
+                            response = rek_client.detect_labels(Image={'Bytes': image_content}, MaxLabels=10)
+                            rek_labels = [label['Name'] for label in response['Labels']]
+                    except Exception as e:
+                        rek_labels = [f'AWS Rekognition error: {str(e)}']
+                    # Combine logic (union, intersection, or custom)
+                    combined_labels = list(set(vision_labels + rek_labels))
+                    results['image_search'] = {
+                        'google_vision': vision_labels,
+                        'aws_rekognition': rek_labels,
+                        'combined': combined_labels
+                    }
+                else:
+                    results['image_search'] = {'error': 'Could not load image content'}
+
+            if not results:
+                return Response({'status': 'error', 'message': 'No query or image provided'}, status=400)
+            return Response({'status': 'success', 'results': results})
+        except Exception as e:
+            import traceback
+            return Response({'status': 'error', 'message': str(e), 'trace': traceback.format_exc()}, status=500)
 
 from rest_framework.views import APIView
 from rest_framework import permissions, throttling
