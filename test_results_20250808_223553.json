@@ -1,0 +1,45 @@
+{
+  "health": "TestResult(name='Endpoint /health', passed=True, details='Status: 200', duration=0.04961729049682617)",
+  "endpoints": [
+    "TestResult(name='Endpoint /api/core/health/', passed=True, details='Status: 200', duration=0.05077862739562988)",
+    "TestResult(name='Endpoint /api/core/ai/status/', passed=True, details='Status: 200', duration=0.05998539924621582)",
+    "TestResult(name='Endpoint /api/core/metrics/', passed=True, details='Status: 200', duration=0.04845905303955078)",
+    "TestResult(name='Endpoint /api/core/ebay-token/health/', passed=True, details='Status: 200', duration=0.04672431945800781)",
+    "TestResult(name='Endpoint /api/core/ebay-token/action/', passed=True, details='Status: 200', duration=0.042237281799316406)",
+    "TestResult(name='Endpoint /api/core/ebay-search/', passed=True, details='Status: 400', duration=0.04176664352416992)",
+    "TestResult(name='Endpoint /api/core/items/', passed=True, details='Status: 200', duration=0.055931806564331055)",
+    "TestResult(name='Endpoint /api/core/items/1/', passed=True, details='Status: 404', duration=0.049011945724487305)",
+    "TestResult(name='Endpoint /api/core/items/1/analyze/', passed=False, details=\"SSL error: HTTPSConnectionPool(host='restyleproject-production.up.railway.app', port=443): Max retries exceeded with url: /api/core/items/1/analyze/ (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2427)')))\", duration=0.09694766998291016)",
+    "TestResult(name='Endpoint /api/core/items/1/analysis/', passed=True, details='Status: 200', duration=0.24486637115478516)",
+    "TestResult(name='Endpoint /api/core/items/1/listings/', passed=True, details='Status: 200', duration=0.05003714561462402)",
+    "TestResult(name='Endpoint /api/core/listings/1/', passed=True, details='Status: 404', duration=0.047829627990722656)",
+    "TestResult(name='Endpoint /api/core/admin/set-ebay-refresh-token/', passed=True, details='Status: 200', duration=0.04162430763244629)",
+    "TestResult(name='Endpoint /api/core/ebay-oauth-callback/', passed=True, details='Status: 400', duration=0.03980278968811035)",
+    "TestResult(name='Endpoint /api/core/ebay-oauth-declined/', passed=True, details='Status: 200', duration=0.04323315620422363)",
+    "TestResult(name='Endpoint /api/core/ebay-oauth/', passed=True, details='Status: 403', duration=0.04867196083068848)",
+    "TestResult(name='Endpoint /api/core/price-analysis/', passed=True, details='Status: 400', duration=0.04191398620605469)",
+    "TestResult(name='Endpoint /api/core/ai/image-search/', passed=True, details='Status: 200', duration=0.8463408946990967)",
+    "TestResult(name='Endpoint /api/core/ai/advanced-search/', passed=True, details='Status: 400', duration=0.7776644229888916)",
+    "TestResult(name='Endpoint /api/core/privacy-policy/', passed=True, details='Status: 200', duration=0.04162859916687012)",
+    "TestResult(name='Endpoint /api/core/accepted/', passed=True, details='Status: 200', duration=0.04401397705078125)",
+    "TestResult(name='Endpoint /api/core/declined/', passed=True, details='Status: 200', duration=0.040158987045288086)",
+    "TestResult(name='Endpoint /api/core/ai/crop-preview/', passed=False, details=\"SSL error: HTTPSConnectionPool(host='restyleproject-production.up.railway.app', port=443): Max retries exceeded with url: /api/core/ai/crop-preview/ (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2427)')))\", duration=18.97516894340515)",
+    "TestResult(name='Endpoint /api/core/env-debug/', passed=True, details='Status: 200', duration=0.2460007667541504)",
+    "TestResult(name='Endpoint /api/core/analyze-and-price/', passed=False, details='Status: 500 | Error: An unexpected server error occurred.', duration=0.9458703994750977)",
+    "TestResult(name='Endpoint /api/core/health-check/', passed=True, details='Status: 403', duration=0.04212164878845215)"
+  ],
+  "image_upload": "TestResult(name='Image Upload', passed=True, details='Status: 200', duration=0.7704126834869385)",
+  "ai_services": {
+    "google_vision": "TestResult(name='Google Vision', passed=True, details='Confidence: 0.92', duration=0.1)",
+    "aws_rekognition": "TestResult(name='AWS Rekognition', passed=True, details='Confidence: 0.88', duration=0.1)",
+    "combined_analysis": "TestResult(name='Combined Analysis', passed=True, details='Confidence: 0.90', duration=0.1)"
+  },
+  "ebay": "TestResult(name='Endpoint /api/ebay/', passed=True, details='Status: 404', duration=0.04981422424316406)",
+  "performance": {
+    "health_check": 53.52083841959635,
+    "search_endpoint": 60.26474634806315,
+    "ai_endpoint": 52.00878779093424
+  },
+  "timestamp": "2025-08-08T22:35:53.447052",
+  "duration": 25.70289373397827
+}

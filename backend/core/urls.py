@@ -31,10 +31,14 @@ from .views import (
     DeclinedView,
     EnvVarDebugView,
     AnalyzeAndPriceView,
+    TestEbayLoginView,
 )
 
 # We ONLY import the views that currently exist in core/views.py
 urlpatterns = [
+    # Root endpoint
+    path('', root_view, name='root'),
+    
     # Health check endpoint
     path('health/', health_check, name='health-check'),
     
@@ -85,6 +89,7 @@ urlpatterns = [
     path('ai/crop-preview/', CropPreviewView.as_view(), name='ai-crop-preview'),
     path('env-debug/', EnvVarDebugView.as_view(), name='env-debug'),
     path('analyze-and-price/', AnalyzeAndPriceView.as_view(), name='analyze-and-price'),
+    path('test-ebay-login/', TestEbayLoginView.as_view(), name='test-ebay-login'),
 ]
 
 # Authenticated health check endpoint

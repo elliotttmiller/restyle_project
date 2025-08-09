@@ -1,3 +1,7 @@
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 # File: backend/backend/urls.py
 
 import os
@@ -92,8 +96,8 @@ urlpatterns = [
     path('api/users/', include('users.urls')), 
     
     # Custom authentication endpoints
-    path('api/token/', token_obtain_pair, name='token_obtain_pair'),
-    path('api/token/refresh/', token_refresh, name='token_refresh'),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/test-credentials/', test_credentials, name='test_credentials'),
     
     # Protected endpoints for testing

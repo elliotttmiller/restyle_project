@@ -7,8 +7,8 @@ django-cors-headers==4.3.1
 djangorestframework-simplejwt==5.3.1
 gunicorn==23.0.0
 psycopg2-binary==2.9.9
-dj-database-url
-whitenoise
+dj-database-url==3.0.1
+whitenoise==6.9.0
 
 # Celery for Background Tasks
 celery==5.3.6
@@ -19,7 +19,7 @@ kombu==5.5.4
 vine==5.1.0
 
 # AI & Data Processing
-pandas==2.0.3
+pandas==2.2.2
 numpy==2.2.0
 google-api-python-client==2.176.0
 google-auth-httplib2==0.2.0

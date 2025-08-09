@@ -34,8 +34,11 @@ class EbayService:
 
 # Stub for market_analysis_service.py
 def get_market_analysis_service():
-    return None
+    return MockMarketAnalysisService()
 
 class MockMarketAnalysisService:
     def analyze(self, *args, **kwargs):
         return {"status": "error", "message": "Market analysis not available - dependencies not installed"}
+    
+    def run_ai_statistical_analysis(self, *args, **kwargs):
+        return {"error": "Market analysis not available - dependencies not installed"}
