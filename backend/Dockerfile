@@ -25,11 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /install /usr/local
 COPY . .
 RUN [ -f fast_start.sh ] && chmod +x fast_start.sh || true
-
-# Ensure test user is superuser/staff on every deploy
-WORKDIR /app/backend
-RUN python run_create_test_superuser.py
-WORKDIR /app
+RUN python backend/run_create_test_superuser.py
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
