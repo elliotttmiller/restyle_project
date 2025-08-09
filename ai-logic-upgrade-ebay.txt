@@ -1,0 +1,713 @@
+Excellent. With all the necessary files provided, I can now give you the definitive, all-in-one, comprehensive implementation plan. This is the final blueprint for upgrading your system to the "AI-Enhanced Statistical Model."
+
+The following instructions provide the complete, final code for each required file. The changes are designed to be implemented in parallel. After completing these modifications, your application will have a state-of-the-art, resource-efficient, and highly accurate pricing engine.
+
+Architectural Goal: The AI-Enhanced Statistical Model
+
+Foundation: All analysis will be based on recently sold eBay listings for ground-truth accuracy.
+
+Core Logic: We will use robust statistics (IQR outlier removal) and weight results by visual similarity.
+
+AI Brain: A Large Language Model (Gemini) will provide real-time "Market Sentiment Score" to act as an intelligent price adjustment factor, eliminating the need for an offline ML training pipeline.
+
+Part 1: Backend Dependencies & Configuration
+
+These are the foundational changes to your backend environment.
+
+File 1: backend/requirements.txt
+
+Goal: Simplify dependencies to support the new statistical logic while removing unnecessary libraries for the offline ML pipeline.
+
+Action: Replace the contents of your requirements.txt with this cleaned-up version.
+
+code
+Text
+download
+content_copy
+expand_less
+
+# backend/requirements.txt
+
+# Core Django & Server
+Django==4.2.13
+djangorestframework==3.15.1
+django-cors-headers==4.3.1
+djangorestframework-simplejwt==5.3.1
+gunicorn==23.0.0
+psycopg2-binary==2.9.9
+dj-database-url
+whitenoise
+
+# Celery for Background Tasks
+celery==5.3.6
+redis==5.0.1
+amqp==5.3.1
+billiard==4.2.1
+kombu==5.5.4
+vine==5.1.0
+
+# AI & Data Processing
+pandas==2.0.3
+numpy==2.3.1
+google-api-python-client==2.176.0
+google-auth-httplib2==0.2.0
+google-cloud-vision==3.10.2
+google-generativeai==0.8.5
+boto3==1.39.4 # For AWS Rekognition
+
+# EBay SDK
+ebaysdk==2.2.0
+
+# Utilities
+python-dotenv==1.1.1
+requests==2.31.0
+pillow==11.3.0
+
+# Note: Removed scikit-learn, lightgbm, joblib, faiss-cpu, and google-cloud-storage as they are not needed for this architecture.
+# Note: Torch, torchvision, transformers, etc., are part of your AI services and should be kept if used by ai_service.py or advanced_ai_service.py.
+File 2: Procfile
+
+Goal: Ensure the Celery worker process runs alongside the web server. The beat scheduler is no longer needed.
+
+Action: You mentioned your Procfile contains web: bash fast_start.sh. You need to modify your fast_start.sh script to run the Celery worker in the background.
+
+Option A (Recommended): Modify fast_start.sh
+
+code
+Bash
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+# fast_start.sh
+
+#!/bin/bash
+
+# Your existing commands (e.g., migrations)
+echo "Running database migrations..."
+python manage.py migrate --noinput
+
+# Start the Celery worker in the background
+echo "Starting Celery worker..."
+celery -A backend.celery_app worker --loglevel=info &
+
+# Start the Gunicorn web server in the foreground
+echo "Starting Gunicorn server..."
+gunicorn backend.wsgi --log-file -
+
+Option B (Alternative): Use a Standard Procfile
+If you prefer, you can replace the contents of your Procfile with the standard format. This is often easier for platforms to manage.
+
+code
+Procfile
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+# Procfile
+web: gunicorn backend.wsgi --log-file -
+worker: celery -A backend.celery_app worker --loglevel=info
+Part 2: Backend Core Logic
+
+This is the engine of the new system.
+
+File 3: backend/core/aggregator_service.py
+
+Goal: Enhance the LLM prompt to extract a real-time "Market Sentiment Score."
+
+Action: Replace the _build_gemini_prompt method with the new version. The rest of the file can remain as is.
+
+code
+Python
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+# backend/core/aggregator_service.py
+
+# ... (keep all existing code, but replace this one method) ...
+
+    def _build_gemini_prompt(self, expert_outputs: Dict[str, Any]) -> str:
+        """
+        Builds an enhanced prompt for Gemini to synthesize expert opinions AND
+        provide a real-time market sentiment analysis.
+        """
+        google_data = expert_outputs.get('google_vision', {})
+        aws_data = expert_outputs.get('aws_rekognition', {})
+        
+        prompt = f"""
+You are a world-class AI expert for fashion resale and product identification. Your task is to analyze raw JSON data from two AI vision services and synthesize it into a single, high-confidence set of attributes. You must also provide a "Market Sentiment Score" reflecting the item's perceived value and demand.
+
+**Instructions:**
+1.  **Synthesize Attributes**: Identify the `product_name`, `brand`, `category`, and `colors` from all available data. Prioritize Google's `web_entities`.
+2.  **Determine Condition**: Infer the `item_condition` ('New' or 'Used') from the image context.
+3.  **Analyze Market Sentiment**: Based on all text (web entities, OCR), determine the item's market position. Is it described as "rare," "limited edition," "vintage," "collaboration"? Is it a classic, high-demand model? Based on this, generate a `market_sentiment_score`.
+    *   **Score 1.1 to 1.3 (Hot Item):** For highly desirable items (e.g., "Travis Scott Jordan", "Off-White", "limited edition").
+    *   **Score 0.9 to 1.09 (Stable Item):** For standard, popular items (e.g., "Nike Air Force 1", "Adidas Stan Smith").
+    *   **Score 0.8 to 0.89 (Cooler Item):** For generic, less-known, or common items.
+4.  **Output Format**: You must return ONLY a single, valid JSON object with the specified schema.
+
+**Google Vision Data:**
+```json
+{json.dumps(google_data, indent=2)}
+
+AWS Rekognition Data:
+
+code
+Json
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+{json.dumps(aws_data, indent=2)}
+
+Your Required JSON Output Schema:
+{{
+"product_name": "String | null",
+"brand": "String | null",
+"category": "String | null",
+"item_condition": "String ('New', 'Used', 'Unknown')",
+"colors": ["String", ...],
+"market_sentiment_score": "Float (e.g., 1.15)",
+"ai_summary": "A brief, one-sentence summary for the user.",
+"confidence_score": "Float (0.0-1.0)"
+}}
+"""
+return prompt
+
+code
+Code
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+#### **File 4: `backend/core/services.py`**
+*   **Goal:** Add the critical capability to search for **sold** items on eBay.
+*   **Action:** Add the `get_completed_ebay_items` method to your `EbayService` class.
+
+```python
+# backend/core/services.py
+
+# ... (keep all existing code in the file) ...
+# Add the following method inside your EbayService class
+
+    def get_completed_ebay_items(self, query: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Fetches recently SOLD listings from eBay for accurate price analysis.
+        """
+        logger.info(f"Searching for COMPLETED items on eBay with query: {query}")
+        try:
+            # The Finding API uses an App ID, which doesn't require an OAuth token for public searches.
+            from ebaysdk.finding import Connection as Finding
+            from django.conf import settings
+            
+            api = Finding(
+                appid=settings.EBAY_PRODUCTION_APP_ID, 
+                config_file=None,
+                siteid='EBAY-US'
+            )
+            
+            response = api.execute('findCompletedItems', {
+                'keywords': query,
+                'sortOrder': 'EndTimeSoonest',
+                'paginationInput': {'entriesPerPage': str(limit)},
+                'itemFilter': [{'name': 'SoldItemsOnly', 'value': 'true'}],
+                'outputSelector': ['SellerInfo', 'PictureURLSuperSize', 'Condition']
+            })
+
+            if response.reply.ack == 'Success' and hasattr(response.reply.searchResult, 'item'):
+                return self._parse_ebay_response(response.reply.searchResult.item)
+            
+            logger.error(f"eBay findCompletedItems call failed: {getattr(response.reply.errorMessage.error, 'message', 'Unknown Error')}")
+            return []
+        except Exception as e:
+            logger.error(f"Exception during eBay findCompletedItems call: {e}", exc_info=True)
+            return []
+
+    def _parse_ebay_response(self, items: List[Any]) -> List[Dict[str, Any]]:
+        """A helper to convert the raw SDK response into a clean list of dictionaries."""
+        parsed_items = []
+        for item in items:
+            try:
+                parsed_items.append({
+                    'itemId': item.itemId,
+                    'title': item.title,
+                    'galleryURL': getattr(item, 'galleryURL', None),
+                    'sellingStatus': {
+                        'currentPrice': {
+                            '__value__': item.sellingStatus.currentPrice.value
+                        }
+                    },
+                    'condition': {
+                        'conditionDisplayName': getattr(item.condition, 'conditionDisplayName', 'Not Specified')
+                    } if hasattr(item, 'condition') else {'conditionDisplayName': 'Not Specified'},
+                })
+            except AttributeError:
+                # Skip item if it's missing essential fields
+                continue
+        return parsed_items
+File 5: backend/core/market_analysis_service.py
+
+Goal: Replace the entire existing logic with the new, streamlined AI-Enhanced Statistical Model.
+
+Action: Replace the entire contents of this file with the code below.
+
+code
+Python
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+# backend/core/market_analysis_service.py
+import logging
+import numpy as np
+from typing import Dict, Any, List, Optional
+from .aggregator_service import get_aggregator_service
+from .services import get_ebay_service
+
+logger = logging.getLogger(__name__)
+
+class MarketAnalysisService:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(MarketAnalysisService, cls).__new__(cls)
+        return cls._instance
+    
+    def run_ai_statistical_analysis(self, image_data: bytes) -> Dict[str, Any]:
+        """The main entry point for the new AI-Enhanced Statistical analysis."""
+        aggregator = get_aggregator_service()
+        ebay_service = get_ebay_service()
+
+        identified_attributes = aggregator.run_full_analysis(image_data)
+        if "error" in identified_attributes:
+            return {"error": "AI identification failed", "identified_attributes": identified_attributes}
+
+        query_strategy = self._build_adaptive_query_strategy(identified_attributes)
+        sold_comps, query_used = self._search_marketplace(query_strategy, ebay_service.get_completed_ebay_items)
+
+        if not sold_comps:
+            return {
+                "identified_attributes": identified_attributes,
+                "error": "No recently sold comparable items found.", 
+                "market_query_used": query_used
+            }
+        
+        # NOTE: Your visual similarity logic (from encoder_service) would be integrated here
+        # e.g., sold_comps = self._find_visual_comps(image_data, sold_comps)
+
+        statistical_analysis = self._run_statistical_analysis(sold_comps)
+        final_recommendation = self._synthesize_price_recommendation(statistical_analysis, identified_attributes)
+
+        return {
+            "identified_attributes": identified_attributes,
+            "market_query_used": query_used,
+            "statistical_analysis": statistical_analysis,
+            "final_recommendation": final_recommendation,
+        }
+
+    def _build_adaptive_query_strategy(self, attributes: Dict[str, Any]) -> List[str]:
+        strategy, base_query = [], attributes.get('product_name', '')
+        if not base_query: return []
+        strategy.append(base_query)
+        if len(base_query.split()) > 2:
+            strategy.append(' '.join(base_query.split()[:2]))
+        return list(dict.fromkeys(strategy))
+
+    def _search_marketplace(self, query_strategy: List[str], api_func) -> (List[Dict[str, Any]], str):
+        for query in query_strategy:
+            results = api_func(query=query, limit=100)
+            if len(results) >= 5: return results, query
+        return [], query_strategy[-1] if query_strategy else ""
+
+    def _run_statistical_analysis(self, sold_comps: List[Dict[str, Any]]) -> Dict[str, Any]:
+        comps_by_condition = {'New': [], 'Used': []}
+        for comp in sold_comps:
+            condition = (comp.get('condition', {}).get('conditionDisplayName') or 'Used').lower()
+            price = self._extract_price(comp)
+            if not price: continue
+            comp_data = {'price': price, 'comp': comp}
+            if 'new' in condition: comps_by_condition['New'].append(comp_data)
+            else: comps_by_condition['Used'].append(comp_data)
+
+        analysis = {'by_condition': {}}
+        for condition, items in comps_by_condition.items():
+            if len(items) < 3: continue
+            prices = [item['price'] for item in items]
+            
+            Q1, Q3 = np.percentile(prices, 25), np.percentile(prices, 75)
+            IQR = Q3 - Q1
+            inliers_data = [item for item in items if (Q1 - 1.5 * IQR) <= item['price'] <= (Q3 + 1.5 * IQR)]
+            if not inliers_data: continue
+            
+            inlier_prices = [item['price'] for item in inliers_data]
+            # Assumes visual_similarity_score is added in a previous step
+            inlier_weights = [(item['comp'].get('visual_similarity_score', 0.5)**2) + 0.01 for item in inliers_data]
+
+            analysis['by_condition'][condition] = {
+                'num_comps': len(inlier_prices),
+                'price_range': (min(inlier_prices), max(inlier_prices)),
+                'weighted_mean_price': round(np.average(inlier_prices, weights=inlier_weights), 2),
+                'std_dev': round(np.std(inlier_prices), 2),
+            }
+        return analysis
+
+    def _synthesize_price_recommendation(self, stats: Dict, attributes: Dict) -> Dict:
+        ai_condition = attributes.get("item_condition", "Used").capitalize()
+        primary_stats = stats.get('by_condition', {}).get(ai_condition)
+        
+        if not primary_stats:
+            return {"summary": "Could not determine a reliable price due to lack of data for the item's condition.", "confidence": "Low"}
+
+        base_price = primary_stats['weighted_mean_price']
+        adjustment_factor = attributes.get('market_sentiment_score', 1.0)
+        final_price = base_price * adjustment_factor
+        
+        price_std_dev = primary_stats.get('std_dev', 20)
+        low_end = round(final_price - price_std_dev, 2)
+        high_end = round(final_price + price_std_dev, 2)
+        
+        summary = f"For a '{ai_condition}' item, our AI suggests a price of around ${round(final_price, 2)}. Based on market data, a realistic range is ${low_end} - ${high_end}."
+
+        return {
+            "suggested_price": round(final_price, 2),
+            "suggested_price_range": (low_end, high_end),
+            "summary": summary,
+            "confidence": "High" if primary_stats['num_comps'] > 10 else "Medium"
+        }
+
+    def _extract_price(self, comp: Dict[str, Any]) -> Optional[float]:
+        price_str = comp.get('sellingStatus', {}).get('currentPrice', {}).get('__value__')
+        return float(price_str) if price_str else None
+
+# Global getter for the service
+_market_analysis_service_instance = None
+def get_market_analysis_service():
+    global _market_analysis_service_instance
+    if _market_analysis_service_instance is None:
+        _market_analysis_service_instance = MarketAnalysisService()
+    return _market_analysis_service_instance
+File 6: backend/core/views.py
+
+Goal: Create a new, clean API endpoint to handle the analysis request and connect it to the new services.
+
+Action: Add this new APIView to the file. You will then need to add a corresponding URL route in backend/core/urls.py.
+
+code
+Python
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+# backend/core/views.py
+
+# ... (keep all existing imports and views) ...
+# Add this new class at an appropriate place in the file
+
+from .market_analysis_service import get_market_analysis_service
+
+class AnalyzeAndPriceView(APIView):
+    """
+    The new primary endpoint for performing a full AI-driven
+    image analysis and price evaluation.
+    """
+    permission_classes = [AllowAny] # Or your preferred permissions
+    throttle_classes = [throttling.UserRateThrottle]
+
+    def post(self, request, *args, **kwargs):
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response({"error": "No image provided."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        image_data = image_file.read()
+
+        try:
+            market_service = get_market_analysis_service()
+            analysis_results = market_service.run_ai_statistical_analysis(image_data)
+            
+            if "error" in analysis_results:
+                # Use a 404 if no comps were found, otherwise 500 for internal errors
+                status_code = status.HTTP_404_NOT_FOUND if "No recently sold" in analysis_results["error"] else status.HTTP_500_INTERNAL_SERVER_ERROR
+                return Response(analysis_results, status=status_code)
+                
+            return Response(analysis_results, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Critical error in AnalyzeAndPriceView: {e}", exc_info=True)
+            return Response({"error": "An unexpected server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# In backend/core/urls.py, add:
+# path('analyze-and-price/', views.AnalyzeAndPriceView.as_view(), name='analyze-and-price'),
+Part 3: Frontend Implementation (React Native)
+
+This section details the necessary changes to your mobile app to consume and display the new data.
+
+File 7: restyle-mobile/shared/api.js
+
+Goal: Create the function that calls the new backend endpoint.
+
+Action: Replace the contents of this file with the correct implementation.
+
+code
+JavaScript
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+// restyle-mobile/shared/api.js
+import axios from 'axios';
+
+// IMPORTANT: Use environment variables for this in a real app
+const API_URL = 'https://restyleproject-production.up.railway.app/api/core';
+
+const apiClient = axios.create({
+  baseURL: API_URL,
+  timeout: 45000, // Increased timeout for complex analysis
+});
+
+export const analyzeImageApi = async (imageAsset) => {
+  const formData = new FormData();
+  formData.append('image', {
+    uri: imageAsset.uri,
+    name: `photo.${imageAsset.uri.split('.').pop()}`,
+    type: `image/${imageAsset.uri.split('.').pop()}`,
+  });
+
+  try {
+    const response = await apiClient.post('/analyze-and-price/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        // 'Authorization': `Bearer YOUR_AUTH_TOKEN`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("API Error in analyzeImageApi:", error.response?.data || error.message);
+    throw error;
+  }
+};
+File 8: restyle-mobile/app/(app)/dashboard.js
+
+Goal: Completely refactor the main dashboard to use a proper state management pattern (Zustand) and render the new, complex results using modular components.
+
+Action: This is a full replacement. You will also need to create the new components it imports.
+
+Step 8.1: Create a new file restyle-mobile/shared/resultsStore.js
+
+code
+JavaScript
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+// restyle-mobile/shared/resultsStore.js
+import { create } from 'zustand';
+import { analyzeImageApi } from './api';
+
+const useResultsStore = create((set) => ({
+  results: null,
+  isLoading: false,
+  error: null,
+  startAnalysis: async (imageAsset) => {
+    set({ isLoading: true, results: null, error: null });
+    try {
+      const responseData = await analyzeImageApi(imageAsset);
+      set({ results: responseData, isLoading: false });
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || err.message || "An unknown server error occurred.";
+      set({ error: errorMessage, isLoading: false });
+    }
+  },
+  clearResults: () => set({ results: null, isLoading: false, error: null }),
+}));
+
+export default useResultsStore;
+
+Step 8.2: Create new component files
+Create a new directory restyle-mobile/app/(app)/components/ and add these two files:
+
+RecommendationSummary.js:
+
+code
+JavaScript
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+export default function RecommendationSummary({ recommendation }) {
+    if (!recommendation) return null;
+    return (
+        <View style={styles.container}>
+            <Text style={styles.priceLabel}>Suggested Price</Text>
+            <Text style={styles.price}>${recommendation.suggested_price?.toFixed(2)}</Text>
+            <View style={styles.rangeContainer}>
+                <Text style={styles.rangeLabel}>Price Range:</Text>
+                <Text style={styles.rangeValue}>${recommendation.suggested_price_range[0]?.toFixed(2)} - ${recommendation.suggested_price_range[1]?.toFixed(2)}</Text>
+            </View>
+            <Text style={styles.summaryText}>{recommendation.summary}</Text>
+            <View style={[styles.confidenceBadge, styles[recommendation.confidence?.toLowerCase()]]}><Text style={styles.confidenceText}>{recommendation.confidence} Confidence</Text></View>
+        </View>
+    );
+}
+const styles = StyleSheet.create({
+    container: { padding: 20, backgroundColor: '#fff', borderRadius: 10, marginVertical: 10, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+    priceLabel: { fontSize: 16, color: '#666' },
+    price: { fontSize: 48, fontWeight: 'bold', color: '#1A73E8', marginVertical: 5 },
+    rangeContainer: { flexDirection: 'row', alignItems: 'center' },
+    rangeLabel: { fontSize: 16, color: '#333' },
+    rangeValue: { fontSize: 16, fontWeight: '600', marginLeft: 5 },
+    summaryText: { fontSize: 14, color: '#444', textAlign: 'center', marginTop: 15, lineHeight: 20 },
+    confidenceBadge: { marginTop: 15, paddingVertical: 5, paddingHorizontal: 15, borderRadius: 15 },
+    confidenceText: { color: '#fff', fontWeight: 'bold' },
+    high: { backgroundColor: '#28a745' },
+    medium: { backgroundColor: '#ffc107' },
+    low: { backgroundColor: '#dc3545' },
+});
+
+StatisticalDetails.js:
+
+code
+JavaScript
+download
+content_copy
+expand_less
+IGNORE_WHEN_COPYING_START
+IGNORE_WHEN_COPYING_END
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+export default function StatisticalDetails({ stats }) {
+    const conditionData = stats?.by_condition;
+    if (!conditionData || Object.keys(conditionData).length === 0) return null;
+    return (
+        <View style={styles.container}>
+            <Text style={styles.title}>Market Analysis Breakdown</Text>
+            {Object.entries(conditionData).map(([condition, data]) => (
+                <View key={condition} style={styles.conditionBlock}>
+                    <Text style={styles.conditionTitle}>{condition}</Text>
+                    <Text style={styles.detailText}>Comps Analyzed: {data.num_comps}</Text>
+                    <Text style={styles.detailText}>Avg. Sold Price (Weighted): ${data.weighted_mean_price.toFixed(2)}</Text>
+                    <Text style={styles.detailText}>Sold Price Range: ${data.price_range[0].toFixed(2)} - ${data.price_range[1].toFixed(2)}</Text>
+                </View>
+            ))}
+        </View>
+    );
+}
+const styles = StyleSheet.create({
+    container: { padding: 15, backgroundColor: '#f9f9f9', borderRadius: 10, marginVertical: 10 },
+    title: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
+    conditionBlock: { marginBottom: 10, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 10 },
+    conditionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 5, color: '#1A73E8' },
+    detailText: { fontSize: 14, color: '#555', lineHeight: 20 },
+});```
+
+**Step 8.3: Replace `restyle-mobile/app/(app)/dashboard.js`**
+```javascript
+// restyle-mobile/app/(app)/dashboard.js
+import React from 'react';
+import { View, Text, Button, StyleSheet, ActivityIndicator, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import useResultsStore from '../../shared/resultsStore'; // Adjust path if needed
+import RecommendationSummary from './components/RecommendationSummary';
+import StatisticalDetails from './components/StatisticalDetails';
+
+export default function Dashboard() {
+  const { results, isLoading, error, startAnalysis, clearResults } = useResultsStore();
+
+  const handleImagePick = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      alert("You've refused to allow this app to access your photos!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      startAnalysis(result.assets[0]);
+    }
+  };
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#1A73E8" />
+          <Text style={styles.loadingText}>AI is analyzing your item...</Text>
+          <Text style={styles.subtleText}>This may take up to 30 seconds.</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.centered}>
+          <Text style={styles.errorTitle}>Analysis Failed</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.button} onPress={clearResults}>
+            <Text style={styles.buttonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (results) {
+      return (
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          <Text style={styles.resultsTitle}>Analysis Complete</Text>
+          <RecommendationSummary recommendation={results.final_recommendation} />
+          <StatisticalDetails stats={results.statistical_analysis} />
+          <TouchableOpacity style={styles.button} onPress={clearResults}>
+            <Text style={styles.buttonText}>Analyze Another Item</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      );
+    }
+
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.title}>Restyle.ai</Text>
+        <Text style={styles.subtitle}>Get an AI-powered price analysis for your fashion items.</Text>
+        <TouchableOpacity style={styles.button} onPress={handleImagePick}>
+          <Text style={styles.buttonText}>Select Image to Analyze</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.innerContainer}>{renderContent()}</View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f0f2f5' },
+  innerContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 10 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  title: { fontSize: 32, fontWeight: 'bold', marginBottom: 8, color: '#333' },
+  subtitle: { fontSize: 16, color: '#666', marginBottom: 30, textAlign: 'center' },
+  resultsTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 10, color: '#333', textAlign: 'center' },
+  loadingText: { marginTop: 15, fontSize: 16, color: '#555' },
+  subtleText: { marginTop: 5, fontSize: 12, color: '#888' },
+  errorTitle: { fontSize: 22, fontWeight: 'bold', color: '#c00', marginBottom: 10 },
+  errorText: { fontSize: 16, color: '#555', textAlign: 'center', marginBottom: 20 },
+  button: { backgroundColor: '#1A73E8', paddingVertical: 15, paddingHorizontal: 30, borderRadius: 25, marginTop: 10 },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+});

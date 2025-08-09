@@ -28,6 +28,10 @@ echo "⏱️  Skipping database check for health endpoint..."
 echo "🔄 Running database migrations..."
 python manage.py migrate --noinput
 
+# Start the Celery worker in the background
+echo "🔄 Starting Celery worker..."
+celery -A backend.celery_app worker --loglevel=info &
+
 # Start optimized Gunicorn
 echo "🌟 Starting Gunicorn server..."
 echo "🌐 Server starting on port $PORT"

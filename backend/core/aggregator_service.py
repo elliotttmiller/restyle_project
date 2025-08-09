@@ -310,23 +310,24 @@ class AggregatorService:
             return self._synthesize_with_fallback(expert_outputs)
 
     def _build_gemini_prompt(self, expert_outputs: Dict[str, Any]) -> str:
-        """Builds a comprehensive prompt for Gemini to synthesize expert opinions."""
-        
-        # Extract key information from expert outputs
+        """
+        Builds an enhanced prompt for Gemini to synthesize expert opinions AND
+        provide a real-time market sentiment analysis.
+        """
         google_data = expert_outputs.get('google_vision', {})
         aws_data = expert_outputs.get('aws_rekognition', {})
         
-        # Build the prompt
         prompt = f"""
-You are a world-class AI expert for fashion resale and product identification. Your task is to analyze the following raw JSON data from two separate AI vision services (Google Vision and AWS Rekognition) and synthesize all available information into a single, high-confidence set of attributes for the item.
+You are a world-class AI expert for fashion resale and product identification. Your task is to analyze raw JSON data from two AI vision services and synthesize it into a single, high-confidence set of attributes. You must also provide a "Market Sentiment Score" reflecting the item's perceived value and demand.
 
 **Instructions:**
-1. **Prioritize Google's `web_entities`**: This is your most reliable signal for the specific `product_name` and `brand`. Web entities come from Google's massive web index and are highly accurate for branded products.
-2. **Use AWS `labels` and Google `objects`**: These confirm the general `category` (e.g., "Sneakers", "Hoodie", "Handbag").
-3. **Analyze text from both services**: Extract brand names, model numbers, and other specific details from OCR results.
-4. **Infer secondary attributes**: Based on all data, infer attributes like `style`, `sport`, `material`, `era`, etc.
-5. **Calculate confidence scores**: Provide confidence scores based on agreement between services and data quality.
-6. **Output Format**: You must return ONLY a single, valid JSON object with the specified schema and nothing else.
+1.  **Synthesize Attributes**: Identify the `product_name`, `brand`, `category`, and `colors` from all available data. Prioritize Google's `web_entities`.
+2.  **Determine Condition**: Infer the `item_condition` ('New' or 'Used') from the image context.
+3.  **Analyze Market Sentiment**: Based on all text (web entities, OCR), determine the item's market position. Is it described as "rare," "limited edition," "vintage," "collaboration"? Is it a classic, high-demand model? Based on this, generate a `market_sentiment_score`.
+    *   **Score 1.1 to 1.3 (Hot Item):** For highly desirable items (e.g., "Travis Scott Jordan", "Off-White", "limited edition").
+    *   **Score 0.9 to 1.09 (Stable Item):** For standard, popular items (e.g., "Nike Air Force 1", "Adidas Stan Smith").
+    *   **Score 0.8 to 0.89 (Cooler Item):** For generic, less-known, or common items.
+4.  **Output Format**: You must return ONLY a single, valid JSON object with the specified schema.
 
 **Google Vision Data:**
 ```json
@@ -340,29 +341,15 @@ You are a world-class AI expert for fashion resale and product identification. Y
 
 **Your Required JSON Output Schema:**
 {{
-  "product_name": "String | null",
-  "brand": "String | null", 
-  "category": "String | null",
-  "sub_category": "String | null",
-  "attributes": ["String", ...],
-  "colors": ["String", ...],
-  "confidence_score": "Float (0.0-1.0)",
-  "ai_summary": "A brief, one-sentence summary for the user.",
-  "expert_agreement": {{
-    "google_vision_confidence": "Float (0.0-1.0)",
-    "aws_rekognition_confidence": "Float (0.0-1.0)",
-    "overall_agreement": "Float (0.0-1.0)"
-  }}
+"product_name": "String | null",
+"brand": "String | null",
+"category": "String | null",
+"item_condition": "String ('New', 'Used', 'Unknown')",
+"colors": ["String", ...],
+"market_sentiment_score": "Float (e.g., 1.15)",
+"ai_summary": "A brief, one-sentence summary for the user.",
+"confidence_score": "Float (0.0-1.0)"
 }}
-
-**Analysis Guidelines:**
-- If Google web entities suggest a specific product (e.g., "Nike Air Jordan 1"), use that as the primary product_name
-- If AWS labels confirm the category (e.g., "Shoe" from AWS + "Sneaker" from Google), use the more specific one
-- Extract brand names from text annotations and web entities
-- Use dominant colors to identify color attributes
-- Calculate confidence based on agreement between services and data quality
-- If services disagree significantly, lower the confidence score
-- Always prioritize specific, branded information over generic labels
 """
 
         return prompt
