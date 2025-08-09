@@ -30,10 +30,9 @@ try:
 except ImportError:
     from .stubs import EbayService
     ebay_auth_service = None
-try:
-    from .market_analysis_service import get_market_analysis_service
-except ImportError:
-    from .stubs import get_market_analysis_service
+
+# Always use the real get_market_analysis_service; fail loudly if not available
+from .market_analysis_service import get_market_analysis_service
 
 # Try to import real modules, fall back to stubs if not available
 try:
