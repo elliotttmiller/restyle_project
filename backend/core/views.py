@@ -1,3 +1,30 @@
+
+# --- ADD THIS NEW CLASS TO THE END OF THE FILE ---
+from django.urls import get_resolver
+
+class ListUrlsView(APIView):
+    """
+    An endpoint for development/testing that lists all available URL patterns.
+    Should be restricted to admin users in production.
+    """
+    permission_classes = [permissions.IsAdminUser] # Secure this endpoint
+
+    def get(self, request, *args, **kwargs):
+        url_list = []
+        # We use a recursive function to handle nested includes (like from admin)
+        def extract_urls(resolver, prefix=''):
+            for pattern in resolver.url_patterns:
+                # If the pattern is a resolver itself, recurse
+                if hasattr(pattern, 'url_patterns'):
+                    extract_urls(pattern, prefix + pattern.pattern.regex.pattern)
+                # Otherwise, it's a regular URL pattern
+                else:
+                    url_list.append({
+                        "path": prefix + pattern.pattern.regex.pattern.replace('^', '').replace('$', ''),
+                        "name": pattern.name,
+                    })
+        extract_urls(get_resolver())
+        return Response(url_list)
 """
 Core API views - cleaned imports for enterprise upgrade.
 """
