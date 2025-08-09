@@ -15,4 +15,5 @@ urlpatterns = [
 
     # Internal: Dynamic URL discovery (admin only)
     path('internal/list-urls/', views.ListUrlsView.as_view(), name='list-urls'),
+    path('internal/debug-services/', views.debug_services_py, name='debug_services_py'),
 ]

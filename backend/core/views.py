@@ -889,3 +889,15 @@ class DeclinedView(APIView):
 
     def get(self, request):
         return Response({"message": "Consent declined", "status": "ok"})
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+
+@csrf_exempt
+def debug_services_py(request):
+    try:
+        with open(__file__.replace('views.py', 'services.py'), 'r', encoding='utf-8') as f:
+            lines = ''.join(f.readlines()[:20])
+        return HttpResponse('<pre>' + lines + '</pre>', content_type='text/html')
+    except Exception as e:
+        return HttpResponse(f'Error reading services.py: {e}', status=500)
