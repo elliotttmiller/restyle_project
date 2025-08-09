@@ -183,6 +183,8 @@ class OptimizedTestSuite:
             resp_time = time.time()
             elapsed = resp_time - req_time
             self.logger.debug(f"[{correlation_id}] Response: status={res.status_code}, body={res.text}, elapsed={elapsed:.3f}s")
+            if res.status_code >= 400:
+                self.logger.error(f"[{correlation_id}] ERROR RESPONSE BODY for {endpoint_path}: {res.text}")
             # Save refresh token if present
             if endpoint_path == "/api/token/" and res.status_code == 200:
                 try:

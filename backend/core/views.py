@@ -39,10 +39,10 @@ class ListUrlsView(APIView):
                     if route:
                         full_path = (prefix + route) if (prefix + route).startswith('/') else '/' + prefix + route
                         if is_valid_api_endpoint(full_path):
-                            url_list.append({
-                                "path": full_path,
-                                "name": pattern.name,
-                            })
+                            url_entry = {"path": full_path}
+                            if hasattr(pattern, 'name') and pattern.name:
+                                url_entry["name"] = pattern.name
+                            url_list.append(url_entry)
         from django.urls import get_resolver
         extract_urls(get_resolver())
         # Ensure all paths start with a single '/'
@@ -770,26 +770,28 @@ class AnalyzeAndPriceView(APIView):
 
     def post(self, request, *args, **kwargs):
         logger.info(f"AnalyzeAndPriceView received a request from user: {request.user.username}")
-        
+
         image_file = request.FILES.get('image')
         if not image_file:
             return Response({"error": "No image file provided in the 'image' field."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         image_data = image_file.read()
 
         try:
             market_service = get_market_analysis_service()
             analysis_results = market_service.run_ai_statistical_analysis(image_data)
-            
+
             if "error" in analysis_results:
                 # Use a 404 if no comps were found, otherwise 500 for internal errors
                 status_code = status.HTTP_404_NOT_FOUND if "No recently sold" in analysis_results["error"] else status.HTTP_500_INTERNAL_SERVER_ERROR
                 return Response(analysis_results, status=status_code)
-                
+
             return Response(analysis_results, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Critical error in AnalyzeAndPriceView: {e}", exc_info=True)
-            return Response({"error": "An unexpected server error occurred during analysis."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            import traceback
+            tb = traceback.format_exc()
+            logger.error(f"Critical error in AnalyzeAndPriceView: {e}\n{tb}")
+            return Response({"error": str(e), "traceback": tb}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # --- Health & System Endpoints (Publicly Accessible) ---
 
