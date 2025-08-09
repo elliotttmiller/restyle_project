@@ -25,6 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /install /usr/local
 COPY . .
 RUN [ -f fast_start.sh ] && chmod +x fast_start.sh || true
+
+# Debug: List files in backend directory
+RUN ls -l backend/
+
+# Ensure test user is superuser/staff on every deploy
 RUN python backend/run_create_test_superuser.py
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
