@@ -1,0 +1,422 @@
+[
+  {
+    "name": "Endpoint: ^admin/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.06199359893798828
+  },
+  {
+    "name": "Endpoint: ^admin/login/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.1312711238861084
+  },
+  {
+    "name": "Endpoint: ^admin/logout/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.12716341018676758
+  },
+  {
+    "name": "Endpoint: ^admin/password_change/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.16625094413757324
+  },
+  {
+    "name": "Endpoint: ^admin/password_change/done/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.15033912658691406
+  },
+  {
+    "name": "Endpoint: ^admin/autocomplete/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.22418808937072754
+  },
+  {
+    "name": "Endpoint: ^admin/jsi18n/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.22220945358276367
+  },
+  {
+    "name": "Endpoint: ^admin/r/(?P<content_type_id>[0-9]+)/(?P<object_id>.+)/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.21714472770690918
+  },
+  {
+    "name": "Endpoint: ^admin/^auth/group/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.17373323440551758
+  },
+  {
+    "name": "Endpoint: ^admin/^auth/group/add/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.2815535068511963
+  },
+  {
+    "name": "Endpoint: ^admin/^auth/group/(?P<object_id>.+)/history/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.37146425247192383
+  },
+  {
+    "name": "Endpoint: ^admin/^auth/group/(?P<object_id>.+)/delete/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.2788701057434082
+  },
+  {
+    "name": "Endpoint: ^admin/^auth/group/(?P<object_id>.+)/change/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.3683030605316162
+  },
+  {
+    "name": "Endpoint: ^admin/^auth/group/(?P<object_id>.+)/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.28351926803588867
+  },
+  {
+    "name": "Endpoint: ^admin/^users/customuser/(?P<id>[/]+)/password/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.2837204933166504
+  },
+  {
+    "name": "Endpoint: ^admin/^users/customuser/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.3733839988708496
+  },
+  {
+    "name": "Endpoint: ^admin/^users/customuser/add/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.27445340156555176
+  },
+  {
+    "name": "Endpoint: ^admin/^users/customuser/(?P<object_id>.+)/history/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.2964351177215576
+  },
+  {
+    "name": "Endpoint: ^admin/^users/customuser/(?P<object_id>.+)/delete/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.37392520904541016
+  },
+  {
+    "name": "Endpoint: ^admin/^users/customuser/(?P<object_id>.+)/change/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.36932992935180664
+  },
+  {
+    "name": "Endpoint: ^admin/^users/customuser/(?P<object_id>.+)/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.38062453269958496
+  },
+  {
+    "name": "Endpoint: ^admin/^core/item/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.33965277671813965
+  },
+  {
+    "name": "Endpoint: ^admin/^core/item/add/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.3746297359466553
+  },
+  {
+    "name": "Endpoint: ^admin/^core/item/(?P<object_id>.+)/history/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.4227786064147949
+  },
+  {
+    "name": "Endpoint: ^admin/^core/item/(?P<object_id>.+)/delete/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.38105249404907227
+  },
+  {
+    "name": "Endpoint: ^admin/^core/item/(?P<object_id>.+)/change/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.4163646697998047
+  },
+  {
+    "name": "Endpoint: ^admin/^core/item/(?P<object_id>.+)/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.4138984680175781
+  },
+  {
+    "name": "Endpoint: ^admin/^core/listing/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.3742518424987793
+  },
+  {
+    "name": "Endpoint: ^admin/^core/listing/add/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.4184403419494629
+  },
+  {
+    "name": "Endpoint: ^admin/^core/listing/(?P<object_id>.+)/history/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.4215211868286133
+  },
+  {
+    "name": "Endpoint: ^admin/^core/listing/(?P<object_id>.+)/delete/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.436845064163208
+  },
+  {
+    "name": "Endpoint: ^admin/^core/listing/(?P<object_id>.+)/change/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.4217650890350342
+  },
+  {
+    "name": "Endpoint: ^admin/^core/listing/(?P<object_id>.+)/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.43399667739868164
+  },
+  {
+    "name": "Endpoint: ^admin/^core/marketanalysis/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.45058679580688477
+  },
+  {
+    "name": "Endpoint: ^admin/^core/marketanalysis/add/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.43871641159057617
+  },
+  {
+    "name": "Endpoint: ^admin/^core/marketanalysis/(?P<object_id>.+)/history/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.4516754150390625
+  },
+  {
+    "name": "Endpoint: ^admin/^core/marketanalysis/(?P<object_id>.+)/delete/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.47525906562805176
+  },
+  {
+    "name": "Endpoint: ^admin/^core/marketanalysis/(?P<object_id>.+)/change/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.4725351333618164
+  },
+  {
+    "name": "Endpoint: ^admin/^core/marketanalysis/(?P<object_id>.+)/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.49133896827697754
+  },
+  {
+    "name": "Endpoint: ^admin/^core/comparablesale/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.500826358795166
+  },
+  {
+    "name": "Endpoint: ^admin/^core/comparablesale/add/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.5346982479095459
+  },
+  {
+    "name": "Endpoint: ^admin/^core/comparablesale/(?P<object_id>.+)/history/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.5613062381744385
+  },
+  {
+    "name": "Endpoint: ^admin/^core/comparablesale/(?P<object_id>.+)/delete/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.5637156963348389
+  },
+  {
+    "name": "Endpoint: ^admin/^core/comparablesale/(?P<object_id>.+)/change/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.5658867359161377
+  },
+  {
+    "name": "Endpoint: ^admin/^core/comparablesale/(?P<object_id>.+)/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.5864899158477783
+  },
+  {
+    "name": "Endpoint: ^admin/(?P<app_label>auth|users|core)/",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.5947737693786621
+  },
+  {
+    "name": "Endpoint: ^admin/(?P<url>.*)",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6033935546875
+  },
+  {
+    "name": "Endpoint: ^api/users/register/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6349434852600098
+  },
+  {
+    "name": "Endpoint: api/token/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6369476318359375
+  },
+  {
+    "name": "Endpoint: api/token/refresh/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6453249454498291
+  },
+  {
+    "name": "Endpoint: ^api/core/analyze\\-and\\-price/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6555228233337402
+  },
+  {
+    "name": "Endpoint: ^api/core/health/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6568191051483154
+  },
+  {
+    "name": "Endpoint: ^api/core/ebay\\-token\\-health/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6596903800964355
+  },
+  {
+    "name": "Endpoint: ^api/core/price\\-analysis/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6754794120788574
+  },
+  {
+    "name": "Endpoint: ^api/core/internal/list\\-urls/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.5212781429290771
+  },
+  {
+    "name": "Endpoint: ^api/core/privacy\\-policy/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6104483604431152
+  },
+  {
+    "name": "Endpoint: ^api/core/accepted/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6436312198638916
+  },
+  {
+    "name": "Endpoint: ^api/core/declined/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.5747227668762207
+  },
+  {
+    "name": "Endpoint: ^api/core/test\\-ebay\\-login/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6812779903411865
+  },
+  {
+    "name": "Endpoint: ^api/core/\\Z",
+    "passed": false,
+    "status_code": 404,
+    "details": "Responded with Status 404 (FAIL: Not Found)",
+    "duration": 0.6585042476654053
+  }
+]

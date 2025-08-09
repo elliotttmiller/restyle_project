@@ -1,5 +1,3 @@
-
-
 from rest_framework import permissions, status, throttling
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,37 +5,26 @@ from django.urls import get_resolver
 
 class ListUrlsView(APIView):
     """
-    An endpoint for development/testing that lists all available URL patterns.
-    Should be restricted to admin users in production.
+    An endpoint for testing that lists all available URL patterns.
+    It now cleans the regex patterns into usable paths.
     """
-    permission_classes = [permissions.AllowAny] # TEMP: Allow any for debugging
+    permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, *args, **kwargs):
-        # --- DEBUG LOGGING ---
-        import logging
-        logger = logging.getLogger("ListUrlsView")
-        logger.warning("[DEBUG] ListUrlsView called. User: %s, is_authenticated: %s, is_staff: %s, is_superuser: %s", 
-            getattr(request.user, 'username', None),
-            getattr(request.user, 'is_authenticated', None),
-            getattr(request.user, 'is_staff', None),
-            getattr(request.user, 'is_superuser', None))
-        logger.warning("[DEBUG] Headers: %s", dict(request.headers))
-        logger.warning("[DEBUG] META: %s", {k: v for k, v in request.META.items() if 'HTTP' in k or 'AUTH' in k})
-        # --- END DEBUG LOGGING ---
         url_list = []
-        # We use a recursive function to handle nested includes (like from admin)
         def extract_urls(resolver, prefix=''):
             for pattern in resolver.url_patterns:
-                # If the pattern is a resolver itself, recurse
-                if hasattr(pattern, 'url_patterns'):
+                if hasattr(pattern, 'url_patterns'): # This is an include()
                     extract_urls(pattern, prefix + pattern.pattern.regex.pattern)
-                # Otherwise, it's a regular URL pattern
-                else:
+                else: # This is a regular URLPattern
+                    # --- THIS IS THE FIX ---
+                    # Clean the regex pattern into a simple, requestable path.
+                    clean_path = (prefix + pattern.pattern.regex.pattern).replace('^', '').replace('$', '')
                     url_list.append({
-                        "path": prefix + pattern.pattern.regex.pattern.replace('^', '').replace('$', ''),
+                        "path": clean_path,
                         "name": pattern.name,
                     })
-        extract_urls(get_resolver())
+        extract_urls(get_resolver(None))
         return Response(url_list)
 """
 Core API views - cleaned imports for enterprise upgrade.
