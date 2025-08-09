@@ -182,6 +182,28 @@ class EbayTokenManager:
             )
         return self._get_fallback_token()
 
+    def _process_token_data(self, token_data):
+        """Process the token data from eBay API response."""
+        access_token = token_data.get('access_token')
+        expires_in = token_data.get('expires_in', 7200)
+        new_refresh_token = token_data.get('refresh_token')
+        
+        if access_token:
+            # Cache the new token
+            expiry_time = self._calculate_expiry_time(expires_in)
+            cache.set(self.TOKEN_CACHE_KEY, access_token, timeout=expires_in)
+            cache.set(self.TOKEN_EXPIRY_CACHE_KEY, expiry_time, timeout=expires_in)
+            
+            # Update refresh token if provided
+            if new_refresh_token and new_refresh_token != self.refresh_token:
+                self._update_refresh_token(new_refresh_token)
+            
+            logger.info(f"eBay OAuth token refreshed successfully, expires in {expires_in} seconds")
+            return access_token
+        
+        logger.error("No access token in refresh response")
+        return None
+
     def _get_fallback_token(self) -> Optional[str]:
         """
         This is used when automatic refresh fails.
@@ -274,6 +296,12 @@ def get_ebay_token() -> Optional[str]:
     Get a fresh eBay OAuth token (forces refresh).
     """
     return token_manager.force_refresh()
+
+def get_ebay_oauth_token() -> Optional[str]:
+    """
+    Get a valid eBay OAuth token (backward compatibility).
+    """
+    return token_manager.get_valid_token()
 
 def validate_ebay_token(token: str) -> bool:
     """
