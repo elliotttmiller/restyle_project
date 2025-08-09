@@ -1,3 +1,5 @@
+# Computer Vision
+opencv-python==4.12.0.88
 # Core Django & Server
 Django==4.2.13
 djangorestframework==3.15.1

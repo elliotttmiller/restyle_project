@@ -1,3 +1,4 @@
+import io
 """
 Advanced AI-Driven Image Recognition Service
 Pure AI-powered image analysis with sophisticated neural network integration
@@ -34,9 +35,15 @@ try:
 except ImportError:
     ADVANCED_ML_AVAILABLE = False
 
+
 # Computer Vision imports
 try:
     import cv2
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+
+try:
     from PIL import Image, ImageEnhance, ImageFilter
     import torchvision.transforms as transforms
     CV_AVAILABLE = True
@@ -48,6 +55,11 @@ from core.credential_manager import credential_manager
 logger = logging.getLogger(__name__)
 
 class AdvancedAIService:
+
+    def search(self, query: str = None, **kwargs) -> dict:
+        """Stub search method for compatibility with API endpoint. Returns not implemented."""
+        logger.warning("AdvancedAIService.search() called but not implemented.")
+        return {"status": "error", "message": "Advanced search is not implemented."}
     """
     Sophisticated AI-driven image recognition service using multiple neural networks
     and advanced machine learning techniques. No hardcoded lists or rules.

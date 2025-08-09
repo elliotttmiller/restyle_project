@@ -1,3 +1,40 @@
+def test_analyze_and_price_endpoint():
+    """Test the AI-Enhanced Statistical Model endpoint with a sample image upload"""
+    print("\nTesting Analyze and Price Endpoint...")
+    # Create a simple test image (1x1 pixel PNG)
+    import io
+    import base64
+    from PIL import Image
+    img = Image.new('RGB', (1, 1), color='blue')
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+
+    files = {'image': ('test.png', buf, 'image/png')}
+    try:
+        response = requests.post(
+            f"{BASE_URL}/api/core/analyze-and-price/",
+            files=files,
+            timeout=60
+        )
+        print(f"Status: {response.status_code}")
+        try:
+            resp_json = response.json()
+            print(f"Response: {json.dumps(resp_json, indent=2)[:500]}...")
+        except Exception:
+            print(f"Response: {response.text[:500]}...")
+            return False
+        # Check for expected keys in response
+        expected_keys = ["identified_attributes", "market_query_used", "statistical_analysis", "final_recommendation"]
+        if response.status_code == 200 and all(k in resp_json for k in expected_keys):
+            return True
+        # Acceptable: error about no comps found
+        if response.status_code == 404 and "error" in resp_json:
+            return True
+        return False
+    except Exception as e:
+        print(f"Analyze and Price endpoint failed: {e}")
+        return False
 #!/usr/bin/env python3
 """
 Comprehensive API Endpoint Testing Script
@@ -120,16 +157,14 @@ def test_ebay_search():
     """Test eBay search functionality"""
     print("\nTesting eBay Search...")
     
-    payload = {
-        "query": "nike shoes",
+    params = {
+        "q": "nike shoes",
         "limit": 3
     }
-    
     try:
-        response = requests.post(
+        response = requests.get(
             f"{BASE_URL}/api/core/ebay-search/",
-            json=payload,
-            headers={"Content-Type": "application/json"},
+            params=params,
             timeout=30
         )
         print(f"Status: {response.status_code}")
@@ -163,6 +198,7 @@ def main():
     tests = [
         ("Health Check", test_health_endpoint),
         ("AI Image Search", test_analyze_image_endpoint),
+        ("Analyze & Price", test_analyze_and_price_endpoint),
         ("Advanced Search", test_advanced_search_endpoint),
         ("User Management", test_user_endpoints),
         ("eBay Search", test_ebay_search),
