@@ -1,15 +1,4 @@
 
-# JWT Authentication
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
-
-from datetime import timedelta
-
-# Place SIMPLE_JWT config after SECRET_KEY is defined
-
 """
 Django settings for backend project.
 
@@ -186,9 +175,9 @@ AUTH_USER_MODEL = 'users.CustomUser'
 # At the very bottom of settings.py
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
-        # 'rest_framework_simplejwt.authentication.JWTAuthentication',  # Disabled due to missing dependency
     ],
 }
 

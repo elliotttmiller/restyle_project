@@ -34,24 +34,45 @@ class TestResult:
     duration: float = 0.0
 
 # --- Test Suite Class ---
+
+import logging
+
+import uuid
+
 class OptimizedTestSuite:
     def __init__(self):
         self.config = TestConfig()
         self.auth_token = None
+        # Advanced diagnostics and logging
+        log_filename = f"debug_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        self.run_id = str(uuid.uuid4())
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s %(levelname)s %(message)s',
+            handlers=[
+                logging.FileHandler(log_filename),
+                logging.StreamHandler()
+            ]
+        )
+        self.logger = logging.getLogger("TestSuite")
+        self.logger.info("Test Suite Run ID: %s", self.run_id)
+        self.logger.info("Test Suite Configuration: %s", self.config)
+        self.logger.info("Python version: %s", os.sys.version)
+        self.logger.info("Environment variables summary: %s", {k: v for k, v in os.environ.items() if k.startswith('RAILWAY') or k.startswith('TEST_') or k.startswith('DJANGO')})
         if not self.config.verify_ssl:
-            print("⚠️  SSL verification is disabled.")
+            self.logger.warning("⚠️  SSL verification is disabled.")
 
     async def run_all_tests(self):
-        print("🚀 Starting Optimized & Self-Adapting Test Suite")
+        self.logger.info("🚀 Starting Optimized & Self-Adapting Test Suite")
         start_time = time.time()
         async with httpx.AsyncClient(base_url=self.config.base_url, timeout=self.config.timeout, verify=self.config.verify_ssl) as client:
             await self.authenticate(client)
             if not self.auth_token:
-                print("❌ CRITICAL: Authentication failed. Cannot proceed with authenticated tests.")
+                self.logger.critical("❌ CRITICAL: Authentication failed. Cannot proceed with authenticated tests.")
                 return
             endpoints_to_test = await self.discover_urls(client)
             if not endpoints_to_test:
-                print("❌ CRITICAL: Could not discover URLs. Aborting.")
+                self.logger.critical("❌ CRITICAL: Could not discover URLs. Aborting.")
                 return
             tasks = [self.test_endpoint(client, endpoint) for endpoint in endpoints_to_test]
             results = await asyncio.gather(*tasks)
@@ -59,29 +80,39 @@ class OptimizedTestSuite:
         self.summarize_and_save(results, duration)
 
     async def authenticate(self, client: httpx.AsyncClient):
+        self.logger.info(f"Attempting authentication for user: {self.config.test_user}")
         try:
             res = await client.post("/api/token/", json={"username": self.config.test_user, "password": self.config.test_pass})
+            self.logger.debug(f"Auth request: POST /api/token/ payload={{'username': '{self.config.test_user}', 'password': '***'}}")
+            self.logger.debug(f"Auth response: status={res.status_code}, body={res.text}")
             res.raise_for_status()
             self.auth_token = res.json()["access"]
-            print(f"🔑 Obtained JWT token for '{self.config.test_user}'")
+            self.logger.info(f"🔑 Obtained JWT token for '{self.config.test_user}'")
         except (httpx.RequestError, httpx.HTTPStatusError, KeyError) as e:
-            print(f"Authentication failed: {e}")
+            self.logger.error(f"Authentication failed: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                self.logger.error(f"Auth failure response: status={e.response.status_code}, body={e.response.text}")
             self.auth_token = None
 
     async def discover_urls(self, client: httpx.AsyncClient) -> List[str]:
-        print("\n🔍 Discovering URLs from the server...")
+        self.logger.info("\n🔍 Discovering URLs from the server...")
         try:
             headers = {"Authorization": f"Bearer {self.auth_token}"}
             res = await client.get("/api/core/internal/list-urls/", headers=headers)
+            self.logger.debug(f"GET /api/core/internal/list-urls/ headers={headers}")
+            self.logger.debug(f"Response: status={res.status_code}, body={res.text}")
             if res.status_code == 200:
                 urls = [item['path'] for item in res.json()]
                 urls = [u for u in urls if not u.startswith('admin/') and not u.startswith('api/core/internal/')]
-                print(f"✅ Discovered {len(urls)} endpoints to test.")
+                self.logger.info(f"✅ Discovered {len(urls)} endpoints to test.")
                 return urls
-            print(f"❌ URL Discovery failed with status {res.status_code}")
+            if res.status_code == 403:
+                self.logger.error(f"❌ URL Discovery failed with status 403 (Forbidden). User '{self.config.test_user}' may lack admin privileges. Suggestion: Ensure this user is a superuser.")
+            else:
+                self.logger.error(f"❌ URL Discovery failed with status {res.status_code}")
             return []
         except httpx.RequestError as e:
-            print(f"❌ URL Discovery request failed: {e}")
+            self.logger.error(f"❌ URL Discovery request failed: {e}")
             return []
 
     async def test_endpoint(self, client: httpx.AsyncClient, endpoint_path: str) -> TestResult:
@@ -90,6 +121,7 @@ class OptimizedTestSuite:
         is_post = False
         use_auth = False
         payload = {}
+        correlation_id = str(uuid.uuid4())
         protected_patterns = ['/analyze-and-price/']
         if any(p in endpoint_path for p in protected_patterns):
             use_auth = True
@@ -99,24 +131,40 @@ class OptimizedTestSuite:
                 with open(self.config.test_image_path, 'rb') as f:
                     payload['files'] = {'image': f.read()}
             else:
+                self.logger.error(f"Test image not found at {self.config.test_image_path}")
                 return TestResult(name, False, 0, "Test image not found", 0)
-        headers = {}
+        headers = {"X-Correlation-ID": correlation_id}
         if use_auth and self.auth_token:
             headers["Authorization"] = f"Bearer {self.auth_token}"
         res = None
         try:
             method = "POST" if is_post else "GET"
+            self.logger.debug(f"[{correlation_id}] Request: {method} {endpoint_path} headers={headers} payload_keys={list(payload.keys())}")
+            req_time = time.time()
             res = await client.request(method, endpoint_path, headers=headers, **payload)
+            resp_time = time.time()
+            elapsed = resp_time - req_time
+            self.logger.debug(f"[{correlation_id}] Response: status={res.status_code}, body={res.text}, elapsed={elapsed:.3f}s")
             passed = False
             details = f"Responded with Status {res.status_code}"
             if 200 <= res.status_code < 300:
                 passed = True
+            elif res.status_code == 401 and use_auth:
+                passed = False
+                details += " (FAIL: Unauthorized, check token)"
+                self.logger.error(f"[{correlation_id}] 401 Unauthorized for {endpoint_path}. Token may be invalid or expired. Suggestion: Check if the token is expired or user credentials are correct.")
+            elif res.status_code == 403:
+                passed = False
+                details += " (FAIL: Forbidden)"
+                self.logger.error(f"[{correlation_id}] 403 Forbidden for {endpoint_path}. User '{self.config.test_user}' may lack required permissions. Suggestion: Ensure user is staff/superuser or has correct permissions.")
             elif res.status_code == 404:
                 passed = False
                 details += " (FAIL: Not Found)"
+                self.logger.error(f"[{correlation_id}] 404 Not Found for {endpoint_path}. Suggestion: Check if the endpoint exists and is correctly spelled.")
         except httpx.RequestError as e:
             passed = False
             details = f"Request Failed: {type(e).__name__}"
+            self.logger.error(f"[{correlation_id}] Request to {endpoint_path} failed: {e}")
         duration = time.time() - start_time
         result = TestResult(name, passed, getattr(res, 'status_code', 0), details, duration)
         self.log_result(result)
@@ -124,7 +172,11 @@ class OptimizedTestSuite:
 
     def log_result(self, result: TestResult):
         emoji = "✅" if result.passed else "❌"
-        print(f"{emoji} {result.name}: {'PASS' if result.passed else 'FAIL'} ({result.duration:.2f}s) -> {result.details}")
+        msg = f"{emoji} {result.name}: {'PASS' if result.passed else 'FAIL'} ({result.duration:.2f}s) -> {result.details}"
+        if result.passed:
+            self.logger.info(msg)
+        else:
+            self.logger.error(msg)
 
     def summarize_and_save(self, results: List[TestResult], duration: float):
         passed_count = sum(1 for r in results if r.passed)
@@ -156,126 +208,7 @@ if __name__ == "__main__":
         """Test API health endpoint"""
         return await self._test_endpoint("/health")
 
-    async def test_endpoints(self, client, endpoints: list) -> list:
-        """Test all API endpoints with dynamic PKs and payloads, and report data status."""
-        # 1. Get items
-        item_pks = []
-        try:
-            items_resp = await client.get("/api/core/items/")
-            items_status = f"Status: {items_resp.status_code}"
-            if items_resp.status_code == 200:
-                items = items_resp.json()
-                if isinstance(items, list):
-                    item_pks = [item["id"] for item in items if "id" in item]
-                elif isinstance(items, dict) and "results" in items:
-                    item_pks = [item["id"] for item in items["results"] if "id" in item]
-                items_status += f", Found {len(item_pks)} items"
-            else:
-                items_status += ", Could not fetch items."
-        except Exception as e:
-            items_status = f"Error fetching items: {e}"
-        print(f"[DATA CHECK] /api/core/items/: {items_status}")
-        # 2. Get listings
-        listing_pks = []
-        listings_status = "Not checked"
-        if item_pks:
-            try:
-                listings_resp = await client.get(f"/api/core/items/{item_pks[0]}/listings/")
-                listings_status = f"Status: {listings_resp.status_code}"
-                if listings_resp.status_code == 200:
-                    listings = listings_resp.json()
-                    if isinstance(listings, list):
-                        listing_pks = [l["id"] for l in listings if "id" in l]
-                    elif isinstance(listings, dict) and "results" in listings:
-                        listing_pks = [l["id"] for l in listings["results"] if "id" in l]
-                    listings_status += f", Found {len(listing_pks)} listings"
-                else:
-                    listings_status += ", Could not fetch listings."
-            except Exception as e:
-                listings_status = f"Error fetching listings: {e}"
-        print(f"[DATA CHECK] /api/core/items/<pk>/listings/: {listings_status}")
-        # Replace hardcoded PKs in endpoints
-        def replace_pk(ep):
-            if "items/1/" in ep and item_pks:
-                return ep.replace("items/1/", f"items/{item_pks[0]}/")
-            if "items/1/analyze/" in ep and item_pks:
-                return ep.replace("items/1/analyze/", f"items/{item_pks[0]}/analyze/")
-            if "items/1/analysis/" in ep and item_pks:
-                return ep.replace("items/1/analysis/", f"items/{item_pks[0]}/analysis/")
-            if "items/1/listings/" in ep and item_pks:
-                return ep.replace("items/1/listings/", f"items/{item_pks[0]}/listings/")
-            if "listings/1/" in ep and listing_pks:
-                return ep.replace("listings/1/", f"listings/{listing_pks[0]}/")
-            return ep
-        endpoints = [replace_pk(ep) for ep in endpoints]
-        # Prepare POST payloads for known endpoints (send image for AI/image endpoints and analyze-and-price, and for /items/<pk>/analyze/)
-        post_payloads = {}
-        if os.path.exists(self.config.test_image_path):
-            with open(self.config.test_image_path, "rb") as img_file:
-                image_bytes = img_file.read()
-            def image_file():
-                from io import BytesIO
-                return ("example2.jpg", BytesIO(image_bytes), "image/jpeg")
-            # Endpoints expecting image upload
-            post_payloads = {
-                "/api/core/ai/image-search/": {"image": image_file()},
-                "/api/core/ai/advanced-search/": {"image": image_file()},
-                "/api/core/ai/crop-preview/": {"image": image_file()},
-                "/api/core/analyze-and-price/": {"image": image_file()},
-            }
-        # Add /items/<pk>/analyze/ as POST with image if item_pks found
-        for ep in endpoints:
-            if "/items/" in ep and ep.endswith("/analyze/") and os.path.exists(self.config.test_image_path):
-                with open(self.config.test_image_path, "rb") as img_file:
-                    image_bytes = img_file.read()
-                def image_file():
-                    from io import BytesIO
-                    return ("example2.jpg", BytesIO(image_bytes), "image/jpeg")
-                post_payloads[ep] = {"image": image_file()}
-        # Map endpoint to method and whether auth is required
-        protected_endpoints = [
-            "/api/core/analyze-and-price/",
-            "/api/core/ai/image-search/",
-            "/api/core/ai/crop-preview/",
-        ]
-        post_endpoints = set(post_payloads.keys()) | {"/api/core/ebay-token/action/", "/api/core/admin/set-ebay-refresh-token/", "/api/core/price-analysis/"}
-        tasks = []
-        for ep in endpoints:
-            method = "POST" if any(ep.startswith(p) for p in post_endpoints) or ep.endswith("/analyze/") or ep.endswith("/analyze-and-price/") else "GET"
-            files = post_payloads.get(ep) if method == "POST" and ep in post_payloads else None
-            # Use auth for protected endpoints
-            use_auth = any(ep.startswith(p) for p in protected_endpoints)
-            tasks.append(self._test_endpoint(ep, method=method, files=files, use_auth=use_auth))
-        return await asyncio.gather(*tasks)
-
-    async def test_image_upload(self) -> TestResult:
-        """Test image upload to AI endpoint with SSL/protocol error handling."""
-        start_time = time.time()
-        if not os.path.exists(self.config.test_image_path):
-            return TestResult("Image Upload", False, "Test image not found")
-        backend_url = self.config.base_url.rstrip("/")
-        url = f"{backend_url}/api/core/ai/image-search/"
-        try:
-            with open(self.config.test_image_path, "rb") as f:
-                files = {"image": f}
-                # Removed requests.exceptions.SSLError handling. Use httpx exceptions if needed.
-        except Exception as e:
-            passed = False
-            details = str(e)
-        return TestResult("Image Upload", passed, details, time.time() - start_time)
-
-    async def test_ai_services(self) -> Dict[str, TestResult]:
-        """Test AI services with mock data"""
-        services = {
-            'google_vision': self._mock_ai_test("Google Vision", 0.92),
-            'aws_rekognition': self._mock_ai_test("AWS Rekognition", 0.88),
-            'combined_analysis': self._mock_ai_test("Combined Analysis", 0.90)
-        }
-        
-        return {name: await test for name, test in services.items()}
-
-    async def _mock_ai_test(self, service_name: str, confidence: float) -> TestResult:
-        """Mock AI service test"""
+    # The following methods were duplicated and/or broken and are removed to resolve syntax and runtime errors.
         await asyncio.sleep(0.1)  # Simulate processing time
         return TestResult(
             name=service_name,
