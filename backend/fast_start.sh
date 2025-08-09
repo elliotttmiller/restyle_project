@@ -38,9 +38,9 @@ echo "🌐 Server starting on port $PORT"
 
 exec gunicorn backend.wsgi:application \
     --bind 0.0.0.0:$PORT \
-    --workers 2 \
-    --worker-class sync \
-    --timeout 60 \
+    --workers 4 \
+    --worker-class gevent \
+    --timeout 120 \
     --keep-alive 2 \
     --max-requests 1000 \
     --max-requests-jitter 50 \

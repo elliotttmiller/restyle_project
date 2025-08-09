@@ -72,6 +72,8 @@ class AnalyzeAndPriceView(APIView):
     throttle_classes = [throttling.UserRateThrottle]
 
     def post(self, request, *args, **kwargs):
+        logger = logging.getLogger(__name__)
+        logger.info(f"AnalyzeAndPriceView received a request from user: {request.user.username}")
         try:
             image_file = request.FILES.get('image')
             if not image_file:
