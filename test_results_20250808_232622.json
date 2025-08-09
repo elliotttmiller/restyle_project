@@ -1,0 +1,45 @@
+{
+  "health": "TestResult(name='Endpoint /health', passed=True, details='Status: 404', duration=0.04727053642272949)",
+  "endpoints": [
+    "TestResult(name='Endpoint /api/core/health/', passed=True, details='Status: 200', duration=0.03950381278991699)",
+    "TestResult(name='Endpoint /api/core/ai/status/', passed=True, details='Status: 200', duration=0.08004331588745117)",
+    "TestResult(name='Endpoint /api/core/metrics/', passed=True, details='Status: 200', duration=0.03982877731323242)",
+    "TestResult(name='Endpoint /api/core/ebay-token/health/', passed=True, details='Status: 200', duration=0.041963815689086914)",
+    "TestResult(name='Endpoint /api/core/ebay-token/action/', passed=True, details='Status: 200', duration=0.041765451431274414)",
+    "TestResult(name='Endpoint /api/core/ebay-search/', passed=True, details='Status: 400', duration=0.04171466827392578)",
+    "TestResult(name='Endpoint /api/core/items/', passed=False, details='Status: 500 | Error: ', duration=0.0451967716217041)",
+    "TestResult(name='Endpoint /api/core/items/1/', passed=False, details='Status: 500 | Error: ', duration=0.0395967960357666)",
+    "TestResult(name='Endpoint /api/core/items/1/analyze/', passed=False, details=\"SSL error: HTTPSConnectionPool(host='restyleproject-production.up.railway.app', port=443): Max retries exceeded with url: /api/core/items/1/analyze/ (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2427)')))\", duration=19.069679498672485)",
+    "TestResult(name='Endpoint /api/core/items/1/analysis/', passed=True, details='Status: 200', duration=3.6139214038848877)",
+    "TestResult(name='Endpoint /api/core/items/1/listings/', passed=False, details='Status: 500 | Error: ', duration=0.12121105194091797)",
+    "TestResult(name='Endpoint /api/core/listings/1/', passed=False, details='Status: 500 | Error: ', duration=0.04596877098083496)",
+    "TestResult(name='Endpoint /api/core/admin/set-ebay-refresh-token/', passed=True, details='Status: 200', duration=0.05000662803649902)",
+    "TestResult(name='Endpoint /api/core/ebay-oauth-callback/', passed=True, details='Status: 400', duration=0.043462276458740234)",
+    "TestResult(name='Endpoint /api/core/ebay-oauth-declined/', passed=True, details='Status: 200', duration=0.041525840759277344)",
+    "TestResult(name='Endpoint /api/core/ebay-oauth/', passed=True, details='Status: 403', duration=0.04116654396057129)",
+    "TestResult(name='Endpoint /api/core/price-analysis/', passed=True, details='Status: 400', duration=0.04225921630859375)",
+    "TestResult(name='Endpoint /api/core/ai/image-search/', passed=False, details=\"SSL error: HTTPSConnectionPool(host='restyleproject-production.up.railway.app', port=443): Max retries exceeded with url: /api/core/ai/image-search/ (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2427)')))\", duration=19.115108013153076)",
+    "TestResult(name='Endpoint /api/core/ai/advanced-search/', passed=True, details='Status: 400', duration=3.7347092628479004)",
+    "TestResult(name='Endpoint /api/core/privacy-policy/', passed=True, details='Status: 200', duration=0.04658651351928711)",
+    "TestResult(name='Endpoint /api/core/accepted/', passed=True, details='Status: 200', duration=0.04156064987182617)",
+    "TestResult(name='Endpoint /api/core/declined/', passed=True, details='Status: 200', duration=0.042693138122558594)",
+    "TestResult(name='Endpoint /api/core/ai/crop-preview/', passed=False, details=\"SSL error: HTTPSConnectionPool(host='restyleproject-production.up.railway.app', port=443): Max retries exceeded with url: /api/core/ai/crop-preview/ (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2427)')))\", duration=0.10793280601501465)",
+    "TestResult(name='Endpoint /api/core/env-debug/', passed=True, details='Status: 200', duration=0.20872998237609863)",
+    "TestResult(name='Endpoint /api/core/analyze-and-price/', passed=False, details=\"SSL error: HTTPSConnectionPool(host='restyleproject-production.up.railway.app', port=443): Max retries exceeded with url: /api/core/analyze-and-price/ (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2427)')))\", duration=19.092891454696655)",
+    "TestResult(name='Endpoint /api/core/health-check/', passed=True, details='Status: 404', duration=0.2407240867614746)"
+  ],
+  "image_upload": "TestResult(name='Image Upload', passed=False, details=\"SSL error: HTTPSConnectionPool(host='restyleproject-production.up.railway.app', port=443): Max retries exceeded with url: /api/core/ai/image-search/ (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2427)')))\", duration=19.12366819381714)",
+  "ai_services": {
+    "google_vision": "TestResult(name='Google Vision', passed=True, details='Confidence: 0.92', duration=0.1)",
+    "aws_rekognition": "TestResult(name='AWS Rekognition', passed=True, details='Confidence: 0.88', duration=0.1)",
+    "combined_analysis": "TestResult(name='Combined Analysis', passed=True, details='Confidence: 0.90', duration=0.1)"
+  },
+  "ebay": "TestResult(name='Endpoint /api/ebay/', passed=True, details='Status: 404', duration=0.26419973373413086)",
+  "performance": {
+    "health_check": 53.12164624532064,
+    "search_endpoint": 48.882643381754555,
+    "ai_endpoint": 52.017768224080406
+  },
+  "timestamp": "2025-08-08T23:26:22.616222",
+  "duration": 87.28427982330322
+}
