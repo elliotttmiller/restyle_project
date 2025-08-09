@@ -50,6 +50,8 @@ urlpatterns = [
     path('', views.root_view, name='root'),
 ]
 
+# Import or define authenticated_health_check before using it
+from .views import authenticated_health_check
+
 urlpatterns += [
-    path('health-check/', authenticated_health_check, name='authenticated-health-check'),
 ]
