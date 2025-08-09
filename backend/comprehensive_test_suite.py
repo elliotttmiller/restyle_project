@@ -1,4 +1,7 @@
 
+def parse_args():
+    pass
+
 #!/usr/bin/env python3
 """
 Optimized and Self-Adapting Comprehensive Test Suite for Restyle.ai (Final Version)
@@ -9,7 +12,7 @@ import time
 import httpx
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import List, Dict, Any
 from dataclasses import dataclass
 
 # --- Configuration ---
@@ -39,29 +42,23 @@ class OptimizedTestSuite:
             print("⚠️  SSL verification is disabled.")
 
     async def run_all_tests(self):
-        """Main execution function."""
         print("🚀 Starting Optimized & Self-Adapting Test Suite")
         start_time = time.time()
-        
         async with httpx.AsyncClient(base_url=self.config.base_url, timeout=self.config.timeout, verify=self.config.verify_ssl) as client:
             await self.authenticate(client)
             if not self.auth_token:
                 print("❌ CRITICAL: Authentication failed. Cannot proceed with authenticated tests.")
                 return
-
             endpoints_to_test = await self.discover_urls(client)
             if not endpoints_to_test:
                 print("❌ CRITICAL: Could not discover URLs. Aborting.")
                 return
-
             tasks = [self.test_endpoint(client, endpoint) for endpoint in endpoints_to_test]
             results = await asyncio.gather(*tasks)
-
         duration = time.time() - start_time
         self.summarize_and_save(results, duration)
 
     async def authenticate(self, client: httpx.AsyncClient):
-        """Login and get a JWT token."""
         try:
             res = await client.post("/api/token/", json={"username": self.config.test_user, "password": self.config.test_pass})
             res.raise_for_status()
@@ -72,7 +69,6 @@ class OptimizedTestSuite:
             self.auth_token = None
 
     async def discover_urls(self, client: httpx.AsyncClient) -> List[str]:
-        """Dynamically fetch the list of URLs to test from the server."""
         print("\n🔍 Discovering URLs from the server...")
         try:
             headers = {"Authorization": f"Bearer {self.auth_token}"}
@@ -89,50 +85,38 @@ class OptimizedTestSuite:
             return []
 
     async def test_endpoint(self, client: httpx.AsyncClient, endpoint_path: str) -> TestResult:
-        """Tests a single endpoint with intelligent logic."""
         start_time = time.time()
         name = f"Endpoint: {endpoint_path}"
-        
         is_post = False
         use_auth = False
         payload = {}
-        
         protected_patterns = ['/analyze-and-price/']
         if any(p in endpoint_path for p in protected_patterns):
             use_auth = True
-
         if 'analyze-and-price' in endpoint_path:
             is_post = True
             if os.path.exists(self.config.test_image_path):
-                payload['files'] = {'image': open(self.config.test_image_path, 'rb')}
+                with open(self.config.test_image_path, 'rb') as f:
+                    payload['files'] = {'image': f.read()}
             else:
                 return TestResult(name, False, 0, "Test image not found", 0)
-
         headers = {}
         if use_auth and self.auth_token:
             headers["Authorization"] = f"Bearer {self.auth_token}"
-        
         res = None
         try:
             method = "POST" if is_post else "GET"
             res = await client.request(method, endpoint_path, headers=headers, **payload)
-            
             passed = False
             details = f"Responded with Status {res.status_code}"
-            
             if 200 <= res.status_code < 300:
                 passed = True
-            elif res.status_code == 401 and use_auth:
-                passed = False # Should not happen if auth is correct
-                details += " (FAIL: Unauthorized, check token)"
             elif res.status_code == 404:
-                passed = False # 404 is a failure for a discovered URL
+                passed = False
                 details += " (FAIL: Not Found)"
-
         except httpx.RequestError as e:
             passed = False
             details = f"Request Failed: {type(e).__name__}"
-        
         duration = time.time() - start_time
         result = TestResult(name, passed, getattr(res, 'status_code', 0), details, duration)
         self.log_result(result)
@@ -146,7 +130,6 @@ class OptimizedTestSuite:
         passed_count = sum(1 for r in results if r.passed)
         total_count = len(results)
         success_rate = (passed_count / total_count * 100) if total_count > 0 else 0
-
         print("\n" + "="*60)
         print("🎯 TEST SUITE SUMMARY")
         print("="*60)
@@ -154,102 +137,9 @@ class OptimizedTestSuite:
         print(f"📊 Total Endpoints Tested: {total_count}")
         print(f"✅ Passed: {passed_count} | ❌ Failed: {total_count - passed_count}")
         print(f"📈 Success Rate: {success_rate:.1f}%")
-
         status = "🟢 EXCELLENT" if success_rate >= 95 else "🔵 GOOD" if success_rate >= 80 else "🟡 NEEDS WORK"
         print(f"🎖️  Status: {status}")
         print("="*60)
-
-        filename = f"test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(filename, 'w') as f:
-            json.dump([r.__dict__ for r in results], f, indent=2)
-        print(f"💾 Results saved to: {filename}")
-
-async def main():
-    suite = OptimizedTestSuite()
-    await suite.run_all_tests()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-    async def test_endpoint(self, client: httpx.AsyncClient, endpoint_path: str) -> TestResult:
-        """Tests a single endpoint with intelligent logic for method, data, and success criteria."""
-        start_time = time.time()
-        name = f"Endpoint: {endpoint_path}"
-        
-        # --- Define test logic for specific endpoints ---
-        is_post = False
-        use_auth = False
-        payload = {}
-        
-        # Define which endpoints are protected
-        protected_patterns = ['/analyze-and-price/', '/ai/image-search/', '/ai/crop-preview/']
-        if any(p in endpoint_path for p in protected_patterns):
-            use_auth = True
-
-        # Define which endpoints are POST and what data they need
-        if 'analyze-and-price' in endpoint_path or 'image-search' in endpoint_path or 'crop-preview' in endpoint_path:
-            is_post = True
-            if os.path.exists(self.config.test_image_path):
-                payload['files'] = {'image': open(self.config.test_image_path, 'rb')}
-            else:
-                return TestResult(name, False, 0, "Test image not found", 0)
-
-        # --- Execute Request ---
-        headers = {}
-        if use_auth:
-            headers["Authorization"] = f"Bearer {self.auth_token}"
-        
-        try:
-            method = "POST" if is_post else "GET"
-            res = await client.request(method, endpoint_path, headers=headers, **payload)
-            
-            # --- Redefined Success Criteria ---
-            passed = False
-            details = f"Responded with Status {res.status_code}"
-            
-            # 2xx codes are always a success
-            if 200 <= res.status_code < 300:
-                passed = True
-            # 401/403 is a SUCCESS if we are testing a protected endpoint WITHOUT a token (for future tests)
-            # For now, we assume we always send a token to protected endpoints.
-            # 400 is an acceptable response for endpoints that require data.
-            elif res.status_code == 400 and is_post and not payload.get('files'):
-                passed = True
-                details += " (OK: Bad Request, as expected without data)"
-            # A 404 is only a "pass" if we are specifically testing for it. Here, it's a FAIL.
-            
-        except httpx.RequestError as e:
-            # This will catch SSLErrors, timeouts, etc.
-            # With the gevent fix, SSLError should no longer occur from timeouts.
-            passed = False
-            details = f"Request Failed: {type(e).__name__}"
-        
-        duration = time.time() - start_time
-        result = TestResult(name, passed, getattr(res, 'status_code', 0), details, duration)
-        self.log_result(result)
-        return result
-
-    def log_result(self, result: TestResult):
-        emoji = "✅" if result.passed else "❌"
-        print(f"{emoji} {result.name}: {'PASS' if result.passed else 'FAIL'} ({result.duration:.2f}s) -> {result.details}")
-
-    def summarize_and_save(self, results: List[TestResult], duration: float):
-        passed_count = sum(1 for r in results if r.passed)
-        total_count = len(results)
-        success_rate = (passed_count / total_count * 100) if total_count > 0 else 0
-
-        print("\n" + "="*60)
-        print("🎯 TEST SUITE SUMMARY")
-        print("="*60)
-        print(f"⏱️  Duration: {duration:.2f}s")
-        print(f"📊 Total Endpoints Tested: {total_count}")
-        print(f"✅ Passed: {passed_count} | ❌ Failed: {total_count - passed_count}")
-        print(f"📈 Success Rate: {success_rate:.1f}%")
-
-        status = "🟢 EXCELLENT" if success_rate >= 95 else "🔵 GOOD" if success_rate >= 80 else "🟡 NEEDS WORK"
-        print(f"🎖️  Status: {status}")
-        print("="*60)
-
         filename = f"test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(filename, 'w') as f:
             json.dump([r.__dict__ for r in results], f, indent=2)
