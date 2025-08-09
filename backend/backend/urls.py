@@ -1,20 +1,11 @@
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
-# File: backend/backend/urls.py
-
-import os
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 from django.utils import timezone
-from .auth_views import token_obtain_pair, token_refresh, test_credentials
+import os
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from django.http import JsonResponse
-from django.utils import timezone
-from .auth_views import token_obtain_pair, token_refresh, test_credentials
-from .auth_middleware import require_auth
+# File: backend/backend/urls.py
 
 def project_root(request):
     return JsonResponse({
@@ -24,14 +15,12 @@ def project_root(request):
         "debug": os.environ.get('DEBUG', 'False'),
         "port": os.environ.get('PORT', '8000')
     })
-
 def health_check(request):
     return JsonResponse({
         "status": "healthy",
         "service": "restyle-backend",
         "timestamp": timezone.now().isoformat()
     })
-
 def simple_health(request):
     """Ultra-simple health check for Railway"""
     return JsonResponse({
@@ -40,11 +29,9 @@ def simple_health(request):
         "timestamp": timezone.now().isoformat(),
         "version": "1.0.0"
     })
-
 def health(request):
     """Health check endpoint that returns exactly {"status": "ok"} for Railway"""
     return JsonResponse({"status": "ok"})
-
 def test_endpoint(request):
     """Simple test endpoint to verify basic functionality"""
     return JsonResponse({
@@ -53,8 +40,6 @@ def test_endpoint(request):
         "path": request.path,
         "timestamp": timezone.now().isoformat()
     })
-
-@require_auth
 def protected_endpoint(request):
     """Test protected endpoint that requires authentication"""
     return JsonResponse({
@@ -66,8 +51,6 @@ def protected_endpoint(request):
         },
         "timestamp": timezone.now().isoformat()
     })
-
-@require_auth
 def user_profile(request):
     """Get user profile information"""
     return JsonResponse({
@@ -83,30 +66,20 @@ def user_profile(request):
         },
         "timestamp": timezone.now().isoformat()
     })
+from django.contrib import admin
+from django.urls import path, include
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
-    path('', project_root),
-    path('health/', health_check),
-    path('health', simple_health),  # Simple health check without trailing slash
-    path('health-ok/', health),  # Exact format health check for Railway
-    path('test/', test_endpoint),  # Simple test endpoint
     path('admin/', admin.site.urls),
-    
-    # CORRECTED: All user-related routes (register) now point to the 'users.urls'.
-    path('api/users/', include('users.urls')), 
-    
-    # Custom authentication endpoints
+    # User and authentication endpoints
+    path('api/users/', include('users.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/test-credentials/', test_credentials, name='test_credentials'),
-    
-    # Protected endpoints for testing
-    path('api/protected/', protected_endpoint, name='protected_endpoint'),
-    path('api/profile/', user_profile, name='user_profile'),
 
-    # Include all URLs from the 'core' app under the '/api/core/' prefix
+    # Core API endpoints (all business logic, eBay, AI, etc.)
     path('api/core/', include('core.urls')),
-    
-    # Mobile app compatibility - include core URLs without /api prefix
-    path('core/', include('core.urls')),
+
+    # Optionally, add a root health check or test endpoint if needed
+    # path('health/', some_health_view),
 ]
