@@ -27,7 +27,9 @@ COPY . .
 RUN [ -f fast_start.sh ] && chmod +x fast_start.sh || true
 
 # Ensure test user is superuser/staff on every deploy
-RUN python backend/run_create_test_superuser.py
+WORKDIR /app/backend
+RUN python run_create_test_superuser.py
+WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

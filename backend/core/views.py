@@ -6,25 +6,49 @@ from django.urls import get_resolver
 class ListUrlsView(APIView):
     """
     An endpoint for testing that lists all available URL patterns.
-    It now cleans the regex patterns into usable paths.
+    Returns only real, requestable HTTP paths (no regex patterns).
     """
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, *args, **kwargs):
+        from django.urls.resolvers import URLPattern
         url_list = []
+
+        def is_valid_api_endpoint(path):
+            # Only include /api/ endpoints, exclude admin and regex group patterns
+            if not path.startswith('/api/'):
+                return False
+            if 'admin' in path:
+                return False
+            # Exclude anything with regex or parameter syntax
+            if any(c in path for c in ['^', '$', '(', ')', '<', '>', '?P<', '\\']):
+                return False
+            return True
+
         def extract_urls(resolver, prefix=''):
             for pattern in resolver.url_patterns:
-                if hasattr(pattern, 'url_patterns'): # This is an include()
-                    extract_urls(pattern, prefix + pattern.pattern.regex.pattern)
-                else: # This is a regular URLPattern
-                    # --- THIS IS THE FIX ---
-                    # Clean the regex pattern into a simple, requestable path.
-                    clean_path = (prefix + pattern.pattern.regex.pattern).replace('^', '').replace('$', '')
-                    url_list.append({
-                        "path": clean_path,
-                        "name": pattern.name,
-                    })
-        extract_urls(get_resolver(None))
+                if hasattr(pattern, 'url_patterns'):
+                    route = getattr(pattern.pattern, '_route', None)
+                    if route:
+                        new_prefix = prefix + route
+                    else:
+                        new_prefix = prefix
+                    extract_urls(pattern, new_prefix)
+                elif isinstance(pattern, URLPattern):
+                    route = getattr(pattern.pattern, '_route', None)
+                    if route:
+                        full_path = (prefix + route) if (prefix + route).startswith('/') else '/' + prefix + route
+                        if is_valid_api_endpoint(full_path):
+                            url_list.append({
+                                "path": full_path,
+                                "name": pattern.name,
+                            })
+        from django.urls import get_resolver
+        extract_urls(get_resolver())
+        # Ensure all paths start with a single '/'
+        for url in url_list:
+            if not url["path"].startswith("/"):
+                url["path"] = "/" + url["path"]
         return Response(url_list)
 """
 Core API views - cleaned imports for enterprise upgrade.
