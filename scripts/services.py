@@ -15,7 +15,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class EbayServiceStub:
+class _EbayServiceStub:
     """
     Centralized service for all eBay API interactions.
     Handles authentication, error handling, and logging.

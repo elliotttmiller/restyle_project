@@ -20,7 +20,7 @@ class MockAIService:
         return {"status": "error", "message": "AI services not available - dependencies not installed"}
 
 # Stub for services.py
-class EbayServiceStub:
+class _EbayServiceStub:
     def __init__(self):
         pass
         
