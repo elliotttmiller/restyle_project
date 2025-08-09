@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Endpoint: /api/users/register/",
+    "passed": false,
+    "status_code": 405,
+    "details": "Responded with Status 405",
+    "duration": 0.05625009536743164
+  },
+  {
+    "name": "Endpoint: /api/token/",
+    "passed": false,
+    "status_code": 405,
+    "details": "Responded with Status 405",
+    "duration": 0.2732563018798828
+  },
+  {
+    "name": "Endpoint: /api/token/refresh/",
+    "passed": false,
+    "status_code": 405,
+    "details": "Responded with Status 405",
+    "duration": 0.20863008499145508
+  },
+  {
+    "name": "Endpoint: /api/core/analyze-and-price/",
+    "passed": false,
+    "status_code": 500,
+    "details": "Responded with Status 500",
+    "duration": 1.1063358783721924
+  },
+  {
+    "name": "Endpoint: /api/core/health/",
+    "passed": true,
+    "status_code": 200,
+    "details": "Responded with Status 200",
+    "duration": 0.2670283317565918
+  },
+  {
+    "name": "Endpoint: /api/core/ebay-token-health/",
+    "passed": true,
+    "status_code": 200,
+    "details": "Responded with Status 200",
+    "duration": 0.20722413063049316
+  },
+  {
+    "name": "Endpoint: /api/core/internal/list-urls/",
+    "passed": false,
+    "status_code": 401,
+    "details": "Responded with Status 401",
+    "duration": 0.19558286666870117
+  }
+]

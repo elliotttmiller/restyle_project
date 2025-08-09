@@ -157,7 +157,12 @@ class AnalyzeAndPriceView(APIView):
                 }
             })
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            tb = traceback.format_exc()
+            logger.error(f"AnalyzeAndPriceView 500 error: {e}\n{tb}")
+            return Response({
+                "error": str(e),
+                "traceback": tb
+            }, status=500)
 
 from rest_framework.permissions import AllowAny
 import requests

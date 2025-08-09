@@ -36,6 +36,7 @@ class TestResult:
 # --- Test Suite Class ---
 
 import logging
+import sys
 
 import uuid
 
@@ -46,15 +47,17 @@ class OptimizedTestSuite:
         # Advanced diagnostics and logging
         log_filename = f"debug_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
         self.run_id = str(uuid.uuid4())
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format='%(asctime)s %(levelname)s %(message)s',
-            handlers=[
-                logging.FileHandler(log_filename),
-                logging.StreamHandler()
-            ]
-        )
-        self.logger = logging.getLogger("TestSuite")
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+        # Patch: Set encoding to utf-8 for Windows terminals to support emoji/unicode
+        try:
+            handler.stream.reconfigure(encoding='utf-8')
+        except AttributeError:
+            import io
+            handler.stream = io.TextIOWrapper(handler.stream.buffer, encoding='utf-8', errors='replace')
+        self.logger = logging.getLogger("OptimizedTestSuite")
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG)
         self.logger.info("Test Suite Run ID: %s", self.run_id)
         self.logger.info("Test Suite Configuration: %s", self.config)
         self.logger.info("Python version: %s", os.sys.version)
@@ -125,26 +128,67 @@ class OptimizedTestSuite:
         protected_patterns = ['/analyze-and-price/']
         if any(p in endpoint_path for p in protected_patterns):
             use_auth = True
-        if 'analyze-and-price' in endpoint_path:
-            is_post = True
+        headers = {"X-Correlation-ID": correlation_id}
+        # Always send Authorization for /api/core/internal/list-urls/ if token is available
+        if (use_auth and self.auth_token) or (endpoint_path == "/api/core/internal/list-urls/" and self.auth_token):
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        res = None
+        # Patch: Use correct HTTP method for each endpoint
+        post_endpoints = ["/api/users/register/", "/api/token/", "/api/token/refresh/", "/api/core/analyze-and-price/"]
+        if endpoint_path in post_endpoints:
+            method = "POST"
+        else:
+            method = "GET"
+        payload = None
+        request_kwargs = {}
+        # Patch: Send correct payloads for each endpoint
+        if endpoint_path == "/api/users/register/":
+            request_kwargs["json"] = {"username": self.config.test_user, "password": self.config.test_pass}
+        elif endpoint_path == "/api/token/":
+            request_kwargs["json"] = {"username": self.config.test_user, "password": self.config.test_pass}
+        elif endpoint_path == "/api/token/refresh/":
+            # Use the last obtained refresh token if available
+            refresh_token = getattr(self, "last_refresh_token", None)
+            if refresh_token:
+                request_kwargs["json"] = {"refresh": refresh_token}
+            else:
+                # Try to get a new refresh token first
+                self.logger.info("Obtaining refresh token for /api/token/refresh/ test...")
+                token_resp = await client.post("/api/token/", json={"username": self.config.test_user, "password": self.config.test_pass})
+                if token_resp.status_code == 200:
+                    refresh_token = token_resp.json().get("refresh")
+                    self.last_refresh_token = refresh_token
+                    request_kwargs["json"] = {"refresh": refresh_token}
+                else:
+                    self.logger.error("Failed to obtain refresh token for /api/token/refresh/ test.")
+                    return TestResult(name, False, token_resp.status_code, "Could not obtain refresh token", 0)
+        elif endpoint_path == "/api/core/analyze-and-price/":
             if os.path.exists(self.config.test_image_path):
-                with open(self.config.test_image_path, 'rb') as f:
-                    payload['files'] = {'image': f.read()}
+                f = open(self.config.test_image_path, 'rb')
+                files = {"image": (os.path.basename(self.config.test_image_path), f, "image/jpeg")}
+                request_kwargs["files"] = files
+                request_kwargs["_test_image_file"] = f  # keep reference for later closing
             else:
                 self.logger.error(f"Test image not found at {self.config.test_image_path}")
                 return TestResult(name, False, 0, "Test image not found", 0)
-        headers = {"X-Correlation-ID": correlation_id}
-        if use_auth and self.auth_token:
-            headers["Authorization"] = f"Bearer {self.auth_token}"
-        res = None
         try:
-            method = "POST" if is_post else "GET"
-            self.logger.debug(f"[{correlation_id}] Request: {method} {endpoint_path} headers={headers} payload_keys={list(payload.keys())}")
+            self.logger.debug(f"[{correlation_id}] Request: {method} {endpoint_path} headers={headers} kwargs={list(request_kwargs.keys())}")
             req_time = time.time()
-            res = await client.request(method, endpoint_path, headers=headers, **payload)
+            # For analyze-and-price, ensure file stays open during request
+            try:
+                res = await client.request(method, endpoint_path, headers=headers, **{k: v for k, v in request_kwargs.items() if k != "_test_image_file"})
+            finally:
+                if "_test_image_file" in request_kwargs:
+                    request_kwargs["_test_image_file"].close()
             resp_time = time.time()
             elapsed = resp_time - req_time
             self.logger.debug(f"[{correlation_id}] Response: status={res.status_code}, body={res.text}, elapsed={elapsed:.3f}s")
+            # Save refresh token if present
+            if endpoint_path == "/api/token/" and res.status_code == 200:
+                try:
+                    self.last_refresh_token = res.json().get("refresh")
+                except Exception:
+                    pass
             passed = False
             details = f"Responded with Status {res.status_code}"
             if 200 <= res.status_code < 300:
