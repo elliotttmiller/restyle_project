@@ -51,7 +51,6 @@ urlpatterns = [
 ]
 
 # Import or define authenticated_health_check before using it
-from .views import authenticated_health_check
 
 urlpatterns += [
 ]
