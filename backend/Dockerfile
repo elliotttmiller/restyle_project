@@ -30,7 +30,7 @@ RUN [ -f fast_start.sh ] && chmod +x fast_start.sh || true
 RUN ls -l backend/
 
 # Ensure test user is superuser/staff on every deploy
-RUN python run_create_test_superuser.py
+RUN python manage.py migrate && python run_create_test_superuser.py
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
