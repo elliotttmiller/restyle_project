@@ -8,7 +8,7 @@ import time
 import httpx
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import List
 from dataclasses import dataclass
 
 @dataclass
