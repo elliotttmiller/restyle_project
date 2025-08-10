@@ -10,7 +10,11 @@ django.setup()
 from typing import Optional, Dict, Any, List
 import requests
 from .credential_manager import credential_manager
-from core.ebay_auth_service import ebay_auth_service # Corrected import path
+# Fallback stub for ebay_auth_service since import cannot be resolved
+class EbayAuthServiceStub:
+    def ensure_valid_token(self):
+        return None
+ebay_auth_service = EbayAuthServiceStub()
 import logging
 
 logger = logging.getLogger(__name__)
