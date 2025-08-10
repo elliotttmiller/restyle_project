@@ -15,7 +15,7 @@ from dataclasses import dataclass
 class TestConfig:
     base_url: str = os.getenv("RAILWAY_PUBLIC_DOMAIN", "https://restyleproject-production.up.railway.app").rstrip("/")
     timeout: int = 120
-    test_image_path: str = "test_files/example2.jpg"
+    test_image_path: str = "test_files/example.jpg"
     verify_ssl: bool = os.getenv("TEST_SSL_VERIFY", "False").lower() == "true"
     test_user: str = os.getenv("TEST_USER", "testuser")
     test_pass: str = os.getenv("TEST_PASS", "testpass1234")
