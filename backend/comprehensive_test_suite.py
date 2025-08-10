@@ -15,7 +15,7 @@ from dataclasses import dataclass
 class TestConfig:
     base_url: str = os.getenv("RAILWAY_PUBLIC_DOMAIN", "https://restyleproject-production.up.railway.app").rstrip("/")
     timeout: int = 120
-    test_image_path: str = "backend/test_example.JPG"
+    test_image_path: str = "test_files/example2.jpg"
     verify_ssl: bool = os.getenv("TEST_SSL_VERIFY", "False").lower() == "true"
     test_user: str = os.getenv("TEST_USER", "testuser")
     test_pass: str = os.getenv("TEST_PASS", "testpass1234")
@@ -45,9 +45,11 @@ class FinalTestSuite:
                 print("❌ CRITICAL: Authentication failed. Aborting.")
                 return
 
+            # Instead of discovering, we test the known, clean endpoints
             tasks = [
-                self.test_health_check(client),
-                self.test_analyze_and_price(client),
+                self.test_endpoint(client, "/api/core/health/"),
+                self.test_endpoint(client, "/api/core/ebay-token-health/"),
+                self.test_endpoint(client, "/api/core/analyze-and-price/"),
             ]
             results = await asyncio.gather(*tasks)
 
@@ -63,38 +65,32 @@ class FinalTestSuite:
         except (httpx.RequestError, httpx.HTTPStatusError, KeyError) as e:
             print(f"Authentication failed: {e}")
 
-    async def test_health_check(self, client: httpx.AsyncClient) -> TestResult:
-        """Tests the public health check endpoint."""
+    async def test_endpoint(self, client: httpx.AsyncClient, endpoint_path: str) -> TestResult:
+        """Tests a single endpoint with intelligent logic."""
         start_time = time.time()
-        name = "Endpoint: /api/core/health/"
-        res = None
-        try:
-            res = await client.get("/api/core/health/")
-            passed = res.status_code == 200
-            details = f"Responded with Status {res.status_code}"
-        except httpx.RequestError as e:
-            passed = False
-            details = f"Request Failed: {type(e).__name__}"
-        
-        duration = time.time() - start_time
-        result = TestResult(name, passed, getattr(res, 'status_code', 0), details, duration)
-        self.log_result(result)
-        return result
-
-    async def test_analyze_and_price(self, client: httpx.AsyncClient) -> TestResult:
-        """Tests the primary AI analysis endpoint with an image upload."""
-        start_time = time.time()
-        name = "Endpoint: /api/core/analyze-and-price/"
+        name = f"Endpoint: {endpoint_path}"
         res = None
         
-        if not os.path.exists(self.config.test_image_path):
-            return TestResult(name, False, 0, "Test image not found", 0)
+        is_post = False
+        use_auth = False
+        payload = {}
 
-        headers = {"Authorization": f"Bearer {self.auth_token}"}
+        if 'analyze-and-price' in endpoint_path:
+            is_post = True
+            use_auth = True
+            if os.path.exists(self.config.test_image_path):
+                with open(self.config.test_image_path, 'rb') as f:
+                    payload['files'] = {'image': (os.path.basename(self.config.test_image_path), f.read(), 'image/jpeg')}
+            else:
+                return TestResult(name, False, 0, "Test image not found", 0)
+
+        headers = {}
+        if use_auth and self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        
         try:
-            with open(self.config.test_image_path, 'rb') as f:
-                files = {'image': (os.path.basename(self.config.test_image_path), f.read(), 'image/jpeg')}
-                res = await client.post("/api/core/analyze-and-price/", headers=headers, files=files)
+            method = "POST" if is_post else "GET"
+            res = await client.request(method, endpoint_path, headers=headers, **payload)
             
             passed = res.status_code == 200
             details = f"Responded with Status {res.status_code}"

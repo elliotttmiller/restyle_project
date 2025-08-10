@@ -3,8 +3,6 @@ import requests
 import logging
 from django.conf import settings
 from typing import Optional, Dict, Any, List
-# NOTE: The dependency on token_manager from ebay_auth is removed for now to simplify,
-# as the Finding API does not require a user OAuth token.
 
 logger = logging.getLogger(__name__)
 

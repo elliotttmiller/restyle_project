@@ -30,7 +30,6 @@ class AnalyzeAndPriceView(APIView):
         image_data = image_file.read()
 
         try:
-            # This now correctly calls your advanced analysis logic
             market_service = get_market_analysis_service()
             analysis_results = market_service.run_ai_statistical_analysis(image_data)
             
@@ -48,27 +47,36 @@ class AnalyzeAndPriceView(APIView):
 class ListUrlsView(APIView):
     """
     An endpoint for testing that lists all available URL patterns.
-    It now correctly cleans and joins regex patterns to form valid paths.
+    This version correctly cleans and joins regex patterns to form valid paths.
     """
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, *args, **kwargs):
         resolver = get_resolver(None)
         url_list = self._get_urls(resolver.url_patterns)
-        url_list = [u for u in url_list if not u['path'].startswith('admin/') and not u['path'].startswith('api/core/internal/')]
+        # Final filtering for safety
+        url_list = [u for u in url_list if u['path'].startswith('api/') and not u['path'].startswith('admin/')]
         return Response(url_list)
 
     def _get_urls(self, patterns: list, prefix: str = ''):
+        """A robust recursive function to extract and clean URL patterns."""
         results = []
         for pattern in patterns:
             if isinstance(pattern, URLResolver):
-                new_prefix = prefix + pattern.pattern.regex.pattern.replace('^', '').replace('$', '')
+                # This is an include(), so recurse into its patterns
+                new_prefix = prefix + pattern.pattern.regex.pattern.replace('^', '').rstrip('/') + '/'
                 results.extend(self._get_urls(pattern.url_patterns, new_prefix))
             elif isinstance(pattern, URLPattern):
+                # This is a regular URL, clean its pattern
                 path = prefix + pattern.pattern.regex.pattern.replace('^', '').replace('$', '')
+                
+                # Replace dynamic parts with static values for testing
                 if '<int:pk>' in path: path = path.replace('<int:pk>', '1')
                 if '<item_pk>' in path: path = path.replace('<item_pk>', '1')
-                results.append({"path": path, "name": pattern.name})
+                
+                # We only want to test the main API endpoints
+                if path.startswith('api/'):
+                    results.append({"path": path, "name": pattern.name})
         return results
 
 def health_check(request):
