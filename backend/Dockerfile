@@ -3,7 +3,7 @@ FROM python:3.11-slim as builder
 WORKDIR /app
 
 # Install build dependencies and Python packages in one layer
-COPY requirements.txt .
+COPY requirements.txt ./
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git build-essential libpq-dev libjpeg-dev libpng-dev libfreetype6-dev \
     && pip install --upgrade pip \
@@ -16,7 +16,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime deps, copy packages, and setup in one layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git libpq5 libglib2.0-0 libsm6 libxext6 libxrender1 \
     libjpeg62-turbo libpng16-16 libfreetype6 \
@@ -24,12 +23,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /install /usr/local
 COPY . .
+
+# Set PYTHONPATH so 'backend.core' is always importable
+ENV PYTHONPATH=/app
+
 RUN [ -f fast_start.sh ] && chmod +x fast_start.sh || true
 
 # Debug: List files in backend directory
 RUN ls -l backend/
 
-# Ensure test user is superuser/staff on every deploy
+# Run migrations and create test superuser
 RUN python manage.py migrate && python run_create_test_superuser.py
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -37,5 +40,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONHASHSEED=random \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
+
 
 CMD ["./fast_start.sh"]
