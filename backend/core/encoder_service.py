@@ -7,10 +7,28 @@ logger = logging.getLogger(__name__)
 
 
 import numpy as np
-from PIL import Image
 import requests
 from io import BytesIO
 from typing import Optional
+import torch
+from PIL import Image
+try:
+    import clip
+except ImportError:
+    clip = None
+
+class CLIPImageEncoder:
+    def __init__(self, device: str = "cpu"):
+        if clip is None:
+            raise ImportError("The 'clip' package is required for CLIPImageEncoder. Install with 'pip install git+https://github.com/openai/CLIP.git'.")
+        self.device = device
+        self.model, self.preprocess = clip.load("ViT-B/32", device=device)
+
+    def encode(self, image: Image.Image) -> np.ndarray:
+        image_input = self.preprocess(image).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            image_features = self.model.encode_image(image_input)
+        return image_features.cpu().numpy().flatten()
 
 # Placeholder for a real image model
 # In a real application, this would be a more sophisticated model like CLIP, ResNet, etc.
@@ -50,8 +68,13 @@ class EncoderService:
     Service to handle image encoding using a trained model.
     """
     def __init__(self):
-        self.model = SimpleImageEncoder()
-        logger.info("EncoderService initialized.")
+        # Use CLIP if available, else fallback to SimpleImageEncoder
+        if clip is not None:
+            self.model = CLIPImageEncoder(device="cpu")
+            logger.info("EncoderService initialized with CLIPImageEncoder.")
+        else:
+            self.model = SimpleImageEncoder()
+            logger.info("EncoderService initialized with SimpleImageEncoder (fallback).")
 
     def encode_image_from_data(self, image_data: bytes) -> Optional[np.ndarray]:
         """

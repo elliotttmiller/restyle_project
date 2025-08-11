@@ -24,6 +24,9 @@ google-auth-httplib2==0.2.0
 google-cloud-vision==3.10.2
 google-generativeai==0.8.5
 boto3==1.39.4 # For AWS Rekognition
+torch
+# OpenAI CLIP (official repo)
+git+https://github.com/openai/CLIP.git
 
 # EBay SDK
 ebaysdk==2.2.0

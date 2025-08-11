@@ -14,5 +14,4 @@ urlpatterns = [
 
     # Internal endpoint for the test suite (admin only)
     path('internal/list-urls/', views.ListUrlsView.as_view(), name='list-urls'),
-    path('internal/debug-view-loading/', views.debug_view_loading, name='debug_view_loading'),
 ]

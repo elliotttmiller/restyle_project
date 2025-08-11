@@ -110,34 +110,23 @@ class AggregatorService:
     def run_full_analysis(self, image_data: bytes) -> Dict[str, Any]:
         """
         Runs the full multi-expert analysis pipeline.
-        
-        Args:
-            image_data: Raw image bytes
-            
-        Returns:
-            Dict containing synthesized attributes and confidence scores
         """
         logger.info("Starting multi-expert AI analysis pipeline...")
-        
-        # Step 1: Call all AI experts in parallel
         expert_outputs = {}
         threads = [
             Thread(target=self._call_google_vision, args=(image_data, expert_outputs)),
             Thread(target=self._call_aws_rekognition, args=(image_data, expert_outputs)),
         ]
-        
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        
         logger.info(f"Expert outputs collected: {list(expert_outputs.keys())}")
-        
-        # Step 2: Synthesize results with Gemini (if available) or fallback
         if self.gemini_model:
             return self._synthesize_with_gemini(expert_outputs)
         else:
-            return self._synthesize_with_fallback(expert_outputs)
+            logger.error("Gemini model is not available. AI-driven synthesis required.")
+            return {"error": "Gemini model is not available. AI-driven synthesis required.", "identified_attributes": {}}
 
     def _call_google_vision(self, image_data: bytes, output: Dict[str, Any]):
         """Calls Google Vision API for its expert opinion."""
@@ -152,6 +141,8 @@ class AggregatorService:
                     {'type_': vision.Feature.Type.IMAGE_PROPERTIES},
                 ],
             })
+            # DEBUG: Log raw Google Vision response
+            logger.info(f"[DEBUG] Raw Google Vision response: {response}")
             
             # Extract web entities (most powerful for product identification)
             web_entities = []
@@ -234,12 +225,13 @@ class AggregatorService:
     def _call_aws_rekognition(self, image_data: bytes, output: Dict[str, Any]):
         """Calls AWS Rekognition for its expert opinion."""
         try:
-            # Detect labels (general object classification)
             labels_response = self.aws_rekognition_client.detect_labels(
                 Image={'Bytes': image_data},
                 MaxLabels=20,
                 MinConfidence=50.0
             )
+            # DEBUG: Log raw AWS Rekognition labels response
+            logger.info(f"[DEBUG] Raw AWS Rekognition labels response: {labels_response}")
             
             # Extract labels with confidence scores
             labels = []
@@ -257,6 +249,8 @@ class AggregatorService:
             text_response = self.aws_rekognition_client.detect_text(
                 Image={'Bytes': image_data}
             )
+            # DEBUG: Log raw AWS Rekognition text response
+            logger.info(f"[DEBUG] Raw AWS Rekognition text response: {text_response}")
             
             detected_text = []
             if 'TextDetections' in text_response:
@@ -283,51 +277,39 @@ class AggregatorService:
                 'success': False
             }
 
-    def _synthesize_with_gemini(self, expert_outputs: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Uses enhanced AI service (Gemini) to intelligently synthesize expert outputs.
-        This is the core "brain" that reasons over multiple AI opinions.
-        """
-        try:
-            # Use the Gemini AI service for synthesis
-            if self._gemini_model:
-                prompt = self._build_gemini_prompt(expert_outputs)
-                response = self._gemini_model.generate_content(prompt)
-                
-                try:
-                    synthesized_attributes = json.loads(response.text)
-                    logger.info(f"Gemini AI synthesis successful: {synthesized_attributes}")
-                    return synthesized_attributes
-                except json.JSONDecodeError:
-                    logger.warning("Failed to parse Gemini response as JSON")
-                    return self._synthesize_with_fallback(expert_outputs)
-            else:
-                logger.warning("Gemini model not available, using fallback")
-                return self._synthesize_with_fallback(expert_outputs)
-            
-        except Exception as e:
-            logger.error(f"AI synthesis failed: {e}")
-            return self._synthesize_with_fallback(expert_outputs)
-
     def _build_gemini_prompt(self, expert_outputs: Dict[str, Any]) -> str:
         """
-        Builds an enhanced prompt for Gemini to synthesize expert opinions AND
-        provide a real-time market sentiment analysis.
+        Builds an advanced prompt for Gemini to synthesize expert opinions and generate a human-like, optimized search query for eBay.
         """
         google_data = expert_outputs.get('google_vision', {})
         aws_data = expert_outputs.get('aws_rekognition', {})
-        
-        prompt = f"""
-You are a world-class AI expert for fashion resale and product identification. Your task is to analyze raw JSON data from two AI vision services and synthesize it into a single, high-confidence set of attributes. You must also provide a "Market Sentiment Score" reflecting the item's perceived value and demand.
+        # Extract all candidate terms from web entities, objects, and detected text
+        web_entities = [e['description'] for e in google_data.get('web_entities', []) if e.get('description')]
+        objects = [o['name'] for o in google_data.get('objects', []) if o.get('name')]
+        detected_text = [t['text'] for t in aws_data.get('detected_text', []) if t.get('text')]
+        all_terms = web_entities + objects + detected_text
+        prompt = f'''
+You are a world-class AI expert for fashion resale and product identification. Your task is to analyze raw JSON data from Google Vision and AWS Rekognition, extract all key item terms (objects, web entities, detected text), and then act as a cutting-edge query builder. Your goal is to generate the most accurate, human-like search query for eBay to find this item, as if you were a top-tier eBay power user.
 
-**Instructions:**
-1.  **Synthesize Attributes**: Identify the `product_name`, `brand`, `category`, and `colors` from all available data. Prioritize Google's `web_entities`.
-2.  **Determine Condition**: Infer the `item_condition` ('New' or 'Used') from the image context.
-3.  **Analyze Market Sentiment**: Based on all text (web entities, OCR), determine the item's market position. Is it described as "rare," "limited edition," "vintage," "collaboration"? Is it a classic, high-demand model? Based on this, generate a `market_sentiment_score`.
-    *   **Score 1.1 to 1.3 (Hot Item):** For highly desirable items (e.g., "Travis Scott Jordan", "Off-White", "limited edition").
-    *   **Score 0.9 to 1.09 (Stable Item):** For standard, popular items (e.g., "Nike Air Force 1", "Adidas Stan Smith").
-    *   **Score 0.8 to 0.89 (Cooler Item):** For generic, less-known, or common items.
-4.  **Output Format**: You must return ONLY a single, valid JSON object with the specified schema.
+**Step 1: Extract Key Terms**
+- List all possible product names, brands, categories, and any relevant text or object labels from the AI outputs.
+
+**Step 2: Build Search Query**
+- Using the extracted terms, synthesize a single, highly accurate, human-like search query string that would maximize the chance of finding this exact item on eBay. Use natural language, include only the most relevant terms, and avoid generic or irrelevant words. If the item is a sports jersey, for example, include team, player, year, and "jersey".
+
+**Step 3: Output**
+- Return a single, valid JSON object with the following schema:
+{{
+  "product_name": "String | null",
+  "brand": "String | null",
+  "category": "String | null",
+  "item_condition": "String ('New', 'Used', 'Unknown')",
+  "colors": ["String", ...],
+  "market_sentiment_score": "Float (e.g., 1.15)",
+  "ai_summary": "A brief, one-sentence summary for the user.",
+  "confidence_score": "Float (0.0-1.0)",
+  "ebay_search_query": "String (the optimized search query)"
+}}
 
 **Google Vision Data:**
 ```json
@@ -339,20 +321,36 @@ You are a world-class AI expert for fashion resale and product identification. Y
 {json.dumps(aws_data, indent=2)}
 ```
 
-**Your Required JSON Output Schema:**
-{{
-"product_name": "String | null",
-"brand": "String | null",
-"category": "String | null",
-"item_condition": "String ('New', 'Used', 'Unknown')",
-"colors": ["String", ...],
-"market_sentiment_score": "Float (e.g., 1.15)",
-"ai_summary": "A brief, one-sentence summary for the user.",
-"confidence_score": "Float (0.0-1.0)"
-}}
-"""
-
+**Extracted Terms:** {all_terms}
+'''
         return prompt
+
+    def _synthesize_with_gemini(self, expert_outputs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Uses Gemini to intelligently synthesize expert outputs and generate an optimized eBay search query.
+        """
+        try:
+            if self._gemini_model:
+                prompt = self._build_gemini_prompt(expert_outputs)
+                response = self._gemini_model.generate_content(prompt)
+                try:
+                    synthesized_attributes = json.loads(response.text)
+                    required_keys = ["product_name", "brand", "category", "colors", "confidence_score", "ebay_search_query"]
+                    if all(k in synthesized_attributes for k in required_keys):
+                        logger.info(f"Gemini AI synthesis successful: {synthesized_attributes}")
+                        return synthesized_attributes
+                    else:
+                        logger.error(f"Gemini output missing required keys: {synthesized_attributes}")
+                        return {"error": "Gemini output missing required keys", "identified_attributes": synthesized_attributes}
+                except json.JSONDecodeError:
+                    logger.warning("Failed to parse Gemini response as JSON")
+                    return {"error": "Gemini response not valid JSON", "identified_attributes": {}}
+            else:
+                logger.error("Gemini model not available, cannot synthesize.")
+                return {"error": "Gemini model not available", "identified_attributes": {}}
+        except Exception as e:
+            logger.error(f"AI synthesis failed: {e}")
+            return {"error": f"Gemini synthesis failed: {e}", "identified_attributes": {}}
 
     def _synthesize_with_fallback(self, expert_outputs: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -443,4 +441,4 @@ You are a world-class AI expert for fashion resale and product identification. Y
 
 def get_aggregator_service():
     """Global getter for easy, safe access to the service instance."""
-    return AggregatorService() 
+    return AggregatorService()

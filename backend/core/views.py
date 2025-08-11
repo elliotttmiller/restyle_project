@@ -43,34 +43,6 @@ class AnalyzeAndPriceView(APIView):
             logger.error(f"Critical error in AnalyzeAndPriceView: {e}", exc_info=True)
             return Response({"error": "An unexpected server error occurred during analysis."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# --- Debugging Endpoints ---
-
-@csrf_exempt
-def debug_view_loading(request):
-    status_messages = []
-    try:
-        from .views import AnalyzeAndPriceView
-        status_messages.append("AnalyzeAndPriceView imported successfully.")
-        try:
-            AnalyzeAndPriceView.as_view() # Try to get the view callable
-            status_messages.append("AnalyzeAndPriceView.as_view() callable.")
-        except Exception as e:
-            status_messages.append(f"Error calling AnalyzeAndPriceView.as_view(): {e}")
-    except Exception as e:
-        status_messages.append(f"Error importing AnalyzeAndPriceView: {e}")
-
-    try:
-        from .market_analysis_service import get_market_analysis_service
-        status_messages.append("get_market_analysis_service imported successfully.")
-        try:
-            service_instance = get_market_analysis_service()
-            status_messages.append(f"MarketAnalysisService instance obtained: {type(service_instance).__name__}")
-        except Exception as e:
-            status_messages.append(f"Error getting MarketAnalysisService instance: {e}")
-    except Exception as e:
-        status_messages.append(f"Error importing get_market_analysis_service: {e}")
-
-    return HttpResponse("<pre>" + "\n".join(status_messages) + "</pre>", content_type="text/html")
 
 # --- Health, System, and Test Endpoints ---
 

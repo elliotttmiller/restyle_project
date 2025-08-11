@@ -10,6 +10,10 @@ import asyncio
 from datetime import datetime
 from typing import List
 from dataclasses import dataclass
+from core.env_handler import load_environment_variables
+
+# Load environment variables from .env file
+load_environment_variables()
 
 @dataclass
 class TestConfig:
