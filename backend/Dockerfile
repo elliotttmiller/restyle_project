@@ -16,6 +16,7 @@ WORKDIR /app
 
 # Install system dependencies required for building Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
