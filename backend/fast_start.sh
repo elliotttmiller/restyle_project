@@ -1,51 +1,21 @@
 #!/bin/bash
+# fast_start.sh
 
-# Fast Railway startup script - optimized for production
+# Exit immediately if a command exits with a non-zero status.
 set -e
 
-# Set library path for Nix libraries
-export LD_LIBRARY_PATH=$(find /nix/store -type d -name lib 2>/dev/null | tr '\n' ':')$LD_LIBRARY_PATH
-
-# Activate virtual environment if it exists
-if [ -d "venv" ]; then
-    source venv/bin/activate
-elif [ -d "/opt/venv" ]; then
-    source /opt/venv/bin/activate
-fi
-
-echo "🚀 Starting Restyle Backend (Optimized)"
-
-# Environment check
-if [ -z "$DATABASE_URL" ]; then
-    echo "❌ DATABASE_URL not set"
-    exit 1
-fi
-
-# Skip database check for faster startup
-echo "⏱️  Skipping database check for health endpoint..."
-
-# Run migrations only if needed
-echo "🔄 Running database migrations..."
+# 1. Run Database Migrations (Runtime Operation)
+echo "INFO: Running database migrations..."
 python manage.py migrate --noinput
 
-# Start the Celery worker in the background
-echo "🔄 Starting Celery worker..."
-celery -A backend.celery_app worker --loglevel=info &
+# 2. Create/Update the Test Superuser (Runtime Operation)
+# This uses the management command we created in previous steps.
+echo "INFO: Ensuring test superuser exists..."
+python manage.py create_test_superuser
 
-# Start optimized Gunicorn
-echo "🌟 Starting Gunicorn server..."
-echo "🌐 Server starting on port $PORT"
-
-exec gunicorn backend.wsgi:application \
-    --bind 0.0.0.0:$PORT \
-    --workers 4 \
-    --worker-class gthread \
-    --threads 4 \
-    --timeout 120 \
-    --keep-alive 2 \
-    --max-requests 1000 \
-    --max-requests-jitter 50 \
-    --preload \
-    --log-level info \
-    --access-logfile - \
-    --error-logfile -
+# 3. Start the Gunicorn Server (Main Process)
+echo "INFO: Starting Gunicorn server with gevent workers..."
+# The 'exec' command replaces the shell process with the Gunicorn process,
+# which is the correct way to run the main container command.
+# This includes the critical gevent worker and timeout fixes.
+exec gunicorn --worker-class gevent --workers 4 --timeout 120 --log-level debug backend.wsgi
