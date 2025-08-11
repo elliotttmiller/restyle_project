@@ -1,130 +1,76 @@
-"""
-Image Encoder Service
-This service is responsible for encoding images into vector embeddings for visual similarity search.
-"""
-import logging
-logger = logging.getLogger(__name__)
 
-
-import numpy as np
-import requests
-from io import BytesIO
-from typing import Optional
+# Advanced CLIP-powered Encoder Service for AI-driven, multi-modal recognition and description
+import io
 import torch
 from PIL import Image
-try:
-    import clip
-except ImportError:
-    clip = None
+import clip
 
 class CLIPImageEncoder:
-    def __init__(self, device: str = "cpu"):
-        if clip is None:
-            raise ImportError("The 'clip' package is required for CLIPImageEncoder. Install with 'pip install git+https://github.com/openai/CLIP.git'.")
-        self.device = device
-        self.model, self.preprocess = clip.load("ViT-B/32", device=device)
+    def __init__(self, model_name="ViT-B/32", device=None):
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.model, self.preprocess = clip.load(model_name, device=self.device)
 
-    def encode(self, image: Image.Image) -> np.ndarray:
+    def encode_image(self, image_bytes):
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         image_input = self.preprocess(image).unsqueeze(0).to(self.device)
         with torch.no_grad():
             image_features = self.model.encode_image(image_input)
-        return image_features.cpu().numpy().flatten()
+        return image_features.cpu().numpy().flatten().tolist()
 
-# Placeholder for a real image model
-# In a real application, this would be a more sophisticated model like CLIP, ResNet, etc.
-# For now, we'll simulate it with a very simple "model"
-class SimpleImageEncoder:
+    def describe_image(self, image_bytes):
+        # Zero-shot description using CLIP and prompt engineering
+        # This is a placeholder for a more advanced Gemini-powered description
+        # In production, this should call Gemini with a prompt including CLIP's top matches
+        labels = [
+            "a photo of a shoe",
+            "a photo of a handbag",
+            "a photo of a dress",
+            "a photo of a shirt",
+            "a photo of a jacket",
+            "a photo of a watch",
+            "a photo of a hat",
+            "a photo of a pair of pants",
+            "a photo of a pair of sunglasses",
+            "a photo of a wallet",
+            "a photo of a belt",
+            "a photo of a scarf",
+            "a photo of a ring",
+            "a photo of a necklace",
+            "a photo of a bracelet",
+            "a photo of a pair of earrings",
+            "a photo of a t-shirt",
+            "a photo of a coat",
+            "a photo of a skirt",
+            "a photo of a sweater",
+        ]
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        image_input = self.preprocess(image).unsqueeze(0).to(self.device)
+        text_inputs = clip.tokenize(labels).to(self.device)
+        with torch.no_grad():
+            image_features = self.model.encode_image(image_input)
+            text_features = self.model.encode_text(text_inputs)
+            logits_per_image, _ = self.model(image_input, text_inputs)
+            probs = logits_per_image.softmax(dim=1).cpu().numpy()[0]
+        best_idx = int(probs.argmax())
+        best_label = labels[best_idx]
+        confidence = float(probs[best_idx])
+        return {
+            "description": best_label,
+            "confidence": confidence,
+            "top_labels": [
+                {"label": label, "confidence": float(prob)}
+                for label, prob in sorted(zip(labels, probs), key=lambda x: -x[1])[:5]
+            ],
+        }
+
+class AdvancedImageEncoder:
     def __init__(self):
-        logger.info("Initializing SimpleImageEncoder")
-        # In a real scenario, you would load model weights here
-        self.model = "simple_placeholder"
+        self.clip_encoder = CLIPImageEncoder()
 
-    def encode(self, image: Image.Image) -> np.ndarray:
-        """
-        Encodes a single image into a vector embedding.
-        """
-        if not isinstance(image, Image.Image):
-            raise TypeError("Input must be a PIL Image")
+    def encode(self, image_bytes):
+        return self.clip_encoder.encode_image(image_bytes)
 
-        # Simulate a complex encoding process by creating a feature vector
-        # based on the image's average color and size.
-        image = image.resize((128, 128)).convert("RGB")
-        
-        # Get average color
-        avg_color = np.array(image).mean(axis=(0, 1))
-        
-        # Get size features
-        width, height = image.size
-        size_features = np.array([width, height])
-        
-        # Combine into a single feature vector (and normalize)
-        feature_vector = np.concatenate([avg_color, size_features])
-        normalized_vector = feature_vector / np.linalg.norm(feature_vector)
-        
-        return normalized_vector.astype(np.float32)
-
-class EncoderService:
-    """
-    Service to handle image encoding using a trained model.
-    """
-    def __init__(self):
-        # Use CLIP if available, else fallback to SimpleImageEncoder
-        if clip is not None:
-            self.model = CLIPImageEncoder(device="cpu")
-            logger.info("EncoderService initialized with CLIPImageEncoder.")
-        else:
-            self.model = SimpleImageEncoder()
-            logger.info("EncoderService initialized with SimpleImageEncoder (fallback).")
-
-    def encode_image_from_data(self, image_data: bytes) -> Optional[np.ndarray]:
-        """
-        Encodes an image from raw bytes.
-        """
-        try:
-            image = Image.open(BytesIO(image_data))
-            return self.model.encode(image)
-        except Exception as e:
-            logger.error(f"Failed to encode image from data: {e}")
-            return None
-
-    def encode_image_from_url(self, image_url: str) -> Optional[np.ndarray]:
-        """
-        Encodes an image from a URL.
-        """
-        try:
-            response = requests.get(image_url, timeout=10)
-            response.raise_for_status()
-            image = Image.open(BytesIO(response.content))
-            return self.model.encode(image)
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to download image from URL {image_url}: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Failed to encode image from URL {image_url}: {e}")
-            return None
-
-_encoder_service_instance = None
-
-def get_encoder_service() -> EncoderService:
-    """
-    Singleton accessor for the EncoderService.
-    """
-    global _encoder_service_instance
-    if _encoder_service_instance is None:
-        _encoder_service_instance = EncoderService()
-    return _encoder_service_instance
-
-if __name__ == '__main__':
-    # Example usage
-    logging.basicConfig(level=logging.INFO)
-    service = get_encoder_service()
-    
-    # Create a dummy image for testing
-    dummy_image = Image.new('RGB', (100, 100), color = 'red')
-    img_byte_arr = BytesIO()
-    dummy_image.save(img_byte_arr, format='PNG')
-    image_data = img_byte_arr.getvalue()
-    
-    embedding = service.encode_image_from_data(image_data)
-    logger.info(f"Generated embedding: {embedding}")
-    logger.info(f"Embedding shape: {embedding.shape}")
+    def describe(self, image_bytes):
+        # In production, this should call Gemini with a prompt that fuses CLIP, Google Vision, AWS Rekognition, etc.
+        # For now, use CLIP zero-shot as a placeholder
+        return self.clip_encoder.describe_image(image_bytes)
