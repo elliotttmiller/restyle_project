@@ -1,3 +1,4 @@
+
 # --- STAGE 1: Builder ---
 FROM python:3.11-slim as builder
 
@@ -6,19 +7,18 @@ WORKDIR /app
 # Set environment variables for a consistent build environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONHASHSEED=random \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VIRTUALENVS_CREATE=false
 
 # Install system dependencies required for building Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only requirements first for better caching
-COPY requirements.txt ./
+# CRITICAL OPTIMIZATION: Copy only the requirements file first
+COPY backend/requirements.txt ./
 
 # Install Python dependencies into a separate directory for the final stage
 RUN pip install --upgrade pip \
@@ -31,13 +31,12 @@ COPY . .
 # --- STAGE 2: Final Image ---
 FROM python:3.11-slim
 
-WORKDIR /app
-
 # Set environment variables for runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONHASHSEED=random \
-    PYTHONPATH=/app
+    PYTHONUNBUFFERED=1
+
+# --- THE CRITICAL FIX: Set the WORKDIR to the Django project root ---
+WORKDIR /app/backend
 
 # Install ONLY runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -51,14 +50,14 @@ RUN addgroup --system app && adduser --system --group app
 # Copy installed Python packages from the builder stage
 COPY --from=builder /install /usr/local
 
-# Copy the application code from the builder stage
+# Copy the application code from the builder stage into /app
 COPY --from=builder --chown=app:app /app /app
 
 # Switch to the non-root user
 USER app
 
 # Ensure the startup script is executable
-RUN chmod +x fast_start.sh
+RUN chmod +x ../fast_start.sh
 
 # The command to run when the container starts
-CMD ["./fast_start.sh"]
+CMD ["../fast_start.sh"]
