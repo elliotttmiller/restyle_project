@@ -5,7 +5,7 @@ WORKDIR /app
 # Install build dependencies and Python packages in one layer
 COPY requirements.txt .
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libpq-dev libjpeg-dev libpng-dev libfreetype6-dev \
+    git build-essential libpq-dev libjpeg-dev libpng-dev libfreetype6-dev \
     && pip install --upgrade pip \
     && pip install --prefix=/install torch torchvision --index-url https://download.pytorch.org/whl/cpu \
     && pip install --prefix=/install -r requirements.txt \
@@ -18,7 +18,7 @@ WORKDIR /app
 
 # Install runtime deps, copy packages, and setup in one layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 libglib2.0-0 libsm6 libxext6 libxrender1 \
+    git libpq5 libglib2.0-0 libsm6 libxext6 libxrender1 \
     libjpeg62-turbo libpng16-16 libfreetype6 \
     && rm -rf /var/lib/apt/lists/*
 
