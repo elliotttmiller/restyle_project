@@ -1,7 +1,7 @@
 
 
+
 # --- STAGE 1: Builder ---
-# Use the full 'bullseye' image for more reliable builds in resource-constrained environments.
 FROM python:3.11-bullseye as builder
 
 WORKDIR /app
@@ -12,14 +12,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install only the absolutely essential build dependencies.
-# The 'bullseye' image already has many tools pre-installed.
+# Install only essential build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# CRITICAL OPTIMIZATION: Copy only the requirements file first
+# Copy only requirements for better caching
 COPY backend/requirements.txt ./
 
 # Install Python dependencies into a separate directory for the final stage
@@ -31,8 +31,8 @@ RUN pip install --upgrade pip \
 COPY . .
 
 
+
 # --- STAGE 2: Final Image ---
-# We switch back to the 'slim' image for the final stage to keep it small.
 FROM python:3.11-slim
 
 # Set environment variables for runtime
@@ -42,10 +42,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Set the correct WORKDIR for Django
 WORKDIR /app/backend
 
-# Install ONLY the essential runtime system dependencies
+# Install ONLY the essential runtime system dependencies (remove libglib2.0-0 unless strictly needed)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # SECURITY ENHANCEMENT: Create a non-root user
