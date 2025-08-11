@@ -1,6 +1,8 @@
 
+
 # --- STAGE 1: Builder ---
-FROM python:3.11-slim as builder
+# Use the full 'bullseye' image for more reliable builds in resource-constrained environments.
+FROM python:3.11-bullseye as builder
 
 WORKDIR /app
 
@@ -8,10 +10,10 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    POETRY_VIRTUALENVS_CREATE=false
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies required for building Python packages
+# Install only the absolutely essential build dependencies.
+# The 'bullseye' image already has many tools pre-installed.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -28,29 +30,31 @@ RUN pip install --upgrade pip \
 # Now, copy the rest of the application source code
 COPY . .
 
+
 # --- STAGE 2: Final Image ---
+# We switch back to the 'slim' image for the final stage to keep it small.
 FROM python:3.11-slim
 
 # Set environment variables for runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# --- THE CRITICAL FIX: Set the WORKDIR to the Django project root ---
+# Set the correct WORKDIR for Django
 WORKDIR /app/backend
 
-# Install ONLY runtime system dependencies
+# Install ONLY the essential runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# SECURITY ENHANCEMENT: Create a non-root user to run the application
+# SECURITY ENHANCEMENT: Create a non-root user
 RUN addgroup --system app && adduser --system --group app
 
 # Copy installed Python packages from the builder stage
 COPY --from=builder /install /usr/local
 
-# Copy the application code from the builder stage into /app
+# Copy the application code from the builder stage
 COPY --from=builder --chown=app:app /app /app
 
 # Switch to the non-root user
