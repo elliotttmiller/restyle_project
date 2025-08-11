@@ -14,7 +14,7 @@ import google.generativeai as genai
 from django.conf import settings
 import numpy as np
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('core.ai_service')
 
 class AggregatorService:
     """
@@ -243,12 +243,13 @@ class AggregatorService:
                     for obj in response.localized_object_annotations[:5]
                 ]
 
-            # Extract text (OCR)
+            # Extract text (OCR) and filter low-confidence (score >= 0.8)
             text_annotations = []
             if hasattr(response, "text_annotations") and response.text_annotations:
                 text_annotations = [
                     {
                         'description': text.description,
+                        'score': getattr(text, 'score', 1.0),
                         'bounding_poly': {
                             'vertices': [
                                 {'x': vertex.x, 'y': vertex.y}
@@ -257,6 +258,7 @@ class AggregatorService:
                         }
                     }
                     for text in response.text_annotations[:10]
+                    if getattr(text, 'score', 1.0) >= 0.8
                 ]
 
             # Extract dominant colors
@@ -344,10 +346,11 @@ class AggregatorService:
             # DEBUG: Log raw AWS Rekognition text response
             logger.info(f"[DEBUG] Raw AWS Rekognition text response: {text_response}")
             
+            # Filter out low-confidence OCR results (confidence >= 80)
             detected_text = []
             if 'TextDetections' in text_response:
                 for text_detection in text_response['TextDetections']:
-                    if text_detection['Type'] == 'LINE':
+                    if text_detection['Type'] == 'LINE' and text_detection['Confidence'] >= 80.0:
                         detected_text.append({
                             'text': text_detection['DetectedText'],
                             'confidence': text_detection['Confidence'],
@@ -378,8 +381,11 @@ class AggregatorService:
         # Extract all candidate terms from web entities, objects, and detected text
         web_entities = [e['description'] for e in google_data.get('web_entities', []) if e.get('description')]
         objects = [o['name'] for o in google_data.get('objects', []) if o.get('name')]
-        detected_text = [t['text'] for t in aws_data.get('detected_text', []) if t.get('text')]
-        all_terms = web_entities + objects + detected_text
+        aws_texts = set(t['text'] for t in aws_data.get('detected_text', []) if t.get('text'))
+        google_texts = set(t['description'] for t in google_data.get('text_annotations', []) if t.get('description'))
+        # Consensus: prefer intersection, else union
+        consensus_texts = list(aws_texts & google_texts) if aws_texts and google_texts else list(aws_texts | google_texts)
+        all_terms = web_entities + objects + consensus_texts
         prompt = f'''
 You are a world-class AI expert for fashion resale and product identification. Your task is to analyze raw JSON data from Google Vision and AWS Rekognition, extract all key item terms (objects, web entities, detected text), and then act as a cutting-edge query builder. Your goal is to generate the most accurate, human-like search query for eBay to find this item, as if you were a top-tier eBay power user.
 
@@ -421,27 +427,33 @@ You are a world-class AI expert for fashion resale and product identification. Y
         """
         Uses Gemini to intelligently synthesize expert outputs and generate an optimized eBay search query.
         """
+        logger.info("[GEMINI] Entered _synthesize_with_gemini. Attempting Gemini synthesis.")
         try:
             if self._gemini_model:
                 prompt = self._build_gemini_prompt(expert_outputs)
+                logger.info(f"[GEMINI] Prompt sent to Gemini: {prompt}")
                 response = self._gemini_model.generate_content(prompt)
+                raw_response = response.text if hasattr(response, 'text') else str(response)
+                logger.info(f"[GEMINI] Raw Gemini response: {raw_response}")
                 try:
-                    synthesized_attributes = json.loads(response.text)
+                    synthesized_attributes = json.loads(raw_response)
                     required_keys = ["product_name", "brand", "category", "colors", "confidence_score", "ebay_search_query"]
                     if all(k in synthesized_attributes for k in required_keys):
-                        logger.info(f"Gemini AI synthesis successful: {synthesized_attributes}")
+                        logger.info(f"[GEMINI] Gemini AI synthesis successful: {synthesized_attributes}")
                         return synthesized_attributes
                     else:
-                        logger.error(f"Gemini output missing required keys: {synthesized_attributes}")
-                        return {"error": "Gemini output missing required keys", "identified_attributes": synthesized_attributes}
+                        logger.error(f"[GEMINI] Gemini output missing required keys: {synthesized_attributes}")
+                        logger.error(f"[GEMINI] Raw Gemini response: {raw_response}")
+                        return {"error": "Gemini output missing required keys", "identified_attributes": synthesized_attributes, "raw_gemini_response": raw_response}
                 except json.JSONDecodeError:
-                    logger.warning("Failed to parse Gemini response as JSON")
-                    return {"error": "Gemini response not valid JSON", "identified_attributes": {}}
+                    logger.warning("[GEMINI] Failed to parse Gemini response as JSON")
+                    logger.error(f"[GEMINI] Raw Gemini response: {raw_response}")
+                    return {"error": "Gemini response not valid JSON", "identified_attributes": {}, "raw_gemini_response": raw_response}
             else:
-                logger.error("Gemini model not available, cannot synthesize.")
+                logger.error("[GEMINI] Gemini model not available, cannot synthesize.")
                 return {"error": "Gemini model not available", "identified_attributes": {}}
         except Exception as e:
-            logger.error(f"AI synthesis failed: {e}")
+            logger.error(f"[GEMINI] AI synthesis failed: {e}")
             return {"error": f"Gemini synthesis failed: {e}", "identified_attributes": {}}
 
     def _synthesize_with_fallback(self, expert_outputs: Dict[str, Any]) -> Dict[str, Any]:

@@ -23,7 +23,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 import logging
 from pathlib import Path
-from core.env_handler import load_environment_variables
+from backend.core.env_handler import load_environment_variables
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -73,8 +73,8 @@ INSTALLED_APPS = [
     # 'rest_framework_simplejwt',  # Still disabled - install via pip needed
     
     # Our Custom Apps
-    'users.apps.UsersConfig',
-    'core.apps.CoreConfig',  # Re-enabled core app
+    'backend.users.apps.UsersConfig',
+    'backend.core.apps.CoreConfig',  # Re-enabled core app
 ]
 
 MIDDLEWARE = [
