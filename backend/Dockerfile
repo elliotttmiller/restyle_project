@@ -98,8 +98,6 @@ RUN [ -f fast_start.sh ] && chmod +x fast_start.sh || true
 
 
 
-# Run migrations and create test superuser
-RUN python manage.py migrate && python run_create_test_superuser.py
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
