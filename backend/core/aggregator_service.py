@@ -107,35 +107,96 @@ class AggregatorService:
             self._initialize_clients()
         return self._gemini_model
 
-    def run_full_analysis(self, image_data: bytes) -> Dict[str, Any]:
+    async def run_full_analysis(self, image_data: bytes) -> Dict[str, Any]:
         """
-        Runs the full multi-expert analysis pipeline.
+        Async: runs all model calls in parallel, then fuses and clusters results for richer output.
         """
-        logger.info("Starting multi-expert AI analysis pipeline...")
-        expert_outputs = {}
-        threads = [
-            Thread(target=self._call_google_vision, args=(image_data, expert_outputs)),
-            Thread(target=self._call_aws_rekognition, args=(image_data, expert_outputs)),
-            Thread(target=self._call_clip_encoder, args=(image_data, expert_outputs)),
-        ]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        logger.info(f"Expert outputs collected: {list(expert_outputs.keys())}")
-        # Add user-facing error messages for missing/failed services
-        errors = {}
-        for key in ["google_vision", "aws_rekognition", "clip_encoder"]:
-            if key not in expert_outputs or not expert_outputs.get(key, {}).get("success", False):
-                err = expert_outputs.get(key, {}).get("error", f"{key} did not return a successful result.")
-                errors[key] = err
-        if errors:
-            expert_outputs["service_errors"] = errors
-        if self.gemini_model:
-            return self._synthesize_with_gemini(expert_outputs)
-        else:
-            logger.error("Gemini model is not available. AI-driven synthesis required.")
-            return {"error": "Gemini model is not available. AI-driven synthesis required.", "identified_attributes": {}, "service_errors": errors}
+        import asyncio
+        logger.info("Starting async multi-expert AI analysis pipeline...")
+        # Run all model calls in parallel
+        results = await asyncio.gather(
+            self._call_google_vision_async(image_data),
+            self._call_aws_rekognition_async(image_data),
+            self._call_clip_encoder_async(image_data),
+            return_exceptions=True
+        )
+        expert_outputs = {
+            'google_vision': results[0] if isinstance(results[0], dict) else {'error': str(results[0]), 'success': False},
+            'aws_rekognition': results[1] if isinstance(results[1], dict) else {'error': str(results[1]), 'success': False},
+            'clip_encoder': results[2] if isinstance(results[2], dict) else {'error': str(results[2]), 'success': False},
+        }
+        # Multimodal fusion
+        fused = await self._multimodal_fusion(expert_outputs)
+        # Semantic clustering and attribute consensus
+        consensus = await self._semantic_clustering_and_consensus(fused)
+        # Compose final output
+        output = {**fused, **consensus}
+        return output
+
+    async def _call_google_vision_async(self, image_data: bytes) -> dict:
+        loop = __import__('asyncio').get_event_loop()
+        return await loop.run_in_executor(None, lambda: self._call_google_vision_sync(image_data))
+
+    def _call_google_vision_sync(self, image_data: bytes) -> dict:
+        output = {}
+        self._call_google_vision(image_data, output)
+        return output.get('google_vision', output)
+
+    async def _call_aws_rekognition_async(self, image_data: bytes) -> dict:
+        loop = __import__('asyncio').get_event_loop()
+        return await loop.run_in_executor(None, lambda: self._call_aws_rekognition_sync(image_data))
+
+    def _call_aws_rekognition_sync(self, image_data: bytes) -> dict:
+        output = {}
+        self._call_aws_rekognition(image_data, output)
+        return output.get('aws_rekognition', output)
+
+    async def _call_clip_encoder_async(self, image_data: bytes) -> dict:
+        loop = __import__('asyncio').get_event_loop()
+        return await loop.run_in_executor(None, lambda: self._call_clip_encoder_sync(image_data))
+
+    def _call_clip_encoder_sync(self, image_data: bytes) -> dict:
+        output = {}
+        self._call_clip_encoder(image_data, output)
+        return output.get('clip_encoder', output)
+
+    async def _multimodal_fusion(self, expert_outputs: dict) -> dict:
+        """Combine all model outputs into a single fused representation."""
+        # Simple fusion: merge all keys, prefer non-empty, add provenance
+        fused = {'fused_outputs': {}, 'provenance': {}}
+        for k, v in expert_outputs.items():
+            if v.get('success'):
+                fused['fused_outputs'][k] = v
+                fused['provenance'][k] = 'success'
+            else:
+                fused['provenance'][k] = v.get('error', 'error')
+        return fused
+
+    async def _semantic_clustering_and_consensus(self, fused: dict) -> dict:
+        """Cluster and synthesize attributes from all model outputs for richer, human-like results."""
+        from collections import defaultdict
+        all_terms = []
+        for model_out in fused.get('fused_outputs', {}).values():
+            for key in ['web_entities', 'objects', 'labels', 'detected_text', 'text_annotations', 'description', 'top_labels']:
+                val = model_out.get(key)
+                if isinstance(val, list):
+                    for item in val:
+                        if isinstance(item, dict):
+                            all_terms.extend([str(v) for v in item.values() if isinstance(v, str)])
+                        elif isinstance(item, str):
+                            all_terms.append(item)
+                elif isinstance(val, str):
+                    all_terms.append(val)
+        # Simple clustering: group by lowercase, count frequency
+        clusters = defaultdict(list)
+        for term in all_terms:
+            clusters[term.lower()].append(term)
+        # Attribute consensus: most common terms
+        consensus = {
+            'semantic_clusters': dict(clusters),
+            'top_attributes': sorted([(k, len(v)) for k, v in clusters.items()], key=lambda x: -x[1])[:10]
+        }
+        return consensus
 
     def _call_google_vision(self, image_data: bytes, output: Dict[str, Any]):
         """Calls Google Vision API for its expert opinion."""
@@ -152,8 +213,84 @@ class AggregatorService:
             })
             # DEBUG: Log raw Google Vision response
             logger.info(f"[DEBUG] Raw Google Vision response: {response}")
-            
+
             # Extract web entities (most powerful for product identification)
+            web_entities = []
+            if hasattr(response, "web_detection") and response.web_detection.web_entities:
+                web_entities = [
+                    {
+                        'description': entity.description,
+                        'score': entity.score,
+                        'entity_id': entity.entity_id
+                    }
+                    for entity in response.web_detection.web_entities[:10]
+                ]
+
+            # Extract localized objects
+            objects = []
+            if hasattr(response, "localized_object_annotations") and response.localized_object_annotations:
+                objects = [
+                    {
+                        'name': obj.name,
+                        'confidence': obj.score,
+                        'bounding_poly': {
+                            'vertices': [
+                                {'x': vertex.x, 'y': vertex.y}
+                                for vertex in obj.bounding_poly.vertices
+                            ]
+                        }
+                    }
+                    for obj in response.localized_object_annotations[:5]
+                ]
+
+            # Extract text (OCR)
+            text_annotations = []
+            if hasattr(response, "text_annotations") and response.text_annotations:
+                text_annotations = [
+                    {
+                        'description': text.description,
+                        'bounding_poly': {
+                            'vertices': [
+                                {'x': vertex.x, 'y': vertex.y}
+                                for vertex in text.bounding_poly.vertices
+                            ]
+                        }
+                    }
+                    for text in response.text_annotations[:10]
+                ]
+
+            # Extract dominant colors
+            dominant_colors = []
+            if hasattr(response, "image_properties_annotation") and hasattr(response.image_properties_annotation, "dominant_colors") and response.image_properties_annotation.dominant_colors.colors:
+                dominant_colors = [
+                    {
+                        'color': {
+                            'red': color.color.red,
+                            'green': color.color.green,
+                            'blue': color.color.blue
+                        },
+                        'score': color.score,
+                        'pixel_fraction': color.pixel_fraction
+                    }
+                    for color in response.image_properties_annotation.dominant_colors.colors[:5]
+                ]
+
+            output['google_vision'] = {
+                'web_entities': web_entities,
+                'objects': objects,
+                'text_annotations': text_annotations,
+                'dominant_colors': dominant_colors,
+                'success': True
+            }
+
+            logger.info(f"Google Vision analysis completed: {len(web_entities)} web entities, {len(objects)} objects")
+
+        except Exception as e:
+            logger.error(f"Google Vision API error: {e}")
+            output['google_vision'] = {
+                'error': str(e),
+                'success': False
+            }
 
     def _call_clip_encoder(self, image_data: bytes, output: Dict[str, Any]):
         """Calls the CLIP/encoder service for semantic description and embedding."""
@@ -173,82 +310,6 @@ class AggregatorService:
         except Exception as e:
             logger.error(f"CLIP/encoder error: {e}")
             output['clip_encoder'] = {
-                'error': str(e),
-                'success': False
-            }
-            web_entities = []
-            if response.web_detection.web_entities:
-                web_entities = [
-                    {
-                        'description': entity.description,
-                        'score': entity.score,
-                        'entity_id': entity.entity_id
-                    }
-                    for entity in response.web_detection.web_entities[:10]
-                ]
-            
-            # Extract localized objects
-            objects = []
-            if response.localized_object_annotations:
-                objects = [
-                    {
-                        'name': obj.name,
-                        'confidence': obj.score,
-                        'bounding_poly': {
-                            'vertices': [
-                                {'x': vertex.x, 'y': vertex.y}
-                                for vertex in obj.bounding_poly.vertices
-                            ]
-                        }
-                    }
-                    for obj in response.localized_object_annotations[:5]
-                ]
-            
-            # Extract text (OCR)
-            text_annotations = []
-            if response.text_annotations:
-                text_annotations = [
-                    {
-                        'description': text.description,
-                        'bounding_poly': {
-                            'vertices': [
-                                {'x': vertex.x, 'y': vertex.y}
-                                for vertex in text.bounding_poly.vertices
-                            ]
-                        }
-                    }
-                    for text in response.text_annotations[:10]
-                ]
-            
-            # Extract dominant colors
-            dominant_colors = []
-            if response.image_properties_annotation.dominant_colors.colors:
-                dominant_colors = [
-                    {
-                        'color': {
-                            'red': color.color.red,
-                            'green': color.color.green,
-                            'blue': color.color.blue
-                        },
-                        'score': color.score,
-                        'pixel_fraction': color.pixel_fraction
-                    }
-                    for color in response.image_properties_annotation.dominant_colors.colors[:5]
-                ]
-            
-            output['google_vision'] = {
-                'web_entities': web_entities,
-                'objects': objects,
-                'text_annotations': text_annotations,
-                'dominant_colors': dominant_colors,
-                'success': True
-            }
-            
-            logger.info(f"Google Vision analysis completed: {len(web_entities)} web entities, {len(objects)} objects")
-            
-        except Exception as e:
-            logger.error(f"Google Vision API error: {e}")
-            output['google_vision'] = {
                 'error': str(e),
                 'success': False
             }
