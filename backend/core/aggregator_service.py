@@ -116,17 +116,26 @@ class AggregatorService:
         threads = [
             Thread(target=self._call_google_vision, args=(image_data, expert_outputs)),
             Thread(target=self._call_aws_rekognition, args=(image_data, expert_outputs)),
+            Thread(target=self._call_clip_encoder, args=(image_data, expert_outputs)),
         ]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
         logger.info(f"Expert outputs collected: {list(expert_outputs.keys())}")
+        # Add user-facing error messages for missing/failed services
+        errors = {}
+        for key in ["google_vision", "aws_rekognition", "clip_encoder"]:
+            if key not in expert_outputs or not expert_outputs.get(key, {}).get("success", False):
+                err = expert_outputs.get(key, {}).get("error", f"{key} did not return a successful result.")
+                errors[key] = err
+        if errors:
+            expert_outputs["service_errors"] = errors
         if self.gemini_model:
             return self._synthesize_with_gemini(expert_outputs)
         else:
             logger.error("Gemini model is not available. AI-driven synthesis required.")
-            return {"error": "Gemini model is not available. AI-driven synthesis required.", "identified_attributes": {}}
+            return {"error": "Gemini model is not available. AI-driven synthesis required.", "identified_attributes": {}, "service_errors": errors}
 
     def _call_google_vision(self, image_data: bytes, output: Dict[str, Any]):
         """Calls Google Vision API for its expert opinion."""
@@ -145,6 +154,28 @@ class AggregatorService:
             logger.info(f"[DEBUG] Raw Google Vision response: {response}")
             
             # Extract web entities (most powerful for product identification)
+
+    def _call_clip_encoder(self, image_data: bytes, output: Dict[str, Any]):
+        """Calls the CLIP/encoder service for semantic description and embedding."""
+        try:
+            from backend.core.encoder_service import get_encoder_service
+            encoder = get_encoder_service()
+            description_result = encoder.describe(image_data)
+            embedding_result = encoder.encode(image_data)
+            output['clip_encoder'] = {
+                'description': description_result.get('description'),
+                'confidence': description_result.get('confidence'),
+                'top_labels': description_result.get('top_labels'),
+                'embedding': embedding_result,
+                'success': True
+            }
+            logger.info(f"CLIP/encoder analysis completed: {description_result.get('description')}")
+        except Exception as e:
+            logger.error(f"CLIP/encoder error: {e}")
+            output['clip_encoder'] = {
+                'error': str(e),
+                'success': False
+            }
             web_entities = []
             if response.web_detection.web_entities:
                 web_entities = [
@@ -398,7 +429,14 @@ You are a world-class AI expert for fashion resale and product identification. Y
             confidence += 0.3
         if aws_data.get('success'):
             confidence += 0.2
-        
+
+        # Integrate CLIP/encoder description if available
+        clip_data = expert_outputs.get('clip_encoder', {})
+        clip_description = clip_data.get('description')
+        if clip_description and isinstance(clip_description, str):
+            if not product_name:
+                product_name = clip_description
+
         return {
             "product_name": product_name,
             "brand": brand,
@@ -411,11 +449,11 @@ You are a world-class AI expert for fashion resale and product identification. Y
             "expert_agreement": {
                 "google_vision_confidence": 0.8 if google_data.get('success') else 0.0,
                 "aws_rekognition_confidence": 0.7 if aws_data.get('success') else 0.0,
+                "clip_encoder_confidence": clip_data.get('confidence', 0.0) if clip_data.get('success') else 0.0,
                 "overall_agreement": confidence
             }
         }
 
-    def _get_color_name(self, r: int, g: int, b: int) -> Optional[str]:
         """Simple color name mapping."""
         # Basic color detection
         if r > 200 and g < 100 and b < 100:

@@ -1,3 +1,10 @@
+# Singleton getter for AdvancedImageEncoder
+_encoder_instance = None
+def get_encoder_service():
+    global _encoder_instance
+    if _encoder_instance is None:
+        _encoder_instance = AdvancedImageEncoder()
+    return _encoder_instance
 
 # Advanced CLIP-powered Encoder Service for AI-driven, multi-modal recognition and description
 import io
