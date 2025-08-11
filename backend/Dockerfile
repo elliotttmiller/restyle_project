@@ -29,8 +29,11 @@ ENV PYTHONPATH=/app
 
 RUN [ -f fast_start.sh ] && chmod +x fast_start.sh || true
 
+
 # Debug: List files in backend directory
 RUN ls -l backend/
+# Debug: List files in backend/core directory
+RUN ls -l backend/core/
 
 # Run migrations and create test superuser
 RUN python manage.py migrate && python run_create_test_superuser.py

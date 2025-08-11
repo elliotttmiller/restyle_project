@@ -56,7 +56,7 @@ def main():
         from PIL import Image
         from io import BytesIO
         pil_image = Image.open(BytesIO(image_bytes))
-        # Try both new and legacy method names for compatibility
+        # Using new method names for compatibility
         if hasattr(encoder, 'encode_image') and hasattr(encoder, 'describe_image'):
             embedding = encoder.encode_image(pil_image)
             description = encoder.describe_image(pil_image)

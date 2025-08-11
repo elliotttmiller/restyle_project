@@ -28,10 +28,11 @@ class AggregatorService:
         if cls._instance is None:
             cls._instance = super(AggregatorService, cls).__new__(cls)
             # Lazy initialization - don't initialize clients until needed
+            cls._instance._initialized = False
             cls._instance._google_vision_client = None
             cls._instance._aws_rekognition_client = None
             cls._instance._gemini_model = None
-            cls._instance._initialized = False
+        
         return cls._instance
     
     def _initialize_clients(self):
@@ -132,6 +133,106 @@ class AggregatorService:
         # Compose final output
         output = {**fused, **consensus}
         return output
+
+    def _call_google_vision(self, image_data: bytes, output: Dict[str, Any]):
+        """Calls Google Vision API for its expert opinion."""
+        try:
+            image = vision.Image(content=image_data)
+            response = self.google_vision_client.annotate_image({
+                'image': image,
+                'features': [
+                    {'type_': vision.Feature.Type.WEB_DETECTION},
+                    {'type_': vision.Feature.Type.OBJECT_LOCALIZATION},
+                    {'type_': vision.Feature.Type.TEXT_DETECTION},
+                    {'type_': vision.Feature.Type.IMAGE_PROPERTIES},
+                ],
+            })
+            # DEBUG: Log raw Google Vision response
+            logger.info(f"[DEBUG] Raw Google Vision response: {response}")
+
+            # Extract web entities (most powerful for product identification)
+            web_entities = []
+            if hasattr(response, "web_detection") and response.web_detection.web_entities:
+                web_entities = [
+                    {
+                        'description': entity.description,
+                        'score': entity.score,
+                        'entity_id': entity.entity_id
+                    }
+                    for entity in response.web_detection.web_entities[:10]
+                ]
+
+            # Extract localized objects
+            objects = []
+            if hasattr(response, "localized_object_annotations") and response.localized_object_annotations:
+                objects = [
+                    {
+                        'name': obj.name,
+                        'confidence': obj.score,
+                        'bounding_poly': {
+                            'vertices': [
+                                {'x': vertex.x, 'y': vertex.y}
+                                for vertex in obj.bounding_poly.vertices
+                            ]
+                        }
+                    }
+                    for obj in response.localized_object_annotations[:5]
+                ]
+
+            # Extract text (OCR) and filter low-confidence (score >= 0.8)
+            text_annotations = []
+            if hasattr(response, "text_annotations") and response.text_annotations:
+                text_annotations = [
+                    {
+                        'description': text.description,
+                        'score': getattr(text, 'score', 1.0),
+                        'bounding_poly': {
+                            'vertices': [
+                                {'x': vertex.x, 'y': vertex.y}
+                                for vertex in text.bounding_poly.vertices
+                            ]
+                        }
+                    }
+                    for text in response.text_annotations[:10]
+                    if getattr(text, 'score', 1.0) >= 0.8
+                ]
+
+            # Extract dominant colors
+            dominant_colors = []
+            if hasattr(response, "image_properties_annotation") and hasattr(response.image_properties_annotation, "dominant_colors") and response.image_properties_annotation.dominant_colors.colors:
+                dominant_colors = [
+                    {
+                        'color': {
+                            'red': color.color.red,
+                            'green': color.color.green,
+                            'blue': color.color.blue
+                        },
+                        'score': color.score,
+                        'pixel_fraction': color.pixel_fraction
+                    }
+                    for color in response.image_properties_annotation.dominant_colors.colors[:5]
+                ]
+
+            output['google_vision'] = {
+                'web_entities': web_entities,
+                'objects': objects,
+                'text_annotations': text_annotations,
+                'dominant_colors': dominant_colors,
+                'success': True
+            }
+
+            logger.info(f"Google Vision analysis completed: {len(web_entities)} web entities, {len(objects)} objects")
+
+        except Exception as e:
+            logger.error(f"Google Vision API error: {e}")
+            output['google_vision'] = {
+                'error': str(e),
+                'success': False
+            }
+
+def get_aggregator_service():
+    """Global getter for easy, safe access to the service instance."""
+    return AggregatorService()
 
     async def _call_google_vision_async(self, image_data: bytes) -> dict:
         loop = __import__('asyncio').get_event_loop()
