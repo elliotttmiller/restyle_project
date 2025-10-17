@@ -1,122 +1,171 @@
 // File: frontend/src/components/Navbar.js
 
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 
 const Navbar = () => {
   const { isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  // Inline styles for the component with dark theme
+  const isActive = (path) => location.pathname === path;
+
+  // Modern glassmorphism navbar
   const navStyle = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '1rem 2rem',
-    backgroundColor: 'var(--surface-color)',
-    borderBottom: '1px solid var(--border-color)',
-    boxShadow: 'var(--shadow-md)',
-    backdropFilter: 'blur(10px)',
+    padding: '1.25rem 3rem',
+    background: 'var(--surface-glass)',
+    backdropFilter: 'blur(20px)',
+    borderBottom: '1px solid var(--glass-border)',
+    boxShadow: 'var(--shadow-lg)',
     position: 'sticky',
     top: 0,
     zIndex: 1000,
   };
 
-  const navLinksStyle = {
+  const logoContainerStyle = {
     display: 'flex',
     alignItems: 'center',
-    gap: '1.5rem',
+    gap: '0.75rem',
   };
 
   const logoStyle = {
     textDecoration: 'none',
-    color: 'var(--primary-color)',
     fontSize: '1.75rem',
     fontWeight: '800',
-    letterSpacing: '-0.025em',
-    textShadow: '0 0 20px rgba(139, 92, 246, 0.3)',
+    letterSpacing: '-0.02em',
+    background: 'var(--primary-gradient)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    transition: 'transform var(--transition-base)',
   };
 
-  const linkStyle = {
+  const betaBadgeStyle = {
+    fontSize: '0.625rem',
+    fontWeight: '700',
+    padding: '0.25rem 0.5rem',
+    borderRadius: 'var(--radius-full)',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: 'white',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  };
+
+  const navLinksStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  };
+
+  const linkStyle = (active) => ({
     textDecoration: 'none',
-    color: 'var(--text-secondary)',
-    fontWeight: '500',
-    padding: '10px 16px',
-    borderRadius: '8px',
-    transition: 'all 0.2s ease-in-out',
+    color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+    fontWeight: '600',
+    fontSize: '0.9375rem',
+    padding: '0.625rem 1rem',
+    borderRadius: 'var(--radius-lg)',
+    transition: 'all var(--transition-base)',
     position: 'relative',
-  };
-  
-  const activeLinkStyle = {
-    ...linkStyle,
-    color: 'var(--primary-color)',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-  };
+    background: active ? 'rgba(102, 126, 234, 0.15)' : 'transparent',
+    border: active ? '1px solid rgba(102, 126, 234, 0.3)' : '1px solid transparent',
+  });
 
   const buttonStyle = {
-    backgroundColor: 'var(--primary-color)',
+    background: 'var(--primary-gradient)',
     color: 'var(--text-primary)',
     border: 'none',
-    padding: '10px 20px',
-    borderRadius: '8px',
-    fontWeight: '600',
+    padding: '0.625rem 1.25rem',
+    borderRadius: 'var(--radius-lg)',
+    fontWeight: '700',
+    fontSize: '0.9375rem',
     cursor: 'pointer',
-    transition: 'all 0.2s ease-in-out',
-    boxShadow: 'var(--shadow-sm)',
+    transition: 'all var(--transition-base)',
+    boxShadow: 'var(--shadow-md)',
+    position: 'relative',
+    overflow: 'hidden',
   };
 
   return (
     <nav style={navStyle}>
-      <Link to="/" style={logoStyle}>
-        Restyle
-      </Link>
+      <div style={logoContainerStyle}>
+        <Link 
+          to="/" 
+          style={logoStyle}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <span>✨</span>
+          Restyle.ai
+        </Link>
+        <span style={betaBadgeStyle}>Beta</span>
+      </div>
+      
       <div style={navLinksStyle}>
         {isAuthenticated ? (
           <>
             <Link 
               to="/" 
-              style={linkStyle} 
-              onMouseOver={e => {
-                e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                e.currentTarget.style.color = 'var(--text-primary)';
+              style={linkStyle(isActive('/'))}
+              onMouseEnter={(e) => {
+                if (!isActive('/')) {
+                  e.currentTarget.style.background = 'var(--surface-hover)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }
               }} 
-              onMouseOut={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = 'var(--text-secondary)';
+              onMouseLeave={(e) => {
+                if (!isActive('/')) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }
               }}
             >
               Dashboard
             </Link>
             <Link 
               to="/inventory" 
-              style={linkStyle} 
-              onMouseOver={e => {
-                e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                e.currentTarget.style.color = 'var(--text-primary)';
+              style={linkStyle(isActive('/inventory'))}
+              onMouseEnter={(e) => {
+                if (!isActive('/inventory')) {
+                  e.currentTarget.style.background = 'var(--surface-hover)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }
               }} 
-              onMouseOut={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = 'var(--text-secondary)';
+              onMouseLeave={(e) => {
+                if (!isActive('/inventory')) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }
               }}
             >
               Inventory
             </Link>
             <Link 
               to="/listings" 
-              style={linkStyle} 
-              onMouseOver={e => {
-                e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                e.currentTarget.style.color = 'var(--text-primary)';
+              style={linkStyle(isActive('/listings'))}
+              onMouseEnter={(e) => {
+                if (!isActive('/listings')) {
+                  e.currentTarget.style.background = 'var(--surface-hover)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }
               }} 
-              onMouseOut={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = 'var(--text-secondary)';
+              onMouseLeave={(e) => {
+                if (!isActive('/listings')) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }
               }}
             >
               Listings
@@ -124,15 +173,13 @@ const Navbar = () => {
             <button 
               onClick={handleLogout}
               style={buttonStyle}
-              onMouseOver={e => {
-                e.currentTarget.style.backgroundColor = 'var(--primary-hover)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-primary)';
               }}
-              onMouseOut={e => {
-                e.currentTarget.style.backgroundColor = 'var(--primary-color)';
+              onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
               }}
             >
               Logout
@@ -142,28 +189,32 @@ const Navbar = () => {
           <>
             <Link 
               to="/login" 
-              style={linkStyle} 
-              onMouseOver={e => {
-                e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                e.currentTarget.style.color = 'var(--text-primary)';
+              style={linkStyle(isActive('/login'))}
+              onMouseEnter={(e) => {
+                if (!isActive('/login')) {
+                  e.currentTarget.style.background = 'var(--surface-hover)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }
               }} 
-              onMouseOut={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = 'var(--text-secondary)';
+              onMouseLeave={(e) => {
+                if (!isActive('/login')) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }
               }}
             >
               Login
             </Link>
             <Link 
               to="/register" 
-              style={linkStyle} 
-              onMouseOver={e => {
-                e.currentTarget.style.backgroundColor = 'var(--surface-hover)';
-                e.currentTarget.style.color = 'var(--text-primary)';
+              style={{...linkStyle(isActive('/register')), ...buttonStyle, display: 'inline-block'}}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-primary)';
               }} 
-              onMouseOut={e => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = 'var(--text-secondary)';
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
               }}
             >
               Sign Up
